@@ -1,0 +1,242 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  /* ── Light mode — uses the pale end of the #AC00A0 palette ── */
+  :root {
+    --background:        304 100% 99%;   /* near-white with a hint of violet */
+    --foreground:        304 100% 8%;    /* deep purple-black for body text   */
+
+    --card:              304 60%  97%;
+    --card-foreground:   304 100% 8%;
+
+    --popover:           304 60%  97%;
+    --popover-foreground:304 100% 8%;
+
+    /* Primary = base colour #AC00A0 */
+    --primary:           304 100% 34%;
+    --primary-foreground:0   0%   100%;
+
+    --secondary:         304 30%  92%;
+    --secondary-foreground:304 100% 20%;
+
+    --muted:             304 20%  94%;
+    --muted-foreground:  304 30%  45%;
+
+    --accent:            304 50%  90%;
+    --accent-foreground: 304 100% 20%;
+
+    --destructive:       0   84%  60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border:            304 25%  88%;
+    --input:             304 25%  88%;
+    --ring:              304 100% 34%;
+
+    /* Charts — purple spectrum */
+    --chart-1: 304 100% 34%;
+    --chart-2: 304  63% 46%;
+    --chart-3: 304  55% 57%;
+    --chart-4: 304  59% 74%;
+    --chart-5: 304 100% 92%;
+
+    --radius: 0.625rem;
+
+    /* Sidebar */
+    --sidebar-background:     304 50%  96%;
+    --sidebar-foreground:     304 100% 15%;
+    --sidebar-primary:        304 100% 34%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent:         304 30%  90%;
+    --sidebar-accent-foreground: 304 100% 20%;
+    --sidebar-border:         304 25%  88%;
+    --sidebar-ring:           304 100% 34%;
+  }
+
+  /* ── Dark mode — uses the deep end of the palette ── */
+  .dark {
+    --background:        304 100% 4%;    /* ~#0D000C — near-black violet */
+    --foreground:        304 30%  94%;   /* soft off-white with purple tint  */
+
+    --card:              304 100% 7%;    /* ~#150012 */
+    --card-foreground:   304 30%  94%;
+
+    --popover:           304 100% 7%;
+    --popover-foreground:304 30%  94%;
+
+    /* Primary = #AC00A0 — same in both modes */
+    --primary:           304 100% 34%;
+    --primary-foreground:0   0%   100%;
+
+    --secondary:         304 100% 11%;   /* ~#220020 */
+    --secondary-foreground:304 20%  90%;
+
+    --muted:             304 100% 13%;   /* ~#280024 */
+    --muted-foreground:  304 20%  60%;
+
+    --accent:            304 100% 15%;   /* ~#2F0029 */
+    --accent-foreground: 304 20%  90%;
+
+    --destructive:       0   84%  60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border:            304 100% 16%;
+    --input:             304 100% 13%;
+    --ring:              304 100% 34%;
+
+    /* Charts */
+    --chart-1: 304 100% 34%;
+    --chart-2: 304  63% 46%;
+    --chart-3: 304  55% 57%;
+    --chart-4: 304  59% 74%;
+    --chart-5: 304 100% 27%;
+
+    /* Sidebar */
+    --sidebar-background:     304 100% 5%;
+    --sidebar-foreground:     304 20%  92%;
+    --sidebar-primary:        304 100% 34%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent:         304 100% 11%;
+    --sidebar-accent-foreground: 304 20%  90%;
+    --sidebar-border:         304 100% 14%;
+    --sidebar-ring:           304 100% 34%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Animations */
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-in-out;
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.7; }
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .animate-in { animation: fade-in 0.3s ease-in-out forwards; }
+  .fade-in    { animation: fade-in 0.3s ease-in-out; }
+
+  .slide-in-from-bottom-2 {
+    animation: slide-in-from-bottom 0.3s ease-out;
+  }
+  @keyframes slide-in-from-bottom {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ── Meraki Markdown Styling ── */
+.meraki-markdown {
+  @apply text-foreground text-base leading-relaxed;
+}
+.meraki-markdown > * {
+  @apply mb-4 last:mb-0;
+}
+.meraki-markdown h1 {
+  @apply text-3xl font-bold text-foreground mt-6 mb-4 leading-tight;
+}
+.meraki-markdown h2 {
+  @apply text-2xl font-bold text-foreground mt-5 mb-3 leading-tight;
+}
+.meraki-markdown h3 {
+  @apply text-xl font-semibold text-foreground mt-4 mb-2;
+}
+.meraki-markdown h4,
+.meraki-markdown h5,
+.meraki-markdown h6 {
+  @apply text-lg font-semibold text-foreground mb-2;
+}
+.meraki-markdown p {
+  @apply text-base leading-relaxed text-foreground/90 mb-3;
+}
+.meraki-markdown strong {
+  @apply font-semibold text-foreground;
+}
+.meraki-markdown em {
+  @apply italic text-foreground;
+}
+.meraki-markdown a {
+  @apply text-primary hover:text-primary/80 underline transition-colors;
+}
+.meraki-markdown ul,
+.meraki-markdown ol {
+  @apply ml-5 mb-4 space-y-1.5;
+}
+.meraki-markdown li {
+  @apply text-base leading-relaxed text-foreground/90;
+}
+.meraki-markdown ul li { @apply list-disc; }
+.meraki-markdown ol li { @apply list-decimal; }
+.meraki-markdown blockquote {
+  @apply border-l-4 border-primary/50 bg-primary/10 pl-4 py-3 rounded-r-lg mb-4 italic text-foreground/80;
+}
+.meraki-markdown code {
+  @apply bg-card/60 px-2 py-0.5 rounded text-sm font-mono text-primary border border-border/40;
+}
+.meraki-markdown pre {
+  @apply bg-card border border-border/40 rounded-xl p-4 overflow-x-auto mb-4;
+}
+.meraki-markdown pre code {
+  @apply bg-transparent px-0 py-0 border-0 text-sm text-foreground/90 font-mono;
+}
+.meraki-markdown table {
+  @apply w-full border-collapse mb-4 text-base;
+}
+.meraki-markdown th {
+  @apply bg-primary/10 px-4 py-2.5 text-left text-sm font-semibold text-foreground border border-border/40;
+}
+.meraki-markdown td {
+  @apply px-4 py-2.5 text-sm border border-border/40 text-foreground/90;
+}
+.meraki-markdown tr:hover {
+  @apply bg-primary/5;
+}
+.meraki-markdown hr {
+  @apply my-6 border-t border-border/40;
+}

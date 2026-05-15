@@ -1,0 +1,269 @@
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+export interface LoginResponse {
+  user: {
+    id: string;
+    email: string;
+  };
+  access_token: string;
+  refresh_token?: string;
+  expires_in?: number;
+  token_type: string;
+}
+
+export interface SignupResponse {
+  user: {
+    id?: string;
+    email?: string;
+  };
+  session: {
+    access_token?: string | null;
+  };
+  note?: string;
+}
+
+// ─── RAG/Chat (Learn mode) ────────────────────────────────────────────────────
+export interface RagTurnRequest {
+  session_id: string;
+  mode: 'learn';
+  message: string;
+}
+
+export interface RagTurnResponse {
+  mode: 'learn';
+  response: string;
+  response_format: 'text' | 'video';
+  video_url?: string | null;
+  subtitles_url?: string | null;
+  audio_url?: string | null;
+  did_payload?: unknown;
+}
+
+export interface VoiceTurnResponse extends RagTurnResponse {
+  transcript: string;
+}
+
+// ─── Sessions ─────────────────────────────────────────────────────────────────
+
+/** POST /sessions/ — now requires course_id */
+export interface CreateSessionRequest {
+  course_id: string;
+  mode?: 'learn' | 'application' | 'review';
+  prefers_video?: boolean;
+}
+
+export interface CreateSessionResponse {
+  /** Backend returns 'session_id' */
+  session_id: string;
+  course_id: string;
+  current_mode: 'learn' | 'application' | 'review';
+  prefers_video: boolean;
+  started_at: string;
+}
+
+export interface SessionDetailsResponse {
+  session_id: string;
+  current_mode: 'learn' | 'application' | 'review';
+  prefers_video: boolean;
+  started_at: string;
+  ended_at?: string | null;
+}
+
+export interface SessionModeUpdateRequest {
+  // Backend accepts: 'learn' | 'application' | 'review'
+  current_mode: 'learn' | 'application' | 'review';
+}
+
+export interface SessionModeUpdateResponse {
+  session_id: string;
+  current_mode: 'learn' | 'application' | 'review';
+  prefers_video: boolean;
+}
+
+export interface VideoToggleRequest {
+  prefers_video: boolean;
+}
+
+export interface VideoToggleResponse {
+  session_id: string;
+  prefers_video: boolean;
+}
+
+export interface EndSessionResponse {
+  session_id: string;
+  status: 'ended';
+  ended_at: string;
+}
+
+// ─── User Profile ─────────────────────────────────────────────────────────────
+export interface UserProfileResponse {
+  id: string;
+  email: string;
+  role: string;
+  avatar_id: string;
+  avatar_provider: string;
+  avatar_gender: 'male' | 'female';
+  voice_provider: string;
+  voice_id: string;
+  voice_gender: 'male' | 'female';
+  created_at: string;
+}
+
+export interface AvatarSelectRequest {
+  avatar_id: string;
+}
+
+export interface AvatarSelectResponse {
+  status: 'ok';
+  avatar_id: string;
+  voice_id: string;
+  did_presenter_id: string;
+}
+
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+export interface SessionSurveyRequest {
+  session_id: string;
+  clarity_rating: number;
+  helpfulness_rating: number;
+  confidence_rating: number;
+  overall_rating: number;
+}
+
+export interface UserFeedbackRequest {
+  session_id?: string | null;
+  feedback_type: 'bug' | 'suggestion' | 'content' | 'ux' | 'other';
+  message: string;
+}
+
+export interface FeedbackResponse {
+  status: 'ok';
+  id?: string | null;
+}
+
+// ─── Mode Sessions (Application / Review) ────────────────────────────────────
+//
+// NOTE: The backend uses 'application' for what the UI labels "Practice".
+//       All API types use 'application'; the UI layer translates for display.
+
+export interface ModeSessionStartRequest {
+  session_id: string;
+  // 'application' = what UI calls "Practice"
+  mode: 'application' | 'review';
+  session_type: string;
+  difficulty?: 'Basic' | 'Intermediate' | 'Advanced';
+  total_items?: number | null;
+}
+
+export interface ModeSessionTurnRequest {
+  message: string;
+}
+
+// Delivery block returned by backend for video/audio
+export interface DeliveryBlock {
+  response_format: 'text' | 'video';
+  video_url?: string | null;
+  audio_url?: string | null;
+  subtitles_url?: string | null;
+}
+
+// ─── WebSocket acknowledgement types ─────────────────────────────────────────
+// The WebSocket now delivers task results via push (not polling).
+// These ack types are returned immediately after sending a WS message.
+
+export interface WsProcessingAck {
+  status: 'processing';
+  task_id: string;
+  mode_session_id?: string;
+}
+
+export interface WsEndedAck {
+  status: 'ended';
+  mode_session_id: string;
+}
+
+// ─── WebSocket push payloads (result delivered asynchronously via WS) ─────────
+
+export interface WsLearnResponse {
+  mode: 'learn';
+  response: string;
+  response_format: 'text' | 'video';
+  video_url: string | null;
+  audio_url: string | null;
+  subtitles_url?: string | null;
+}
+
+export interface WsModeSessionStartPush {
+  mode_session_id: string;
+  mode: 'application' | 'review';
+  session_type: string;
+  difficulty: string;
+  prompt: string;
+  response_format: 'text' | 'video';
+  video_url?: string | null;
+  audio_url?: string | null;
+  subtitles_url?: string | null;
+}
+
+export interface WsModeSessionEvaluationPush {
+  mode: 'application' | 'review';
+  type: 'evaluation';
+  evaluation: ApplicationEvaluation | ReviewEvaluation;
+  next_prompt: string;
+  next_difficulty?: string;
+  response_format: 'text';
+  // application mode can include delivery blocks for video
+  delivery?: DeliveryBlock;
+  next_delivery?: DeliveryBlock;
+}
+
+export interface WsModeSessionCompletedPush {
+  mode: 'application' | 'review';
+  type: 'completed';
+  evaluation: ApplicationEvaluation | ReviewEvaluation;
+  key_learning_points?: string[];
+  summary?: string;
+  response_format: 'text';
+  key_delivery?: DeliveryBlock;
+}
+
+export type WsIncoming =
+  | WsProcessingAck
+  | WsEndedAck
+  | WsLearnResponse
+  | WsModeSessionStartPush
+  | WsModeSessionEvaluationPush
+  | WsModeSessionCompletedPush
+  | { error: string }
+  | { status: 'failed'; error: string };
+
+// ─── Evaluation objects ───────────────────────────────────────────────────────
+
+export interface ApplicationEvaluation {
+  verdict: 'correct' | 'partially_correct' | 'incorrect';
+  score: number;
+  feedback: string;
+  missing_points?: string[];
+  unsupported_claims?: string[];
+}
+
+export interface ReviewEvaluation {
+  verdict: 'correct' | 'partially_correct' | 'incorrect';
+  score: number;
+  rubric_level?: string;
+  feedback: string;
+  missing_points?: string[];
+  unsupported_claims?: string[];
+  correct_answer?: string;
+}
+
+// Kept for backward compat with chat.ts PracticeEvaluation references
+export type ModeSessionTurnResponse = never; // No longer used — results arrive via WebSocket
+export type ModeSessionStartResponse = WsProcessingAck; // start returns ack; prompt arrives via WS
