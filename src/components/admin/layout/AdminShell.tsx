@@ -16,7 +16,6 @@ import {
   Settings,
   GraduationCap,
   ChevronLeft,
-  Menu,
   Sun,
   Moon,
   LogOut,
@@ -69,7 +68,7 @@ function AdminSidebar({
     <aside
       className={cn(
         'fixed top-0 left-0 h-full z-30 flex flex-col',
-        'bg-card border-r border-border',
+        'border-r border-white/60 bg-gradient-to-b from-white/[0.88] via-sky-50/[0.72] to-blue-50/[0.72] shadow-2xl shadow-blue-950/10 backdrop-blur-xl dark:border-white/10 dark:from-slate-950/[0.9] dark:via-slate-950/[0.86] dark:to-blue-950/[0.36]',
         'transition-all duration-300 ease-in-out',
         collapsed ? 'w-[68px]' : 'w-[240px]'
       )}
@@ -77,17 +76,17 @@ function AdminSidebar({
       {/* Brand */}
       <div
         className={cn(
-          'flex items-center flex-shrink-0 h-16 border-b border-border',
+          'flex items-center flex-shrink-0 h-16',
           collapsed ? 'justify-center px-0' : 'px-5 gap-3'
         )}
       >
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/20 ring-1 ring-primary/30">
-          <GraduationCap className="h-4 w-4 text-primary" />
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-blue-200 bg-white/70 text-blue-700 shadow-lg shadow-blue-600/10 dark:border-white/10 dark:bg-white/[0.08] dark:text-cyan-100">
+          <GraduationCap className="h-4 w-4" />
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white leading-none">Meraki</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+            <p className="text-base font-semibold leading-none text-slate-950 dark:text-white">Meraki</p>
+            <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
               <Shield className="h-2.5 w-2.5" /> Admin Console
             </p>
           </div>
@@ -95,11 +94,11 @@ function AdminSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-6">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {NAV_ITEMS.map((group) => (
           <div key={group.group}>
             {!collapsed && (
-              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+              <p className="mb-1.5 px-3 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                 {group.group}
               </p>
             )}
@@ -112,23 +111,23 @@ function AdminSidebar({
                     <Link
                       href={href}
                       className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all',
+                        'flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all',
                         collapsed && 'justify-center px-0 py-2.5',
                         isActive
-                          ? 'bg-primary/15 text-primary/80 font-medium'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                          ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100 dark:bg-cyan-300/[0.1] dark:text-cyan-100 dark:ring-cyan-300/[0.16]'
+                          : 'text-slate-600 hover:bg-slate-950/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white'
                       )}
                       title={collapsed ? label : undefined}
                     >
                       <Icon
                         className={cn(
                           'flex-shrink-0 h-4 w-4',
-                          isActive ? 'text-primary' : ''
+                          isActive ? 'text-blue-600 dark:text-cyan-200' : ''
                         )}
                       />
                       {!collapsed && <span>{label}</span>}
                       {isActive && !collapsed && (
-                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-cyan-300" />
                       )}
                     </Link>
                   </li>
@@ -140,11 +139,11 @@ function AdminSidebar({
       </nav>
 
       {/* Bottom: collapse + logout */}
-      <div className="flex-shrink-0 border-t border-border p-2 space-y-0.5">
+      <div className="flex-shrink-0 p-3 space-y-1">
         <button
           onClick={handleLogout}
           className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all',
+            'flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-all hover:bg-red-500/[0.12] hover:text-red-600 dark:text-slate-400 dark:hover:text-red-300',
             collapsed && 'justify-center px-0 py-2.5'
           )}
           title={collapsed ? 'Logout' : undefined}
@@ -155,7 +154,7 @@ function AdminSidebar({
         <button
           onClick={onToggle}
           className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60 hover:text-muted-foreground hover:bg-accent transition-all',
+            'flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-950/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white',
             collapsed && 'justify-center px-0 py-2.5'
           )}
         >
@@ -196,42 +195,42 @@ function AdminTopbar({ sidebarWidth }: { sidebarWidth: number }) {
   return (
     <header
       style={{ left: sidebarWidth }}
-      className="fixed top-0 right-0 z-20 h-16 flex items-center justify-between px-6 border-b border-border bg-background/90 backdrop-blur-sm"
+      className="fixed top-0 right-0 z-20 flex h-16 items-center justify-between border-b border-white/60 bg-white/[0.72] px-6 shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/[0.72]"
     >
       {/* Left */}
       <div>
-        <h1 className="text-sm font-semibold text-foreground">{getTitle()}</h1>
-        <p className="text-[11px] text-muted-foreground">Meraki Admin Console</p>
+        <h1 className="text-sm font-semibold text-slate-950 dark:text-white">{getTitle()}</h1>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">Meraki Admin Console</p>
       </div>
 
       {/* Right */}
       <div className="flex items-center gap-3">
         {/* Notification bell - placeholder */}
-        <button className="relative h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all">
+        <button className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:bg-slate-950/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white">
           <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-indigo-400" />
+          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-cyan-300" />
         </button>
 
         {/* Theme toggle */}
         {mounted && (
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-all hover:bg-slate-950/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white"
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
         )}
 
         {/* Admin badge */}
-        <div className="flex items-center gap-2 pl-3 border-l border-border">
-          <div className="h-7 w-7 rounded-full bg-primary/20 ring-1 ring-primary/30 flex items-center justify-center">
-            <Shield className="h-3.5 w-3.5 text-primary" />
+        <div className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/[0.62] px-3 py-2 shadow-sm dark:border-white/10 dark:bg-white/[0.06]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm dark:bg-cyan-300 dark:text-slate-950">
+            <Shield className="h-3.5 w-3.5" />
           </div>
           <div className="hidden sm:block">
-            <p className="text-xs font-medium text-foreground leading-none">
+            <p className="text-xs font-semibold leading-none text-slate-950 dark:text-white">
               {adminEmail ? adminEmail.split('@')[0] : 'Admin'}
             </p>
-            <p className="text-[10px] text-primary/80 mt-0.5">Administrator</p>
+            <p className="mt-0.5 text-[10px] text-blue-700 dark:text-cyan-200">Administrator</p>
           </div>
         </div>
       </div>
@@ -244,12 +243,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const sidebarWidth = collapsed ? 68 : 240;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen overflow-hidden bg-[#edf6fb] text-slate-950 dark:bg-slate-950 dark:text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(237,232,176,0.28),transparent_25%),linear-gradient(135deg,rgba(255,255,255,0.68),rgba(126,200,227,0.1))] dark:bg-[radial-gradient(circle_at_18%_10%,rgba(56,189,248,0.16),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(245,197,163,0.12),transparent_25%)]" />
       <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       <AdminTopbar sidebarWidth={sidebarWidth} />
       <main
         style={{ marginLeft: sidebarWidth, paddingTop: 64 }}
-        className="min-h-screen transition-all duration-300 ease-in-out"
+        className="relative z-10 min-h-screen transition-all duration-300 ease-in-out"
       >
         <div className="p-6">{children}</div>
       </main>

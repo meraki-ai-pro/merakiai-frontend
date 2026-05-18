@@ -63,10 +63,10 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" />
-          <p className="text-sm text-muted-foreground">Verifying admin access…</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#edf6fb] dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/70 bg-white/[0.78] px-8 py-7 shadow-xl shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500/30 border-t-blue-600 dark:border-cyan-300/20 dark:border-t-cyan-300" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Verifying admin access…</p>
         </div>
       </div>
     );

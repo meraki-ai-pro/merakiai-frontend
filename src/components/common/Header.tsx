@@ -117,8 +117,8 @@ export function Header() {
 
   return (
     <>
-      <header className="flex-shrink-0 z-20 border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
-        <div className="flex items-center justify-between px-4 h-14 gap-3">
+      <header className="z-20 flex-shrink-0 border-b border-white/60 bg-white/[0.72] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/[0.72]">
+        <div className="flex h-16 items-center justify-between gap-3 px-4">
 
           {/* Left: sidebar toggle + title */}
           <div className="flex items-center gap-3 min-w-0">
@@ -126,25 +126,25 @@ export function Header() {
               size="icon"
               variant="ghost"
               onClick={toggleSidebar}
-              className="h-8 w-8 flex-shrink-0"
+              className="h-9 w-9 flex-shrink-0 rounded-full hover:bg-slate-950/5 dark:hover:bg-white/10"
               aria-label="Toggle sidebar"
             >
               <Menu className="h-4 w-4" />
             </Button>
             <div className="min-w-0 hidden sm:block">
-              <h2 className="text-sm font-semibold text-foreground truncate max-w-[180px]">
+              <h2 className="max-w-[220px] truncate text-sm font-semibold text-slate-950 dark:text-white">
                 {currentSession?.title || 'Meraki'}
               </h2>
-              <p className="text-xs text-muted-foreground">AI Learning Assistant</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Learn, Practice, Review</p>
             </div>
           </div>
 
           {/* Center: mode tabs — only shown when a session is active */}
           {currentSessionId && (
-            <div className="relative flex items-center gap-1 rounded-xl bg-muted/50 border border-border/50 p-1">
+            <div className="relative flex items-center gap-1 rounded-2xl border border-slate-200/70 bg-slate-950/[0.04] p-1 shadow-inner dark:border-white/10 dark:bg-white/[0.06]">
               {/* Overlay while starting a practice/review session */}
               {isStartingModeSession && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center gap-1.5 rounded-xl bg-background/80 backdrop-blur-sm">
+                <div className="absolute inset-0 z-10 flex items-center justify-center gap-1.5 rounded-2xl bg-white/[0.85] backdrop-blur-sm dark:bg-slate-950/[0.85]">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                   <span className="text-xs font-medium text-primary">Starting…</span>
                 </div>
@@ -163,11 +163,11 @@ export function Header() {
                           onClick={() => handleModeClick(mode)}
                           disabled={isStartingModeSession || isSwitchingMode}
                           className={cn(
-                            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                            'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all',
                             'disabled:opacity-50 disabled:cursor-not-allowed',
                             isActive
-                              ? cn('bg-background shadow-sm border border-border/50', activeColor)
-                              : cn('hover:bg-muted/70', color, 'hover:text-foreground')
+                              ? cn('border border-white bg-white shadow-sm dark:border-white/10 dark:bg-slate-950', activeColor)
+                              : cn('hover:bg-white/70 dark:hover:bg-white/10', color, 'hover:text-slate-950 dark:hover:text-white')
                           )}
                         >
                           {isThisTabSwitching ? (
@@ -198,7 +198,7 @@ export function Header() {
             {currentSession && (
               <div
                 className={cn(
-                  'flex items-center gap-1 px-1.5 py-1 rounded-lg bg-muted/50 border border-border/50',
+                  'flex items-center gap-1 rounded-2xl border border-slate-200/70 bg-white/70 px-1.5 py-1 shadow-sm dark:border-white/10 dark:bg-white/[0.06]',
                   isReviewMode && 'opacity-40 pointer-events-none'
                 )}
                 title={isReviewMode ? 'Review mode is text-only' : undefined}
@@ -207,10 +207,10 @@ export function Header() {
                   onClick={() => handleSetVideoMode(false)}
                   disabled={isTogglingVideo || isReviewMode}
                   className={cn(
-                    'flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-all',
+                    'flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all',
                     !prefersVideo
-                      ? 'bg-background text-foreground shadow-sm border border-border/50'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
+                      ? 'border border-slate-200 bg-slate-950 text-white shadow-sm dark:border-cyan-300/40 dark:bg-cyan-300 dark:text-slate-950'
+                      : 'text-slate-500 hover:bg-slate-950/5 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
                   )}
                 >
                   {isTogglingVideo && !prefersVideo ? (
@@ -224,10 +224,10 @@ export function Header() {
                   onClick={() => handleSetVideoMode(true)}
                   disabled={isTogglingVideo || isReviewMode}
                   className={cn(
-                    'flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-all',
+                    'flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all',
                     prefersVideo
-                      ? 'bg-background text-foreground shadow-sm border border-border/50'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
+                      ? 'border border-slate-200 bg-slate-950 text-white shadow-sm dark:border-cyan-300/40 dark:bg-cyan-300 dark:text-slate-950'
+                      : 'text-slate-500 hover:bg-slate-950/5 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
                   )}
                 >
                   {isTogglingVideo && prefersVideo ? (
@@ -241,7 +241,7 @@ export function Header() {
             )}
 
             {currentSession && (
-              <span className="text-xs text-muted-foreground hidden md:inline">
+              <span className="hidden rounded-full border border-slate-200/70 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-400 md:inline">
                 {currentSession.messageCount || 0} msgs
               </span>
             )}
@@ -251,7 +251,7 @@ export function Header() {
                 size="icon"
                 variant="ghost"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="h-8 w-8"
+                className="h-9 w-9 rounded-full hover:bg-slate-950/5 dark:hover:bg-white/10"
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
               >
                 {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

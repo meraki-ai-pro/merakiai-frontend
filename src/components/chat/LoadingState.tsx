@@ -4,20 +4,20 @@ import { Sparkles } from 'lucide-react';
 
 export function LoadingState() {
   return (
-    <div className="flex gap-3 group">
-      <div className="h-8 w-8 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-        <Sparkles className="h-4 w-4 text-primary animate-spin-slow" />
+    <div className="group flex gap-3">
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm ring-2 ring-blue-200 dark:bg-cyan-300 dark:text-slate-950 dark:ring-cyan-300/[0.2]">
+        <Sparkles className="h-4 w-4 animate-spin-slow" />
       </div>
       
-      <div className="flex flex-1 flex-col gap-2 max-w-2xl min-w-0">
-        <div className="rounded-xl bg-card border border-border/30 px-4 py-3 shadow-sm">
+      <div className="flex max-w-2xl flex-1 flex-col gap-2 min-w-0">
+        <div className="rounded-2xl border border-white/70 bg-white/[0.88] px-4 py-3 shadow-sm shadow-blue-950/5 backdrop-blur dark:border-white/10 dark:bg-white/[0.06]">
           <div className="flex flex-col gap-3">
             <div className="flex gap-2">
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600 dark:bg-cyan-300" style={{ animationDelay: '0ms' }} />
+              <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600 dark:bg-cyan-300" style={{ animationDelay: '150ms' }} />
+              <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600 dark:bg-cyan-300" style={{ animationDelay: '300ms' }} />
             </div>
-            <p className="text-sm text-muted-foreground">Generating your response...</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Generating your response...</p>
           </div>
         </div>
       </div>

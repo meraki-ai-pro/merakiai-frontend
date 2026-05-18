@@ -51,8 +51,8 @@ export function AIResponse({ message }: AIResponseProps) {
   return (
     <div className="flex gap-3 group">
       {/* Avatar */}
-      <Avatar className="h-8 w-8 flex-shrink-0 ring-2 ring-primary/20">
-        <AvatarFallback className="bg-primary/10 text-primary">
+      <Avatar className="h-8 w-8 flex-shrink-0 shadow-sm ring-2 ring-blue-200 dark:ring-cyan-300/[0.2]">
+        <AvatarFallback className="bg-blue-600 text-white dark:bg-cyan-300 dark:text-slate-950">
           <Sparkles className="h-4 w-4" />
         </AvatarFallback>
       </Avatar>
@@ -61,7 +61,7 @@ export function AIResponse({ message }: AIResponseProps) {
       <div className="flex flex-1 flex-col gap-2 max-w-2xl min-w-0">
         {showVideo ? (
           // ── Video response ──────────────────────────────────────────────
-          <div className="rounded-xl border border-border/50 overflow-hidden shadow-md">
+          <div className="overflow-hidden rounded-2xl border border-white/70 bg-white shadow-xl shadow-blue-950/10 dark:border-white/10 dark:bg-white/[0.06]">
             <VideoPlayer
               videoUrl={message.videoUrl!}
               audioUrl={message.audioUrl ?? undefined}
@@ -69,9 +69,9 @@ export function AIResponse({ message }: AIResponseProps) {
               duration={currentVideoResponse?.duration ?? 0}
             />
             {message.content && (
-              <div className="bg-card/50 border-t border-border/30 px-4 py-3">
+              <div className="border-t border-slate-200/70 bg-slate-50/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Transcript</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Transcript</p>
                   <button
                     className="text-xs text-primary underline"
                     onClick={() => setShowTranscript((s) => !s)}
@@ -128,7 +128,7 @@ export function AIResponse({ message }: AIResponseProps) {
                 const questionOnly = stripMcqOptions(message.content);
 
                 return (
-                  <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 px-4 py-3 shadow-sm">
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 shadow-sm dark:border-amber-300/[0.2] dark:bg-amber-300/[0.06]">
                     <MarkdownRenderer content={questionOnly} />
                   </div>
                 );
@@ -136,7 +136,7 @@ export function AIResponse({ message }: AIResponseProps) {
 
               // Practice prompt
               return (
-                <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 px-4 py-3 shadow-sm">
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 shadow-sm dark:border-emerald-300/[0.2] dark:bg-emerald-300/[0.06]">
                   <MarkdownRenderer content={message.content} />
                 </div>
               );
@@ -145,7 +145,7 @@ export function AIResponse({ message }: AIResponseProps) {
 
         ) : (
           // ── Standard learn-mode text response ───────────────────────────
-          <div className="rounded-xl bg-card border border-border/30 px-4 py-3 shadow-sm">
+          <div className="rounded-2xl border border-white/70 bg-white/[0.88] px-4 py-3 shadow-sm shadow-blue-950/5 backdrop-blur dark:border-white/10 dark:bg-white/[0.06]">
             <MarkdownRenderer content={message.content} />
           </div>
         )}

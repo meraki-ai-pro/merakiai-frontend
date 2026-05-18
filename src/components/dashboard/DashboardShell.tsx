@@ -61,7 +61,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="flex h-dvh bg-background overflow-hidden">
+      <div className="relative flex h-dvh overflow-hidden bg-[#edf6fb] text-slate-950 dark:bg-slate-950 dark:text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(237,232,176,0.28),transparent_25%),linear-gradient(135deg,rgba(255,255,255,0.68),rgba(126,200,227,0.1))] dark:bg-[radial-gradient(circle_at_18%_10%,rgba(56,189,248,0.16),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(245,197,163,0.12),transparent_25%)]" />
 
         {/* Mobile overlay */}
         {isMobile && sidebarOpen && (
@@ -79,7 +80,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           }}
           className="
             fixed top-0 left-0 h-dvh z-30
-            border-r border-border/40 bg-sidebar
+            border-r border-white/60 bg-white/[0.78] shadow-2xl shadow-blue-950/10 backdrop-blur-xl
+            dark:border-white/10 dark:bg-slate-950/[0.82]
             overflow-hidden
             transition-all duration-300 ease-in-out
           "
@@ -91,6 +93,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <main
           style={{ marginLeft: sidebarWidth }}
           className="
+            relative z-10
             flex flex-1 flex-col h-dvh
             transition-all duration-300 ease-in-out
             min-w-0

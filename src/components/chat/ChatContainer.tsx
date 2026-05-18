@@ -34,10 +34,10 @@ const MODE_CARDS = [
     icon: BookOpen,
     label: 'Learn',
     tagline: 'Ask anything, get expert answers',
-    color: 'text-blue-400',
-    bg: 'hover:bg-blue-500/5 hover:border-blue-500/30',
-    activeBg: 'bg-blue-500/5 border-blue-500/30',
-    iconBg: 'bg-blue-500/10',
+    color: 'text-blue-600 dark:text-cyan-200',
+    bg: 'hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-cyan-300/[0.08] dark:hover:border-cyan-300/[0.3]',
+    activeBg: 'bg-blue-50 border-blue-300 dark:bg-cyan-300/[0.08] dark:border-cyan-300/[0.3]',
+    iconBg: 'bg-blue-100 dark:bg-cyan-300/[0.12]',
     bullets: [
       { icon: MessageSquare, text: 'Ask any question about froth flotation in plain language' },
       { icon: Video,         text: 'Get answers as text or AI avatar video — your choice' },
@@ -50,10 +50,10 @@ const MODE_CARDS = [
     icon: FlaskConical,
     label: 'Practice',
     tagline: 'Guided 3-step real-world scenarios',
-    color: 'text-emerald-400',
-    bg: 'hover:bg-emerald-500/5 hover:border-emerald-500/30',
-    activeBg: 'bg-emerald-500/5 border-emerald-500/30',
-    iconBg: 'bg-emerald-500/10',
+    color: 'text-emerald-600 dark:text-emerald-200',
+    bg: 'hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-300/[0.08] dark:hover:border-emerald-300/[0.3]',
+    activeBg: 'bg-emerald-50 border-emerald-300 dark:bg-emerald-300/[0.08] dark:border-emerald-300/[0.3]',
+    iconBg: 'bg-emerald-100 dark:bg-emerald-300/[0.12]',
     bullets: [
       { icon: FlaskConical, text: 'Receive a realistic plant scenario to work through' },
       { icon: ListChecks,   text: 'Answer 3 guided questions; get scored feedback after each' },
@@ -66,10 +66,10 @@ const MODE_CARDS = [
     icon: ClipboardCheck,
     label: 'Review',
     tagline: 'Adaptive quiz — up to 10 questions',
-    color: 'text-amber-400',
-    bg: 'hover:bg-amber-500/5 hover:border-amber-500/30',
-    activeBg: 'bg-amber-500/5 border-amber-500/30',
-    iconBg: 'bg-amber-500/10',
+    color: 'text-amber-600 dark:text-amber-200',
+    bg: 'hover:bg-amber-50 hover:border-amber-300 dark:hover:bg-amber-300/[0.08] dark:hover:border-amber-300/[0.3]',
+    activeBg: 'bg-amber-50 border-amber-300 dark:bg-amber-300/[0.08] dark:border-amber-300/[0.3]',
+    iconBg: 'bg-amber-100 dark:bg-amber-300/[0.12]',
     bullets: [
       { icon: ClipboardCheck, text: 'Choose MCQ, fill-in-the-blank, flashcard or short answer' },
       { icon: BarChart2,      text: 'Difficulty adapts after every answer based on your score' },
@@ -128,25 +128,46 @@ export function ChatContainer() {
   if (showWelcome) {
     return (
       <>
-        <div className="flex flex-1 items-start justify-center px-4 overflow-y-auto pt-10 pb-8">
-          <div className="w-full max-w-2xl">
+        <div className="flex flex-1 items-start justify-center overflow-y-auto px-4 pb-10 pt-8">
+          <div className="w-full max-w-6xl">
 
             {/* Hero */}
-            <div className="text-center mb-8">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-                <BookOpen className="h-7 w-7 text-primary" />
+            <div className="relative mb-8 overflow-hidden rounded-[32px] border border-white/70 bg-slate-950 p-6 text-white shadow-2xl shadow-blue-950/10 dark:border-white/10 sm:p-8 lg:p-10">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(56,189,248,0.32),transparent_28%),radial-gradient(circle_at_82%_10%,rgba(237,232,176,0.26),transparent_24%),linear-gradient(135deg,#081629_0%,#1456b8_52%,#04101f_100%)]" />
+              <div className="absolute -right-24 top-20 h-72 w-[34rem] rotate-[-14deg] rounded-[50%] border border-white/[0.14] bg-white/[0.14] blur-sm" />
+              <div className="relative z-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/[0.3] bg-cyan-100/[0.1] px-4 py-2 text-sm font-semibold text-cyan-50">
+                    <Zap className="h-4 w-4 text-cyan-200" />
+                    AI learning workspace
+                  </div>
+                  <h1 className="mt-6 max-w-3xl text-balance text-4xl font-semibold leading-tight sm:text-5xl">
+                    Choose how you want to master froth flotation today.
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200">
+                    Start with an explanation, practice a plant scenario, or review for assessment. Meraki keeps the flow connected so each session builds on the last.
+                  </p>
+                </div>
+
+                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.1] p-4 backdrop-blur">
+                  <div className="rounded-2xl border border-white/[0.12] bg-slate-950/70 p-4">
+                    <p className="text-sm font-semibold text-cyan-100">Suggested prompt</p>
+                    <p className="mt-3 text-lg leading-7 text-white">
+                      Diagnose why recovery is falling while froth is becoming too persistent.
+                    </p>
+                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-medium text-slate-200">
+                      <span className="rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-2">Voice ready</span>
+                      <span className="rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-2">Video optional</span>
+                      <span className="rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-2">Practice scoring</span>
+                      <span className="rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-2">Review drills</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                Welcome to Meraki
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
-                Your AI tutor for froth flotation. Choose a mode below to get started —
-                or jump straight in with a quick question.
-              </p>
             </div>
 
             {/* Mode cards — full-width expandable */}
-            <div className="flex flex-col gap-3 mb-8">
+            <div className="mb-8 grid gap-4 lg:grid-cols-3">
               {MODE_CARDS.map(({ mode, icon: Icon, label, tagline, color, bg, activeBg, iconBg, bullets, cta }) => {
                 const isHovered = hoveredMode === mode;
                 const disabled = isCreatingSession || isStartingModeSession;
@@ -160,27 +181,27 @@ export function ChatContainer() {
                     onBlur={() => setHoveredMode(null)}
                     disabled={disabled}
                     className={cn(
-                      'group w-full rounded-xl border border-border/50 bg-card text-left',
-                      'transition-all duration-200 cursor-pointer',
+                      'group w-full rounded-3xl border border-white/70 bg-white/[0.82] text-left shadow-sm shadow-blue-950/5 backdrop-blur-xl',
+                      'min-h-[270px] transition-all duration-200 cursor-pointer dark:border-white/10 dark:bg-white/[0.06]',
                       'disabled:opacity-50 disabled:cursor-not-allowed',
-                      isHovered ? activeBg : bg,
+                      isHovered ? cn(activeBg, 'shadow-xl shadow-blue-950/10 -translate-y-1') : bg,
                     )}
                   >
                     {/* Always-visible row */}
-                    <div className="flex items-center gap-4 p-4">
+                    <div className="flex flex-col gap-5 p-5">
                       <div className={cn(
-                        'flex h-10 w-10 items-center justify-center rounded-xl flex-shrink-0',
+                        'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl',
                         iconBg
                       )}>
-                        <Icon className={cn('h-5 w-5', color)} />
+                        <Icon className={cn('h-6 w-6', color)} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground">{label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{tagline}</p>
+                        <p className="text-xl font-semibold text-slate-950 dark:text-white">{label}</p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{tagline}</p>
                       </div>
                       <div className={cn(
-                        'flex items-center gap-1.5 text-xs font-medium flex-shrink-0 transition-colors',
-                        isHovered ? color : 'text-muted-foreground'
+                        'mt-auto flex items-center gap-1.5 text-sm font-semibold transition-colors',
+                        isHovered ? color : 'text-slate-500 dark:text-slate-400'
                       )}>
                         <span>{cta}</span>
                         <ChevronRight className={cn(
@@ -192,14 +213,14 @@ export function ChatContainer() {
 
                     {/* Expanded bullet list on hover */}
                     <div className={cn(
-                      'overflow-hidden transition-all duration-200',
-                      isHovered ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+                      'overflow-hidden transition-all duration-200 lg:max-h-48 lg:opacity-100',
+                      isHovered ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'
                     )}>
-                      <div className="px-4 pb-4 flex flex-col gap-2 border-t border-border/30 pt-3">
+                      <div className="mx-5 flex flex-col gap-2 border-t border-slate-200/70 pb-5 pt-4 dark:border-white/10">
                         {bullets.map(({ icon: BulletIcon, text }, i) => (
                           <div key={i} className="flex items-start gap-2.5">
                             <BulletIcon className={cn('h-3.5 w-3.5 flex-shrink-0 mt-0.5', color)} />
-                            <span className="text-xs text-muted-foreground leading-snug">{text}</span>
+                            <span className="text-xs leading-snug text-slate-600 dark:text-slate-300">{text}</span>
                           </div>
                         ))}
                       </div>
@@ -210,22 +231,22 @@ export function ChatContainer() {
             </div>
 
             {/* Quick starts */}
-            <div>
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <div className="rounded-[28px] border border-white/70 bg-white/[0.76] p-5 shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Quick starts — Learn mode
               </p>
-              <div className="flex flex-col gap-2">
+              <div className="grid gap-2 md:grid-cols-2">
                 {QUICK_STARTS.map((q) => (
                   <button
                     key={q}
                     onClick={() => handleQuickStart(q)}
                     disabled={!!clickedQuickStart}
-                    className="flex items-center gap-3 w-full text-left rounded-lg border border-border/40 bg-card/50 px-4 py-3 text-sm text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-left text-sm text-slate-600 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:border-cyan-300/30 dark:hover:bg-cyan-300/[0.08] dark:hover:text-white"
                   >
                     {clickedQuickStart === q ? (
-                      <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin text-primary" />
+                      <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin text-blue-600 dark:text-cyan-200" />
                     ) : (
-                      <Zap className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                      <Zap className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-cyan-200" />
                     )}
                     {q}
                   </button>
@@ -244,9 +265,9 @@ export function ChatContainer() {
     return (
       <>
         <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Starting session…</p>
+          <div className="rounded-[28px] border border-white/70 bg-white/80 px-8 py-7 text-center shadow-2xl shadow-blue-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600 dark:text-cyan-200" />
+            <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-300">Starting session…</p>
           </div>
         </div>
         {modeModal}
@@ -257,7 +278,7 @@ export function ChatContainer() {
   // ── Active chat ────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <MessageList />
         <InputArea />
       </div>

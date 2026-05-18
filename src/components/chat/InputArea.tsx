@@ -42,17 +42,17 @@ const TYPE_LABELS: Record<string, string> = {
 // Pill colour per mode
 const PILL_STYLES = {
   practice: {
-    pill:     'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/50',
-    dot:      'bg-emerald-400',
-    active:   'bg-emerald-500/10',
-    activeText: 'text-emerald-400',
+    pill:     'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 dark:bg-emerald-300/[0.1] dark:border-emerald-300/[0.3] dark:text-emerald-200 dark:hover:bg-emerald-300/[0.16]',
+    dot:      'bg-emerald-500 dark:bg-emerald-300',
+    active:   'bg-emerald-50 dark:bg-emerald-300/[0.1]',
+    activeText: 'text-emerald-700 dark:text-emerald-200',
     header:   'Switch practice topic',
   },
   review: {
-    pill:     'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/50',
-    dot:      'bg-amber-400',
-    active:   'bg-amber-500/10',
-    activeText: 'text-amber-400',
+    pill:     'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 hover:border-amber-300 dark:bg-amber-300/[0.1] dark:border-amber-300/[0.3] dark:text-amber-200 dark:hover:bg-amber-300/[0.16]',
+    dot:      'bg-amber-500 dark:bg-amber-300',
+    active:   'bg-amber-50 dark:bg-amber-300/[0.1]',
+    activeText: 'text-amber-700 dark:text-amber-200',
     header:   'Switch question type',
   },
 };
@@ -160,8 +160,8 @@ export function InputArea() {
   };
 
   return (
-    <div className="flex-shrink-0 border-t border-border/50 bg-background/95 backdrop-blur px-4 py-3">
-      <div className="mx-auto max-w-3xl">
+    <div className="flex-shrink-0 border-t border-white/60 bg-white/70 px-4 py-4 shadow-[0_-18px_45px_rgba(15,23,42,0.06)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/70">
+      <div className="mx-auto max-w-4xl">
 
         {/* Progress bar row — pill always visible when a mode session exists; progress bar only when active */}
         {activeModeSession && showPill && (
@@ -198,9 +198,9 @@ export function InputArea() {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowTypeSwitcher(false)}
                   />
-                  <div className="absolute bottom-full left-0 z-20 mb-2 w-56 rounded-xl border border-border bg-card shadow-xl overflow-hidden">
-                    <div className="px-3 py-2 border-b border-border/50">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="absolute bottom-full left-0 z-20 mb-2 w-64 overflow-hidden rounded-2xl border border-white/70 bg-white shadow-2xl shadow-blue-950/10 dark:border-white/10 dark:bg-slate-950">
+                    <div className="border-b border-slate-200/70 px-3 py-2 dark:border-white/10">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         {pillStyles.header}
                       </p>
                     </div>
@@ -215,7 +215,7 @@ export function InputArea() {
                             'flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors',
                             isActive && !activeModeSession.completed
                               ? cn('cursor-default', pillStyles.active)
-                              : 'hover:bg-muted/60 cursor-pointer'
+                              : 'hover:bg-slate-50 cursor-pointer dark:hover:bg-white/[0.06]'
                           )}
                         >
                           <CheckCircle2 className={cn(
@@ -225,12 +225,12 @@ export function InputArea() {
                           <div className="min-w-0">
                             <p className={cn(
                               'text-xs font-medium',
-                              isActive && !activeModeSession.completed ? pillStyles.activeText : 'text-foreground'
+                              isActive && !activeModeSession.completed ? pillStyles.activeText : 'text-slate-950 dark:text-white'
                             )}>
                               {type.label}
                             </p>
                             {'desc' in type && (
-                              <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                              <p className="mt-0.5 text-[10px] leading-tight text-slate-500 dark:text-slate-400">
                                 {type.desc}
                               </p>
                             )}
@@ -271,15 +271,15 @@ export function InputArea() {
         {/* ✅ Fix #3: session completed banner */}
         {activeModeSession?.completed && (
           <div className={cn(
-            'mb-2 flex items-center justify-between rounded-lg border px-3 py-2 text-xs',
+            'mb-2 flex items-center justify-between rounded-2xl border px-3 py-2 text-xs font-medium',
             activeModeSession.mode === 'application'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-              : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/[0.3] dark:bg-emerald-300/[0.1] dark:text-emerald-200'
+              : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-300/[0.3] dark:bg-amber-300/[0.1] dark:text-amber-200'
           )}>
             <span>
               {activeModeSession.mode === 'application' ? '🎉' : '🎓'} Session complete!
             </span>
-            <span className="text-muted-foreground">
+            <span className="text-slate-500 dark:text-slate-400">
               Switch topic or change mode to continue
             </span>
           </div>
@@ -296,24 +296,24 @@ export function InputArea() {
                   disabled={isLoadingMessage || isSwitching}
                   onClick={() => setSelectedMcqOption(letter)}
                   className={cn(
-                    'flex items-center gap-3 w-full rounded-xl border px-4 py-3 text-left transition-all',
+                    'flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all',
                     'text-sm font-medium',
                     isSelected
-                      ? 'border-amber-500/60 bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30'
-                      : 'border-border bg-card hover:border-amber-500/30 hover:bg-amber-500/5 text-foreground',
+                      ? 'border-amber-300 bg-amber-50 text-amber-800 ring-1 ring-amber-300 dark:border-amber-300/[0.5] dark:bg-amber-300/[0.1] dark:text-amber-100 dark:ring-amber-300/[0.3]'
+                      : 'border-white/70 bg-white/[0.78] text-slate-800 hover:border-amber-300 hover:bg-amber-50 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-100 dark:hover:border-amber-300/[0.3] dark:hover:bg-amber-300/[0.08]',
                     'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
                 >
                   {/* Radio circle */}
                   <span className={cn(
                     'flex-shrink-0 h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all',
-                    isSelected ? 'border-amber-400 bg-amber-400' : 'border-muted-foreground/40'
+                    isSelected ? 'border-amber-500 bg-amber-500 dark:border-amber-300 dark:bg-amber-300' : 'border-slate-400/40 dark:border-slate-500'
                   )}>
                     {isSelected && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-background" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-slate-950" />
                     )}
                   </span>
-                  <span className="font-semibold text-amber-400/80 flex-shrink-0 w-5">{letter}.</span>
+                  <span className="w-5 flex-shrink-0 font-semibold text-amber-600 dark:text-amber-200">{letter}.</span>
                   <span>{text}</span>
                 </button>
               );
@@ -323,7 +323,7 @@ export function InputArea() {
             <Button
               onClick={handleSend}
               disabled={!selectedMcqOption || isLoadingMessage || isSwitching}
-              className="mt-1 w-full h-10 rounded-xl font-semibold"
+              className="mt-1 h-11 w-full rounded-2xl bg-slate-950 font-semibold text-white hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
             >
               {isLoadingMessage ? (
                 <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Submitting…</>
@@ -336,7 +336,7 @@ export function InputArea() {
 
         {/* Normal text input — hidden for MCQ */}
         {!(isMcqReview && mcqOptions.length > 0) && (
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+        <div className="flex items-end gap-2 rounded-[24px] border border-white/70 bg-white/[0.86] px-3 py-3 shadow-xl shadow-blue-950/10 transition-all focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200/70 dark:border-white/10 dark:bg-white/[0.08] dark:focus-within:border-cyan-300/[0.5] dark:focus-within:ring-cyan-300/[0.16]">
           <VoiceInput onRecordingComplete={handleVoiceTranscript} />
 
           <textarea
@@ -348,8 +348,8 @@ export function InputArea() {
             disabled={isLoadingMessage || isSwitching || activeModeSession?.completed}
             rows={1}
             className="
-              flex-1 resize-none bg-transparent text-base text-foreground
-              placeholder:text-muted-foreground/60
+              flex-1 resize-none bg-transparent text-base text-slate-950 dark:text-white
+              placeholder:text-slate-400 dark:placeholder:text-slate-500
               border-0 outline-none ring-0 shadow-none
               leading-6 py-1 px-2
               min-h-[28px] max-h-[160px]
@@ -361,7 +361,7 @@ export function InputArea() {
             onClick={handleSend}
             disabled={!message.trim() || isLoadingMessage || isSwitching || activeModeSession?.completed}
             size="icon"
-            className="h-8 w-8 rounded-lg flex-shrink-0"
+            className="h-10 w-10 flex-shrink-0 rounded-2xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
           >
             {isLoadingMessage ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -372,7 +372,7 @@ export function InputArea() {
         </div>
         )}
 
-        <p className="mt-1.5 text-center text-[11px] text-muted-foreground/50">
+        <p className="mt-2 text-center text-[11px] text-slate-500/70 dark:text-slate-400/70">
           Press Enter to send · Shift+Enter for new line
         </p>
       </div>

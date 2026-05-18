@@ -1,46 +1,50 @@
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
 import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Reset password — Meraki',
+  title: 'Reset password | Meraki',
   description: 'Reset your Meraki account password.',
 };
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Theme toggle - fixed in top-right */}
-      <div className="fixed top-4 right-4 z-50">
+    <div className="flex min-h-screen bg-[#edf6fb] dark:bg-slate-950">
+      <div className="fixed right-4 top-4 z-50">
         <ThemeToggle />
       </div>
 
-      {/* Left panel - branding (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2">
-        <AuthBrandPanel variant="login" />
-      </div>
+      <AuthBrandPanel variant="login" />
 
-      {/* Right panel - form */}
-      <div className="flex flex-1 items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm">
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden px-5 py-12 sm:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(126,200,227,0.28),transparent_30%),radial-gradient(circle_at_88%_80%,rgba(245,197,163,0.22),transparent_26%)]" />
+        <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.7] bg-white/[0.08]5 p-6 shadow-2xl shadow-blue-950/[0.1] backdrop-blur-xl dark:border-white/[0.1] dark:bg-white/[0.06] sm:p-8">
+          <div className="mb-7 flex items-center justify-center lg:hidden">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/[0.25]">
+                <Sparkles className="h-5 w-5" />
+              </span>
+              <span className="text-xl font-semibold text-slate-950 dark:text-white">Meraki</span>
+            </div>
+          </div>
+
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
+            <p className="text-sm font-semibold text-blue-700 dark:text-cyan-200">Secure your account</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white">
               Reset your password
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Enter your new password below to regain access to your account
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Choose a new password to regain access to your learning workspace.
             </p>
           </div>
 
           <ResetPasswordForm />
 
-          <p className="mt-6 text-center text-xs text-muted-foreground">
+          <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
             Remember your password?{' '}
-            <Link
-              href="/auth/login"
-              className="font-medium text-primary hover:underline"
-            >
+            <Link href="/auth/login" className="font-semibold text-blue-700 hover:underline dark:text-cyan-200">
               Sign in
             </Link>
           </p>

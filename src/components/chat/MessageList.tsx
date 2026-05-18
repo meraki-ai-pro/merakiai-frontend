@@ -14,23 +14,23 @@ import { cn } from '@/lib/utils';
 const EMPTY_STATE = {
   learn: {
     icon: BookOpen,
-    color: 'text-primary',
-    bg: 'bg-primary/10 ring-primary/20',
+    color: 'text-blue-600 dark:text-cyan-200',
+    bg: 'bg-blue-100 ring-blue-200 dark:bg-cyan-300/[0.12] dark:ring-cyan-300/[0.24]',
     title: 'Ready to learn',
     subtitle: 'Ask a question about froth flotation to get started.',
   },
   // 'application' is the backend mode value (UI label: "Practice")
   application: {
     icon: FlaskConical,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10 ring-emerald-500/20',
+    color: 'text-emerald-600 dark:text-emerald-200',
+    bg: 'bg-emerald-100 ring-emerald-200 dark:bg-emerald-300/[0.12] dark:ring-emerald-300/[0.24]',
     title: 'Practice session starting…',
     subtitle: 'Your guided scenario will appear here in a moment.',
   },
   review: {
     icon: ClipboardCheck,
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10 ring-amber-500/20',
+    color: 'text-amber-600 dark:text-amber-200',
+    bg: 'bg-amber-100 ring-amber-200 dark:bg-amber-300/[0.12] dark:ring-amber-300/[0.24]',
     title: 'Review session starting…',
     subtitle: 'Your first question will appear here in a moment.',
   },
@@ -78,24 +78,26 @@ export function MessageList() {
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-4 p-6 text-center">
-        <div className={cn(
-          'flex h-14 w-14 items-center justify-center p-5 rounded-2xl ring-1',
-          emptyConfig.bg
-        )}>
-          <EmptyIcon className={cn('h-7 w-7', emptyConfig.color)} />
-        </div>
-        <div>
-          <p className="text-base font-medium text-foreground">{emptyConfig.title}</p>
-          <p className="mt-1 text-sm text-muted-foreground max-w-xs">{emptyConfig.subtitle}</p>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="rounded-[28px] border border-white/70 bg-white/[0.78] px-8 py-7 shadow-xl shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
+          <div className={cn(
+            'mx-auto flex h-14 w-14 items-center justify-center rounded-2xl p-5 ring-1',
+            emptyConfig.bg
+          )}>
+            <EmptyIcon className={cn('h-7 w-7', emptyConfig.color)} />
+          </div>
+          <div className="mt-4">
+            <p className="text-base font-semibold text-slate-950 dark:text-white">{emptyConfig.title}</p>
+            <p className="mt-1 max-w-xs text-sm text-slate-500 dark:text-slate-400">{emptyConfig.subtitle}</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto p-6">
-      <div className="mx-auto max-w-3xl flex flex-col gap-6 px-4 py-6">
+    <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 rounded-[32px] border border-white/60 bg-white/[0.44] px-4 py-6 shadow-sm shadow-blue-950/5 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/[0.18] sm:px-6">
         {messages.map((message) => (
           <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             {message.role === 'user' ? (

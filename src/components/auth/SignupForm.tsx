@@ -84,21 +84,23 @@ export function SignupForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email" className="text-xs font-medium text-foreground">Email address</Label>
+        <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Email address</Label>
         <Input
           id="email" type="email" placeholder="you@example.com"
           value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }}
-          disabled={isLoading} required autoComplete="email" className="h-10"
+          disabled={isLoading} required autoComplete="email"
+          className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 dark:border-white/[0.1] dark:bg-white/[0.08]"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password" className="text-xs font-medium text-foreground">Password</Label>
+        <Label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Password</Label>
         <div className="relative">
           <Input
             id="password" type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters"
             value={password} onChange={(e) => { setPassword(e.target.value); setError(null); }}
-            disabled={isLoading} required autoComplete="new-password" className="h-10 pr-10"
+            disabled={isLoading} required autoComplete="new-password"
+            className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 pr-10 dark:border-white/[0.1] dark:bg-white/[0.08]"
           />
           <button type="button" onClick={() => setShowPassword((v) => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
@@ -114,12 +116,12 @@ export function SignupForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="confirmPassword" className="text-xs font-medium text-foreground">Confirm password</Label>
+        <Label htmlFor="confirmPassword" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Confirm password</Label>
         <Input
           id="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
           value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}
           disabled={isLoading} required autoComplete="new-password"
-          className={`h-10 ${confirmPassword && !passwordsMatch ? 'border-destructive' : ''}`}
+          className={`h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 dark:border-white/[0.1] dark:bg-white/[0.08] ${confirmPassword && !passwordsMatch ? 'border-destructive' : ''}`}
         />
         {confirmPassword && !passwordsMatch && (
           <p className="text-[11px] text-destructive">Passwords don&apos;t match</p>
@@ -129,7 +131,7 @@ export function SignupForm() {
       <Button
         type="submit"
         disabled={isLoading || !email || !password || !confirmPassword || !passwordsMatch || !passwordStrong}
-        className="h-10 mt-1"
+        className="mt-2 h-12 rounded-2xl bg-slate-950 font-semibold text-white shadow-lg shadow-blue-950/[0.15] hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
       >
         {isLoading ? (
           <><Loader2 className="h-4 w-4 animate-spin mr-2" />Creating account…</>

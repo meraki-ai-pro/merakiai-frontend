@@ -16,10 +16,10 @@ export function UserMessage({ message }: UserMessageProps) {
     <div className="flex items-end justify-end gap-3 w-full">
       <div className="flex flex-col items-end gap-1.5 w-full">
         <div
-          className="rounded-2xl rounded-br-sm bg-primary py-3 max-w-[75%] shadow-sm"
+          className="max-w-[75%] rounded-2xl rounded-br-sm bg-slate-950 py-3 shadow-lg shadow-blue-950/10 dark:bg-cyan-300"
           style={{ paddingLeft: "1.25rem", paddingRight: "1.25rem" }}
         >
-          <p className="text-sm text-primary-foreground leading-relaxed whitespace-pre-wrap break-words">
+          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white dark:text-slate-950">
             {message.content}
           </p>
         </div>
@@ -30,8 +30,8 @@ export function UserMessage({ message }: UserMessageProps) {
         </span>
       </div>
 
-      <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center ring-2 ring-primary/20 mb-6">
-        <span className="text-xs font-semibold text-primary">{initial}</span>
+      <div className="mb-6 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white text-slate-950 ring-2 ring-blue-200 shadow-sm dark:bg-white/[0.12] dark:text-cyan-100 dark:ring-cyan-300/[0.2]">
+        <span className="text-xs font-semibold">{initial}</span>
       </div>
     </div>
   );

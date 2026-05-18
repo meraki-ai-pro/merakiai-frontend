@@ -72,7 +72,7 @@ export function LoginForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email" className="text-xs font-medium text-foreground">
+        <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
           Email address
         </Label>
         <Input
@@ -84,16 +84,16 @@ export function LoginForm() {
           disabled={isLoading}
           required
           autoComplete="email"
-          className="h-10"
+          className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 dark:border-white/[0.1] dark:bg-white/[0.08]"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-xs font-medium text-foreground">
+          <Label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
             Password
           </Label>
-          <Link href="/auth/forgot-password" className="text-[11px] text-primary hover:underline">
+          <Link href="/auth/forgot-password" className="text-xs font-semibold text-blue-700 hover:underline dark:text-cyan-200">
             Forgot password?
           </Link>
         </div>
@@ -107,7 +107,7 @@ export function LoginForm() {
             disabled={isLoading}
             required
             autoComplete="current-password"
-            className="h-10 pr-10"
+            className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 pr-10 dark:border-white/[0.1] dark:bg-white/[0.08]"
           />
           <button
             type="button"
@@ -124,7 +124,7 @@ export function LoginForm() {
       <Button
         type="submit"
         disabled={isLoading || !email || !password}
-        className="h-10 mt-1"
+        className="mt-2 h-12 rounded-2xl bg-slate-950 font-semibold text-white shadow-lg shadow-blue-950/[0.15] hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
       >
         {isLoading ? (
           <>

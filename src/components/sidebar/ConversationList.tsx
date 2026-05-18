@@ -14,7 +14,11 @@ const modeIcon = {
 
 type ModeKey = keyof typeof modeIcon;
 
-export function ConversationList() {
+interface ConversationListProps {
+  searchQuery?: string;
+}
+
+export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const sessions          = useChatStore((s) => s.sessions);
   const currentSessionId  = useChatStore((s) => s.currentSessionId);
   const setCurrentSession = useChatStore((s) => s.setCurrentSession);
@@ -30,19 +34,30 @@ export function ConversationList() {
     toast.success('Session deleted');
   };
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredSessions = normalizedQuery
+    ? sessions.filter((session) => session.title.toLowerCase().includes(normalizedQuery))
+    : sessions;
+
   if (sessions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-        <MessageSquare className="h-7 w-7 text-muted-foreground/30" />
-        <p className="text-xs text-muted-foreground/60">No sessions yet</p>
-        <p className="text-[11px] text-muted-foreground/40">Start a new session above</p>
+        <MessageSquare className="h-7 w-7 text-slate-400 dark:text-slate-500" />
+        <p className="text-xs text-slate-500 dark:text-slate-400">No sessions yet</p>
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">Start a new session above</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-0.5 py-1">
-      {sessions.map((session) => {
+    <div className="flex flex-col gap-1 py-1">
+      {filteredSessions.length === 0 && (
+        <div className="rounded-2xl border border-slate-200/70 bg-white/50 px-3 py-4 text-center text-xs text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
+          No matching sessions
+        </div>
+      )}
+
+      {filteredSessions.map((session) => {
         const isActive = session.id === currentSessionId;
         const Icon     = modeIcon[(session.mode as ModeKey)] ?? BookOpen;
         const timeAgo  = formatDistanceToNow(new Date(session.createdAt), { addSuffix: true });
@@ -58,55 +73,48 @@ export function ConversationList() {
               // `w-full` + `overflow-hidden` on the row itself is the key fix —
               // without this the row can grow wider than the sidebar and text
               // never gets a chance to truncate.
-              'group relative w-full overflow-hidden text-left rounded-lg px-3 py-2.5',
-              'transition-colors cursor-pointer select-none',
+              'group relative w-full overflow-hidden rounded-2xl px-3 py-2.5 text-left',
+              'transition-all cursor-pointer select-none',
               isActive
-                ? 'bg-primary/10 text-foreground'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                ? 'bg-blue-50 text-slate-950 shadow-sm ring-1 ring-blue-100 dark:bg-cyan-300/[0.1] dark:text-white dark:ring-cyan-300/[0.16]'
+                : 'text-slate-600 hover:bg-slate-950/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white'
             )}
           >
             {/* Active left-bar indicator */}
             {isActive && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-r bg-primary" />
+              <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-blue-600 dark:bg-cyan-300" />
             )}
 
             {/*
-              Three-column flex row:
-                1. Mode icon  — flex-shrink-0  (never shrinks)
-                2. Text block — flex-1 min-w-0 (takes remaining space, can shrink to 0)
-                3. Delete btn — flex-shrink-0  (never shrinks, always reserves its space)
-
-              The text block has min-w-0 so flexbox allows it to shrink below its
-              content size, enabling `truncate` to actually kick in.
+              Fixed grid columns keep the destructive action available even when
+              the session title is very long.
             */}
-            <div className="flex items-center gap-2">
+            <div className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)_2rem] items-center gap-2">
               {/* 1 — Mode icon */}
-              <Icon className={cn('h-3.5 w-3.5 flex-shrink-0', isActive ? 'text-primary' : '')} />
+              <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-blue-600 dark:text-cyan-200' : 'text-slate-400')} />
 
               {/* 2 — Title + timestamp */}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium leading-tight truncate">
+              <div className="min-w-0 overflow-hidden">
+                <p className="truncate text-xs font-semibold leading-tight text-inherit" title={session.title}>
                   {session.title}
                 </p>
-                <p className="text-[11px] text-muted-foreground/60 mt-0.5 truncate">
+                <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400" title={timeAgo}>
                   {timeAgo}
                 </p>
               </div>
 
-              {/* 3 — Delete button: always in the DOM and always takes its space.
-                      Invisible by default, appears on group-hover / focus.
-                      flex-shrink-0 prevents it from ever being squeezed out. */}
+              {/* 3 — Delete button: fixed column, always visible, never squeezed out. */}
               <button
                 onClick={(e) => handleDelete(session.id, e)}
                 onFocus={(e) => e.stopPropagation()}
                 aria-label="Delete session"
                 title="Delete session"
                 className={cn(
-                  'flex-shrink-0 flex items-center justify-center',
-                  'h-6 w-6 rounded transition-all',
-                  'opacity-0 group-hover:opacity-100 focus:opacity-100',
-                  'hover:bg-destructive/15 hover:text-destructive',
-                  'focus:bg-destructive/15 focus:text-destructive focus:outline-none'
+                  'flex h-8 w-8 items-center justify-center justify-self-end rounded-xl',
+                  'text-slate-500 opacity-70 transition-all',
+                  'hover:bg-red-500/[0.12] hover:text-red-600 hover:opacity-100',
+                  'focus:bg-red-500/[0.12] focus:text-red-600 focus:opacity-100 focus:outline-none',
+                  'dark:text-slate-400 dark:hover:text-red-300 dark:focus:text-red-300'
                 )}
               >
                 <Trash2 className="h-3.5 w-3.5" />

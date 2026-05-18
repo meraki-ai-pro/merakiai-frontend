@@ -130,7 +130,7 @@ export function ResetPasswordForm() {
 
       {/* New Password Field */}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="newPassword" className="text-xs font-medium text-foreground">
+        <Label htmlFor="newPassword" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
           New password
         </Label>
         <div className="relative">
@@ -143,7 +143,7 @@ export function ResetPasswordForm() {
             disabled={isLoading || tokenValid !== true}
             required
             autoComplete="new-password"
-            className="h-10 pr-10"
+            className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 pr-10 dark:border-white/[0.1] dark:bg-white/[0.08]"
           />
           <button
             type="button"
@@ -162,7 +162,7 @@ export function ResetPasswordForm() {
 
       {/* Confirm Password Field */}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="confirmPassword" className="text-xs font-medium text-foreground">
+        <Label htmlFor="confirmPassword" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
           Confirm password
         </Label>
         <div className="relative">
@@ -175,7 +175,7 @@ export function ResetPasswordForm() {
             disabled={isLoading || tokenValid !== true}
             required
             autoComplete="new-password"
-            className="h-10 pr-10"
+            className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 pr-10 dark:border-white/[0.1] dark:bg-white/[0.08]"
           />
           <button
             type="button"
@@ -195,7 +195,7 @@ export function ResetPasswordForm() {
       <Button
         type="submit"
         disabled={!isFormValid}
-        className="h-10 mt-1"
+        className="mt-2 h-12 rounded-2xl bg-slate-950 font-semibold text-white shadow-lg shadow-blue-950/[0.15] hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
       >
         {isLoading ? (
           <>

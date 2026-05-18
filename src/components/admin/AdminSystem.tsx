@@ -24,12 +24,12 @@ function InfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-2xl border border-white/70 bg-white/[0.78] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] p-5">
       <div className="flex items-center gap-2 mb-4">
         <div className={cn('rounded-lg p-2', iconColor)}>
           <Icon className="h-4 w-4" />
         </div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <h2 className="text-sm font-semibold text-slate-950 dark:text-white">{title}</h2>
       </div>
       {children}
     </div>
@@ -46,10 +46,10 @@ function ServiceRow({
   status?: 'active' | 'fallback' | 'inactive';
 }) {
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-slate-200/70 dark:border-white/10 last:border-0">
+      <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-foreground/90 font-medium">{value}</span>
+        <span className="text-xs text-slate-900 dark:text-white font-medium">{value}</span>
         {status === 'active' && <CheckCircle2 className="h-3 w-3 text-emerald-400" />}
         {status === 'fallback' && <Zap className="h-3 w-3 text-amber-400" />}
       </div>
@@ -89,7 +89,7 @@ export function AdminSystem() {
           </div>
         </InfoCard>
 
-        <InfoCard icon={Mic} iconColor="bg-primary/15 text-primary" title="Audio & TTS Pipeline">
+        <InfoCard icon={Mic} iconColor="bg-blue-600/[0.12] dark:bg-cyan-300/[0.1] text-blue-600 dark:text-cyan-200" title="Audio & TTS Pipeline">
           <div className="space-y-0.5">
             <ServiceRow label="TTS service" value="ElevenLabs / OpenAI TTS" />
             <ServiceRow label="Output format" value="MP3 bytes → Supabase Storage" />
@@ -112,7 +112,7 @@ export function AdminSystem() {
           </div>
         </InfoCard>
 
-        <InfoCard icon={Cloud} iconColor="bg-primary/15 text-primary" title="Infrastructure">
+        <InfoCard icon={Cloud} iconColor="bg-blue-600/[0.12] dark:bg-cyan-300/[0.1] text-blue-600 dark:text-cyan-200" title="Infrastructure">
           <div className="space-y-0.5">
             <ServiceRow label="Database" value="Supabase (PostgreSQL)" />
             <ServiceRow label="Auth" value="Supabase Auth (JWT)" />
@@ -122,14 +122,14 @@ export function AdminSystem() {
             <ServiceRow label="Chunk strategies" value="learn / review / practice" />
           </div>
 
-          <div className="mt-4 rounded-lg border border-primary/20 bg-indigo-400/5 px-4 py-3">
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 dark:border-cyan-300/[0.2] dark:bg-cyan-300/[0.08] px-4 py-3">
             <div className="flex items-start gap-2">
-              <Info className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-primary/80/60 leading-relaxed">
-                Admin routes use <code className="bg-indigo-400/10 px-1 rounded">admin_guard</code> which checks
-                the <code className="bg-indigo-400/10 px-1 rounded">role</code> field in the Supabase{' '}
-                <code className="bg-indigo-400/10 px-1 rounded">users</code> table.
-                Set <code className="bg-indigo-400/10 px-1 rounded">role = &apos;admin&apos;</code> for admin accounts.
+              <Info className="h-3.5 w-3.5 text-blue-600 dark:text-cyan-200 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700/70 dark:text-cyan-100/70 leading-relaxed">
+                Admin routes use <code className="bg-blue-400/[0.12] dark:bg-cyan-300/[0.1] px-1 rounded">admin_guard</code> which checks
+                the <code className="bg-blue-400/[0.12] dark:bg-cyan-300/[0.1] px-1 rounded">role</code> field in the Supabase{' '}
+                <code className="bg-blue-400/[0.12] dark:bg-cyan-300/[0.1] px-1 rounded">users</code> table.
+                Set <code className="bg-blue-400/[0.12] dark:bg-cyan-300/[0.1] px-1 rounded">role = &apos;admin&apos;</code> for admin accounts.
               </p>
             </div>
           </div>
@@ -137,8 +137,8 @@ export function AdminSystem() {
       </div>
 
       {/* Video fallback architecture */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="rounded-2xl border border-white/70 bg-white/[0.78] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] p-5">
+        <h2 className="text-sm font-semibold text-slate-950 dark:text-white mb-4 flex items-center gap-2">
           <Globe className="h-4 w-4 text-blue-400" />
           Video Fallback Architecture
         </h2>
@@ -154,7 +154,7 @@ export function AdminSystem() {
               step: '2',
               title: 'D-ID Clip',
               desc: 'Audio URL sent to D-ID. Presenter avatar lip-syncs to audio. Returns video_url + SRT.',
-              color: 'border-violet-400/20 bg-primary/5 text-violet-300',
+              color: 'border-violet-400/20 bg-blue-600/[0.06] dark:bg-cyan-300/[0.08] text-violet-300',
             },
             {
               step: '3',

@@ -9,104 +9,110 @@
 }
 
 @layer base {
-  /* ── Light mode — uses the pale end of the #AC00A0 palette ── */
+  /* ── Light mode — uses the new gradient palette ── */
   :root {
-    --background:        304 100% 99%;   /* near-white with a hint of violet */
-    --foreground:        304 100% 8%;    /* deep purple-black for body text   */
+    --background:        54  67%  95%;   /* Pale Yellow tint background */
+    --foreground:        217 54%  15%;   /* Deep Navy for body text */
 
-    --card:              304 60%  97%;
-    --card-foreground:   304 100% 8%;
+    --card:              0   0%   100%;  /* Pure White */
+    --card-foreground:   217 54%  15%;   /* Deep Navy */
 
-    --popover:           304 60%  97%;
-    --popover-foreground:304 100% 8%;
+    --popover:           0   0%   100%;  /* Pure White */
+    --popover-foreground:217 54%  15%;   /* Deep Navy */
 
-    /* Primary = base colour #AC00A0 */
-    --primary:           304 100% 34%;
+    /* Primary = Ocean Blue #4A90C4 */
+    --primary:           210 62%  50%;
     --primary-foreground:0   0%   100%;
 
-    --secondary:         304 30%  92%;
-    --secondary-foreground:304 100% 20%;
+    /* Secondary = Sky Blue #7EC8E3 */
+    --secondary:         197 62%  70%;
+    --secondary-foreground:217 54%  15%;
 
-    --muted:             304 20%  94%;
-    --muted-foreground:  304 30%  45%;
+    /* Muted = Pale Yellow #EDE8B0 */
+    --muted:             54  67%  80%;
+    --muted-foreground:  217 54%  30%;
 
-    --accent:            304 50%  90%;
-    --accent-foreground: 304 100% 20%;
+    /* Accent = Warm Peach #F5C5A3 */
+    --accent:            25  85%  78%;
+    --accent-foreground: 217 54%  15%;
 
     --destructive:       0   84%  60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border:            304 25%  88%;
-    --input:             304 25%  88%;
-    --ring:              304 100% 34%;
+    --border:            54  67%  88%;
+    --input:             54  67%  90%;
+    --ring:              210 62%  50%;
 
-    /* Charts — purple spectrum */
-    --chart-1: 304 100% 34%;
-    --chart-2: 304  63% 46%;
-    --chart-3: 304  55% 57%;
-    --chart-4: 304  59% 74%;
-    --chart-5: 304 100% 92%;
+    /* Charts — gradient palette */
+    --chart-1: 210 62% 50%;   /* Ocean Blue */
+    --chart-2: 197 62% 70%;   /* Sky Blue */
+    --chart-3: 217 54% 25%;   /* Deep Navy */
+    --chart-4: 25  85% 78%;   /* Warm Peach */
+    --chart-5: 54  67% 80%;   /* Pale Yellow */
 
     --radius: 0.625rem;
 
     /* Sidebar */
-    --sidebar-background:     304 50%  96%;
-    --sidebar-foreground:     304 100% 15%;
-    --sidebar-primary:        304 100% 34%;
+    --sidebar-background:     54  67%  95%;
+    --sidebar-foreground:     217 54%  15%;
+    --sidebar-primary:        210 62%  50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent:         304 30%  90%;
-    --sidebar-accent-foreground: 304 100% 20%;
-    --sidebar-border:         304 25%  88%;
-    --sidebar-ring:           304 100% 34%;
+    --sidebar-accent:         25  85%  78%;
+    --sidebar-accent-foreground: 217 54%  15%;
+    --sidebar-border:         54  67%  88%;
+    --sidebar-ring:           210 62%  50%;
   }
 
-  /* ── Dark mode — uses the deep end of the palette ── */
+  /* ── Dark mode — uses deeper tones from the palette ── */
   .dark {
-    --background:        304 100% 4%;    /* ~#0D000C — near-black violet */
-    --foreground:        304 30%  94%;   /* soft off-white with purple tint  */
+    --background:        217 54%  12%;   /* Deep Navy tint background */
+    --foreground:        54  67%  90%;   /* Pale Yellow for text */
 
-    --card:              304 100% 7%;    /* ~#150012 */
-    --card-foreground:   304 30%  94%;
+    --card:              217 54%  18%;
+    --card-foreground:   54  67%  90%;
 
-    --popover:           304 100% 7%;
-    --popover-foreground:304 30%  94%;
+    --popover:           217 54%  18%;
+    --popover-foreground:54  67%  90%;
 
-    /* Primary = #AC00A0 — same in both modes */
-    --primary:           304 100% 34%;
+    /* Primary = Ocean Blue — same in both modes */
+    --primary:           210 62%  50%;
     --primary-foreground:0   0%   100%;
 
-    --secondary:         304 100% 11%;   /* ~#220020 */
-    --secondary-foreground:304 20%  90%;
+    /* Secondary = Sky Blue */
+    --secondary:         197 62%  70%;
+    --secondary-foreground:217 54%  15%;
 
-    --muted:             304 100% 13%;   /* ~#280024 */
-    --muted-foreground:  304 20%  60%;
+    /* Muted = Deep Navy */
+    --muted:             217 54%  25%;
+    --muted-foreground:  54  67%  80%;
 
-    --accent:            304 100% 15%;   /* ~#2F0029 */
-    --accent-foreground: 304 20%  90%;
+    /* Accent = Warm Peach */
+    --accent:            25  85%  78%;
+    --accent-foreground: 217 54%  15%;
 
     --destructive:       0   84%  60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border:            304 100% 16%;
-    --input:             304 100% 13%;
-    --ring:              304 100% 34%;
+    --border:            217 54%  22%;
+    --input:             217 54%  20%;
+    --ring:              210 62%  50%;
 
     /* Charts */
-    --chart-1: 304 100% 34%;
-    --chart-2: 304  63% 46%;
-    --chart-3: 304  55% 57%;
-    --chart-4: 304  59% 74%;
-    --chart-5: 304 100% 27%;
+    --chart-1: 210 62% 50%;   /* Ocean Blue */
+    --chart-2: 197 62% 70%;   /* Sky Blue */
+    --chart-3: 217 54% 25%;   /* Deep Navy */
+    --chart-4: 25  85% 78%;   /* Warm Peach */
+    --chart-5: 54  67% 80%;   /* Pale Yellow */
 
     /* Sidebar */
-    --sidebar-background:     304 100% 5%;
-    --sidebar-foreground:     304 20%  92%;
-    --sidebar-primary:        304 100% 34%;
+    --sidebar-background:     217 54%  15%;
+    --sidebar-foreground:     54  67%  90%;
+    --sidebar-primary:        210 62%  50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent:         304 100% 11%;
-    --sidebar-accent-foreground: 304 20%  90%;
-    --sidebar-border:         304 100% 14%;
-    --sidebar-ring:           304 100% 34%;
+    --sidebar-accent:         25  85%  78%;
+    --sidebar-accent-foreground: 217 54%  15%;
+    --sidebar-border:         217 54%  20%;
+    --sidebar-ring:           210 62%  50%;
   }
 }
 

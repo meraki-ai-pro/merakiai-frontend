@@ -65,7 +65,7 @@ export function ForgotPasswordForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email" className="text-xs font-medium text-foreground">
+        <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
           Email address
         </Label>
         <Input
@@ -77,11 +77,15 @@ export function ForgotPasswordForm() {
           disabled={isLoading}
           required
           autoComplete="email"
-          className="h-10"
+          className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 dark:border-white/[0.1] dark:bg-white/[0.08]"
         />
       </div>
 
-      <Button type="submit" disabled={isLoading || !email} className="h-10 mt-1">
+      <Button
+        type="submit"
+        disabled={isLoading || !email}
+        className="mt-2 h-12 rounded-2xl bg-slate-950 font-semibold text-white shadow-lg shadow-blue-950/[0.15] hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
+      >
         {isLoading ? (
           <><Loader2 className="h-4 w-4 animate-spin mr-2" />Sending…</>
         ) : (
