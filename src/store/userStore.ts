@@ -27,7 +27,7 @@ export const useUserStore = create<UserState>()(
         language: 'en',
         subtitlesEnabled: true,
         autoPlayVideo: true,
-        prefersVideo: false,
+        prefersVideo: true,
       },
       isAuthenticated: false,
       isLoading: false,

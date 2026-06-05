@@ -1,6 +1,7 @@
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import { MerakiLogo } from '@/components/common/MerakiLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata = {
@@ -19,20 +20,21 @@ export default function ForgotPasswordPage() {
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl items-center justify-center">
         <div className="grid w-full overflow-hidden rounded-[32px] border border-white/[0.7] bg-white/[0.08]0 shadow-2xl shadow-blue-950/[0.1] backdrop-blur-xl dark:border-white/[0.1] dark:bg-white/[0.06] lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="hidden bg-slate-950 p-10 text-white lg:block">
+          <div className="hidden bg-[#edf6fb] p-10 text-slate-950 dark:bg-slate-950 dark:text-white lg:block">
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-cyan-200/[0.5] bg-white/[0.12]">
-                <Sparkles className="h-5 w-5" />
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-blue-200 bg-white/80 shadow-lg shadow-blue-600/[0.12] dark:border-cyan-200/[0.5] dark:bg-white/[0.12] dark:shadow-none">
+                <MerakiLogo variant="color" className="h-7 w-7 dark:hidden" decorative />
+                <MerakiLogo variant="white" className="hidden h-7 w-7 dark:block" decorative />
               </span>
               <div>
                 <p className="text-xl font-semibold">Meraki</p>
-                <p className="text-xs text-cyan-100/[0.8]">AI froth flotation tutor</p>
+                <p className="text-xs text-blue-700 dark:text-cyan-100/[0.8]">AI learning workspace</p>
               </div>
             </div>
             <h1 className="mt-24 text-balance text-5xl font-semibold leading-tight">
               Get back to your Learn, Practice, and Review flow.
             </h1>
-            <p className="mt-5 text-base leading-7 text-slate-300">
+            <p className="mt-5 text-base leading-7 text-slate-600 dark:text-slate-300">
               Request a secure reset link, then return to your saved conversations and study sessions.
             </p>
           </div>
@@ -49,7 +51,7 @@ export default function ForgotPasswordPage() {
             <div className="mb-8">
               <div className="mb-5 flex items-center gap-3 lg:hidden">
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/[0.25]">
-                  <Sparkles className="h-5 w-5" />
+                  <MerakiLogo variant="white" className="h-6 w-6" decorative />
                 </span>
                 <span className="text-xl font-semibold text-slate-950 dark:text-white">Meraki</span>
               </div>

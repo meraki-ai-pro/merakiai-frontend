@@ -1,12 +1,13 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
+import { MerakiLogo } from '@/components/common/MerakiLogo';
 
 export function LoadingState() {
   return (
     <div className="group flex gap-3">
       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm ring-2 ring-blue-200 dark:bg-cyan-300 dark:text-slate-950 dark:ring-cyan-300/[0.2]">
-        <Sparkles className="h-4 w-4 animate-spin-slow" />
+        <MerakiLogo variant="white" className="h-5 w-5 animate-pulse dark:hidden" decorative />
+        <MerakiLogo variant="color" className="hidden h-5 w-5 animate-pulse dark:block" decorative />
       </div>
       
       <div className="flex max-w-2xl flex-1 flex-col gap-2 min-w-0">

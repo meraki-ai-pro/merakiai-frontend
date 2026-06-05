@@ -1,7 +1,9 @@
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/constants';
+import { debugBackend } from '@/lib/debug';
 import type {
   ApiResponse,
   LoginResponse,
+  SignupRequest,
   SignupResponse,
   CreateSessionRequest,
   CreateSessionResponse,
@@ -17,6 +19,7 @@ import type {
   SessionSurveyRequest,
   UserFeedbackRequest,
   FeedbackResponse,
+  TaskStatusResponse,
 } from '@/types';
 
 // ─── Cookie-based token store (accessible by middleware) ─────────────────────
@@ -77,23 +80,19 @@ class ApiClient {
         ...(options?.headers as Record<string, string>),
       };
 
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const url = endpoint.startsWith('/api/') ? endpoint : `${this.baseUrl}${endpoint}`;
+      const response = await fetch(url, {
         ...options,
         headers,
       });
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[API] ${options?.method ?? 'GET'} ${endpoint}`, {
-          hasBody,
-          bodyPreview: typeof options?.body === 'string' ? options.body.slice(0, 200) : options?.body,
-          headers: { ...headers, Authorization: headers.Authorization ? '***' : undefined },
-        });
-      }
 
       if (!response.ok) {
         let message = `HTTP ${response.status}: ${response.statusText}`;
         try {
           const errBody = await response.json();
+          if (!endpoint.startsWith('/auth')) {
+            debugBackend(`api:error:${options?.method ?? 'GET'} ${endpoint}`, errBody);
+          }
           if (Array.isArray(errBody?.detail)) {
             message = errBody.detail
               .map((e: { msg?: string; loc?: string[] }) =>
@@ -103,7 +102,6 @@ class ApiClient {
           } else if (typeof errBody?.detail === 'string') {
             message = errBody.detail;
           }
-          console.error(`[API ${response.status}] ${endpoint}`, errBody);
         } catch {
           /* ignore parse errors */
         }
@@ -111,6 +109,9 @@ class ApiClient {
       }
 
       const data: T = await response.json();
+      if (!endpoint.startsWith('/auth')) {
+        debugBackend(`api:response:${options?.method ?? 'GET'} ${endpoint}`, data);
+      }
       return { success: true, data };
     } catch (error) {
       return {
@@ -141,10 +142,10 @@ class ApiClient {
     return res;
   }
 
-  async signup(email: string, password: string) {
+  async signup(payload: SignupRequest) {
     return this.request<SignupResponse>(API_ENDPOINTS.AUTH_SIGNUP, {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(payload),
       skipAuth: true,
     });
   }
@@ -231,6 +232,14 @@ class ApiClient {
     return this.request<{ conversations: object[] }>(
       `${API_ENDPOINTS.SESSIONS_CONVERSATIONS(sessionId)}?limit=${limit}&offset=${offset}`
     );
+  }
+
+  getRagTaskStatus(taskId: string) {
+    return this.request<TaskStatusResponse>(`/api/backend${API_ENDPOINTS.RAG_STATUS(taskId)}`);
+  }
+
+  getModeSessionTaskStatus(taskId: string) {
+    return this.request<TaskStatusResponse>(`/api/backend${API_ENDPOINTS.MODE_SESSIONS_STATUS(taskId)}`);
   }
 
   // ─── Voice (REST, result arrives via WebSocket) ───────────────────────────

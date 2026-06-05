@@ -1,7 +1,7 @@
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
 import { LoginForm } from '@/components/auth/LoginForm';
+import { MerakiLogo } from '@/components/common/MerakiLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
-import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata = {
@@ -24,7 +24,7 @@ export default function LoginPage() {
           <div className="mb-7 flex items-center justify-center lg:hidden">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/[0.25]">
-                <Sparkles className="h-5 w-5" />
+                <MerakiLogo variant="white" className="h-6 w-6" decorative />
               </span>
               <span className="text-xl font-semibold text-slate-950 dark:text-white">Meraki</span>
             </div>
@@ -36,7 +36,7 @@ export default function LoginPage() {
               Sign in to Meraki
             </h1>
             <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Continue learning, practicing, and reviewing froth flotation.
+              Continue learning, practicing, and reviewing with Meraki.
             </p>
           </div>
 

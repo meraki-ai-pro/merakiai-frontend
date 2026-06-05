@@ -84,7 +84,7 @@ export function ForgotPasswordForm() {
       <Button
         type="submit"
         disabled={isLoading || !email}
-        className="mt-2 h-12 rounded-2xl bg-slate-950 font-semibold text-white shadow-lg shadow-blue-950/[0.15] hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
+        className="mt-2 h-12 rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/[0.22] hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
       >
         {isLoading ? (
           <><Loader2 className="h-4 w-4 animate-spin mr-2" />Sending…</>

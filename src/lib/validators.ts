@@ -51,7 +51,11 @@ export const loginSchema = z.object({
 export const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(1, 'Name is required').max(100),
+  first_name: z.string().min(1, 'First name is required').max(100),
+  last_name: z.string().min(1, 'Last name is required').max(100),
+  university_name: z.string().min(1, 'University is required').max(200),
+  region: z.string().min(1, 'Region is required').max(100),
+  country: z.string().min(1, 'Country is required').max(100),
 });
 
 // User preferences validators

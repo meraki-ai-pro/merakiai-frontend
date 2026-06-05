@@ -30,6 +30,16 @@ export interface SignupResponse {
   note?: string;
 }
 
+export interface SignupRequest {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  university_name: string;
+  region: string;
+  country: string;
+}
+
 // ─── RAG/Chat (Learn mode) ────────────────────────────────────────────────────
 export interface RagTurnRequest {
   session_id: string;
@@ -174,6 +184,27 @@ export interface DeliveryBlock {
   subtitles_url?: string | null;
 }
 
+export type TaskStatus =
+  | 'queued'
+  | 'processing'
+  | 'pending'
+  | 'completed'
+  | 'complete'
+  | 'done'
+  | 'success'
+  | 'succeeded'
+  | 'failed'
+  | 'error';
+
+export interface TaskStatusResponse {
+  status: TaskStatus | string;
+  task_id?: string;
+  result?: unknown;
+  data?: unknown;
+  error?: string | null;
+  message?: string | null;
+}
+
 // ─── WebSocket acknowledgement types ─────────────────────────────────────────
 // The WebSocket now delivers task results via push (not polling).
 // These ack types are returned immediately after sending a WS message.
@@ -215,7 +246,7 @@ export interface WsModeSessionStartPush {
 export interface WsModeSessionEvaluationPush {
   mode: 'application' | 'review';
   type: 'evaluation';
-  evaluation: ApplicationEvaluation | ReviewEvaluation;
+  evaluation: ApiApplicationEvaluation | ApiReviewEvaluation;
   next_prompt: string;
   next_difficulty?: string;
   response_format: 'text';
@@ -227,7 +258,7 @@ export interface WsModeSessionEvaluationPush {
 export interface WsModeSessionCompletedPush {
   mode: 'application' | 'review';
   type: 'completed';
-  evaluation: ApplicationEvaluation | ReviewEvaluation;
+  evaluation: ApiApplicationEvaluation | ApiReviewEvaluation;
   key_learning_points?: string[];
   summary?: string;
   response_format: 'text';
@@ -246,7 +277,7 @@ export type WsIncoming =
 
 // ─── Evaluation objects ───────────────────────────────────────────────────────
 
-export interface ApplicationEvaluation {
+export interface ApiApplicationEvaluation {
   verdict: 'correct' | 'partially_correct' | 'incorrect';
   score: number;
   feedback: string;
@@ -254,7 +285,7 @@ export interface ApplicationEvaluation {
   unsupported_claims?: string[];
 }
 
-export interface ReviewEvaluation {
+export interface ApiReviewEvaluation {
   verdict: 'correct' | 'partially_correct' | 'incorrect';
   score: number;
   rubric_level?: string;

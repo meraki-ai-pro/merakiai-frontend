@@ -32,11 +32,11 @@ const TYPE_LABELS: Record<string, string> = {
   flashcard:     'Flashcard',
   short_answer:  'Short Answer',
   // Practice
-  flotation_basics:  'Flotation Basics',
-  reagents:          'Reagents & Chemistry',
-  process_variables: 'Process Variables',
-  troubleshooting:   'Troubleshooting',
-  surface_chemistry: 'Surface Chemistry',
+  flotation_basics:  'Core Concepts',
+  reagents:          'Key Terms',
+  process_variables: 'Applied Concepts',
+  troubleshooting:   'Problem Solving',
+  surface_chemistry: 'Advanced Concepts',
 };
 
 // Pill colour per mode
@@ -113,7 +113,7 @@ export function InputArea() {
       ? isMcqReview
         ? 'Select an option above…'
         : 'Type your answer…'
-      : 'Ask anything about froth flotation…';
+      : 'Ask Meraki anything…';
 
   const handleSend = async () => {
     // MCQ mode: send the selected option letter
@@ -323,7 +323,7 @@ export function InputArea() {
             <Button
               onClick={handleSend}
               disabled={!selectedMcqOption || isLoadingMessage || isSwitching}
-              className="mt-1 h-11 w-full rounded-2xl bg-slate-950 font-semibold text-white hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
+              className="mt-1 h-11 w-full rounded-2xl bg-blue-600 font-semibold text-white hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
             >
               {isLoadingMessage ? (
                 <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Submitting…</>
@@ -361,7 +361,7 @@ export function InputArea() {
             onClick={handleSend}
             disabled={!message.trim() || isLoadingMessage || isSwitching || activeModeSession?.completed}
             size="icon"
-            className="h-10 w-10 flex-shrink-0 rounded-2xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
+            className="h-10 w-10 flex-shrink-0 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
           >
             {isLoadingMessage ? (
               <Loader2 className="h-4 w-4 animate-spin" />

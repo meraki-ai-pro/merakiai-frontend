@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useChatStore } from '@/store/chatStore';
 import { VideoPlayer } from './VideoPlayer';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Sparkles } from 'lucide-react';
+import { MerakiLogo } from '@/components/common/MerakiLogo';
 import type { Message } from '@/types';
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer';
 import { PracticeEvalCard, PracticeCompletedCard } from '@/components/mode/PracticeModeUI';
@@ -53,7 +53,8 @@ export function AIResponse({ message }: AIResponseProps) {
       {/* Avatar */}
       <Avatar className="h-8 w-8 flex-shrink-0 shadow-sm ring-2 ring-blue-200 dark:ring-cyan-300/[0.2]">
         <AvatarFallback className="bg-blue-600 text-white dark:bg-cyan-300 dark:text-slate-950">
-          <Sparkles className="h-4 w-4" />
+          <MerakiLogo variant="white" className="h-5 w-5 dark:hidden" decorative />
+          <MerakiLogo variant="color" className="hidden h-5 w-5 dark:block" decorative />
         </AvatarFallback>
       </Avatar>
 
@@ -82,6 +83,18 @@ export function AIResponse({ message }: AIResponseProps) {
                 {showTranscript && <MarkdownRenderer content={message.content} />}
               </div>
             )}
+          </div>
+
+        ) : message.pendingVideo ? (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/80 px-4 py-3 shadow-sm dark:border-cyan-300/[0.18] dark:bg-cyan-300/[0.06]">
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600 dark:bg-cyan-300" style={{ animationDelay: '0ms' }} />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600 dark:bg-cyan-300" style={{ animationDelay: '150ms' }} />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600 dark:bg-cyan-300" style={{ animationDelay: '300ms' }} />
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Preparing video response...</p>
+            </div>
           </div>
 
         ) : isModeMessage ? (

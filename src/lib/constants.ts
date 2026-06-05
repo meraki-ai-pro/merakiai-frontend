@@ -12,6 +12,8 @@ export const API_ENDPOINTS = {
   AUTH_RESET_PASSWORD: '/auth/reset-password',
 
   // RAG/Chat (Learn mode voice input only — text goes via WebSocket)
+  RAG_TURN: '/rag/turn',
+  RAG_STATUS: (taskId: string) => `/rag/status/${taskId}`,
   RAG_TURN_VOICE: '/rag/turn/voice',
 
   // Sessions
@@ -33,6 +35,7 @@ export const API_ENDPOINTS = {
   FEEDBACK_USER: '/feedback/user-feedback',
 
   // Mode Sessions voice turns (text turns go via WebSocket)
+  MODE_SESSIONS_STATUS: (taskId: string) => `/mode-sessions/status/${taskId}`,
   MODE_SESSIONS_TURN_VOICE: (id: string) => `/mode-sessions/${id}/turn/voice`,
 } as const;
 
@@ -57,11 +60,11 @@ export const AUDIO_CONSTRAINTS = {
 // These are sent as session_type to the backend. The backend mode is
 // 'application'; the UI labels them as "Practice" for student-facing copy.
 export const PRACTICE_SESSION_TYPES = [
-  { value: 'flotation_basics',   label: 'Flotation Basics' },
-  { value: 'reagents',           label: 'Reagents & Chemistry' },
-  { value: 'process_variables',  label: 'Process Variables' },
-  { value: 'troubleshooting',    label: 'Troubleshooting' },
-  { value: 'surface_chemistry',  label: 'Surface Chemistry' },
+  { value: 'flotation_basics',   label: 'Core Concepts' },
+  { value: 'reagents',           label: 'Key Terms' },
+  { value: 'process_variables',  label: 'Applied Concepts' },
+  { value: 'troubleshooting',    label: 'Problem Solving' },
+  { value: 'surface_chemistry',  label: 'Advanced Concepts' },
 ] as const;
 
 // ─── Review session types ─────────────────────────────────────────────────────

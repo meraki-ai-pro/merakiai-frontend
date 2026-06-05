@@ -9,6 +9,7 @@ export interface Message {
   responseFormat?: ResponseFormat;
   videoUrl?: string | null;
   audioUrl?: string | null;
+  pendingVideo?: boolean;
   mode: TutorMode;
   timestamp: Date;
 

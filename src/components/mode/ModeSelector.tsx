@@ -33,7 +33,7 @@ const MODE_META = {
     description: 'Apply your knowledge to a real-world scenario with guided steps and AI feedback.',
     // How-it-works steps shown below the header
     howItWorks: [
-      'You receive a realistic froth flotation scenario (e.g. a plant problem to solve).',
+      'You receive a realistic scenario or exercise to solve.',
       'Answer each of 3 guided sub-questions in your own words.',
       'After each answer the AI evaluates your response, highlights what you got right and what you missed, then presents the next step.',
       'At the end you receive a summary of key learning points.',

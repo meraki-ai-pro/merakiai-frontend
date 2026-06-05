@@ -36,8 +36,6 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       const res = await apiClient.updateAvatar(avatarId);
       
       if (res.success && res.data) {
-        console.log('[SettingsModal] Avatar updated:', res.data);
-        
         // Update user store with new avatar info
         if (user) {
           useUserStore.setState({
@@ -61,8 +59,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       } else {
         toast.error(res.error?.message ?? 'Failed to update avatar');
       }
-    } catch (err) {
-      console.error('[SettingsModal] Avatar update error:', err);
+    } catch {
       toast.error('Failed to update avatar');
     } finally {
       setLoading(false);
