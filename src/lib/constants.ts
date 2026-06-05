@@ -1,5 +1,41 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
+
+function toWebSocketUrl(value: string) {
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:') url.protocol = 'wss:';
+    if (url.protocol === 'http:') url.protocol = 'ws:';
+
+    if (
+      typeof window !== 'undefined' &&
+      window.location.protocol === 'https:' &&
+      url.protocol === 'ws:'
+    ) {
+      url.protocol = 'wss:';
+    }
+
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return value.replace(/\/$/, '');
+  }
+}
+
+function getWebSocketBaseUrl() {
+  const configuredWsUrl = process.env.NEXT_PUBLIC_WS_URL;
+  if (configuredWsUrl) return toWebSocketUrl(configuredWsUrl);
+
+  const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (configuredApiUrl) return toWebSocketUrl(configuredApiUrl);
+
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}`;
+  }
+
+  return 'ws://localhost:8000';
+}
+
+export const WS_URL = getWebSocketBaseUrl();
 
 export const API_ENDPOINTS = {
   // Health
