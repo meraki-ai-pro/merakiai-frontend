@@ -16,7 +16,7 @@ export function UserMessage({ message }: UserMessageProps) {
     <div className="flex items-end justify-end gap-3 w-full">
       <div className="flex flex-col items-end gap-1.5 w-full">
         <div
-          className="max-w-[75%] rounded-2xl rounded-br-sm bg-slate-950 py-3 shadow-lg shadow-blue-950/10 dark:bg-cyan-300"
+          className="max-w-[75%] rounded-2xl rounded-br-sm bg-blue-600 py-3 shadow-lg shadow-blue-600/20 dark:bg-cyan-300"
           style={{ paddingLeft: "1.25rem", paddingRight: "1.25rem" }}
         >
           <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white dark:text-slate-950">

@@ -136,8 +136,6 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
 
   // ─── Mode 1: Web Speech API ────────────────────────────────────────────────
   const startSpeechRecognition = useCallback(async () => {
-    console.log('[VoiceInput] Starting Web Speech API...');
-    
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
@@ -156,7 +154,6 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
     finalTranscriptRef.current = '';
 
     recognition.onstart = () => {
-      console.log('[VoiceInput] Speech recognition started');
       setRecordingState('listening');
       setIsRecording(true);
       startTimer();
@@ -171,13 +168,11 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
         }
       }
       if (final) {
-        console.log('[VoiceInput] Transcript:', final);
         finalTranscriptRef.current += final + ' ';
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('[VoiceInput] Speech error:', event.error);
       stopTimer();
       setIsRecording(false);
       setRecordingState('idle');
@@ -192,14 +187,12 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
     };
 
     recognition.onend = () => {
-      console.log('[VoiceInput] Speech recognition ended');
       stopTimer();
       setIsRecording(false);
       setRecordingState('idle');
       
       const transcript = finalTranscriptRef.current.trim();
       if (transcript) {
-        console.log('[VoiceInput] Final transcript:', transcript);
         onRecordingComplete(transcript);
       } else {
         toast('No speech detected.', { icon: '🎙️' });
@@ -210,8 +203,7 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
     
     try {
       recognition.start();
-    } catch (err) {
-      console.error('[VoiceInput] Failed to start:', err);
+    } catch {
       setRecordingState('idle');
       toast.error('Could not start voice input.');
     }
@@ -219,8 +211,6 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
 
   // ─── Mode 2: File Upload ───────────────────────────────────────────────────
   const startFileRecording = useCallback(async () => {
-    console.log('[VoiceInput] Starting file recording...');
-    
     if (!currentSessionId) {
       toast.error('No active session. Start a conversation first.');
       return;
@@ -236,26 +226,21 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
         ? 'audio/webm'
         : 'audio/mp4';
       
-      console.log('[VoiceInput] Using MIME type:', mimeType);
-      
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
-          console.log('[VoiceInput] Audio chunk:', e.data.size, 'bytes');
           audioChunksRef.current.push(e.data);
         }
       };
 
       mediaRecorder.onstop = async () => {
-        console.log('[VoiceInput] Recording stopped');
         stream.getTracks().forEach((t) => t.stop());
         stopTimer();
         setIsRecording(false);
 
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        console.log('[VoiceInput] Final audio blob:', audioBlob.size, 'bytes');
 
         if (audioBlob.size === 0) {
           setRecordingState('idle');
@@ -265,18 +250,15 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
 
         // Upload to backend
         setRecordingState('uploading');
-        console.log('[VoiceInput] Uploading to backend...');
         
         const res = await apiClient.uploadVoice(currentSessionId, audioBlob);
 
         setRecordingState('idle');
 
         if (res.success && res.data) {
-          console.log('[VoiceInput] Transcription success:', res.data.transcript);
           toast.success('Voice transcribed!');
           onRecordingComplete(res.data.transcript);
         } else {
-          console.error('[VoiceInput] Transcription failed:', res.error);
           toast.error(res.error?.message ?? 'Voice transcription failed.');
         }
       };
@@ -287,10 +269,7 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
       setRecordingState('listening');
       setIsRecording(true);
       startTimer();
-      
-      console.log('[VoiceInput] Recording started');
-    } catch (err) {
-      console.error('[VoiceInput] Failed to start recording:', err);
+    } catch {
       toast.error('Microphone access denied.');
     }
   }, [currentSessionId, startTimer, stopTimer, setIsRecording, onRecordingComplete]);
@@ -299,7 +278,6 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
     if (disabled) return;
     
     if (recordingState === 'listening') {
-      console.log('[VoiceInput] Stopping recording...');
       stopRecording();
     } else if (recordingState === 'idle') {
       if (mode === 'speech') {
@@ -313,7 +291,6 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
   const toggleMode = () => {
     if (recordingState !== 'idle') return;
     const newMode = mode === 'speech' ? 'upload' : 'speech';
-    console.log('[VoiceInput] Switching mode to:', newMode);
     setMode(newMode);
     toast.success(`Switched to ${newMode === 'speech' ? 'browser' : 'upload'} mode`);
   };

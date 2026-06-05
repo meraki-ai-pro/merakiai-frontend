@@ -17,7 +17,7 @@ const EMPTY_STATE = {
     color: 'text-blue-600 dark:text-cyan-200',
     bg: 'bg-blue-100 ring-blue-200 dark:bg-cyan-300/[0.12] dark:ring-cyan-300/[0.24]',
     title: 'Ready to learn',
-    subtitle: 'Ask a question about froth flotation to get started.',
+    subtitle: 'Ask a question to get started.',
   },
   // 'application' is the backend mode value (UI label: "Practice")
   application: {

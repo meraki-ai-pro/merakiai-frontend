@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { ConversationList } from './ConversationList';
 import { NewChat } from './NewChat';
 import { SidebarMenu } from './SidebarMenu';
+import { MerakiLogo } from '@/components/common/MerakiLogo';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PanelLeftClose, PanelLeftOpen, Search, Sparkles } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -39,7 +40,7 @@ export function Sidebar() {
           )}
           aria-label="Go to Meraki home page"
         >
-          <Sparkles className="h-4 w-4" />
+          <MerakiLogo variant="color" className="h-6 w-6" decorative />
         </Link>
 
         {!collapsed && (

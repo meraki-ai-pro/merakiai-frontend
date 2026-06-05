@@ -61,24 +61,20 @@ export class MerakiWebSocket {
 
     const token = this.getToken();
     if (!token) {
-      console.warn('[WS] No auth token — cannot connect');
       this.onAuthError();
       return;
     }
 
     const url = `${WS_URL}/ws/${this.sessionId}?token=${encodeURIComponent(token)}`;
-    console.log(`[WS] Connecting session=${this.sessionId} retry=${this.retries}`);
 
     try {
       this.ws = new WebSocket(url);
-    } catch (err) {
-      console.error('[WS] Failed to construct WebSocket:', err);
+    } catch {
       this.scheduleReconnect();
       return;
     }
 
     this.ws.onopen = () => {
-      console.log(`[WS] Connected session=${this.sessionId}`);
       this.retries = 0;
     };
 
@@ -87,30 +83,26 @@ export class MerakiWebSocket {
         const msg: WsIncoming = JSON.parse(event.data);
         this.onMessage(msg);
       } catch {
-        console.error('[WS] Parse error', event.data);
+        /* ignore malformed socket messages */
       }
     };
 
     this.ws.onclose = (event) => {
       if (this.closed) return;
       if (event.code === 4001) {
-        console.error('[WS] Auth failure (4001) — not retrying');
         this.onAuthError();
         return;
       }
-      console.warn(`[WS] Closed code=${event.code} — will retry`);
       this.scheduleReconnect();
     };
 
     this.ws.onerror = () => {
       // onerror fires before onclose — let onclose handle the reconnect.
-      console.warn('[WS] Socket error on session', this.sessionId);
     };
   }
 
   private scheduleReconnect() {
     const delay = Math.min(1000 * 2 ** this.retries, 30_000);
-    console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.retries + 1})`);
     this.retries++;
     setTimeout(() => this.connect(), delay);
   }
@@ -122,8 +114,6 @@ export class MerakiWebSocket {
   private send(payload: object) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(payload));
-    } else {
-      console.warn(`[WS] Not open (state=${this.ws?.readyState}) — dropped`, payload);
     }
   }
 

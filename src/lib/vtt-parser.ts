@@ -20,7 +20,6 @@ export function parseVTT(vttString: string): Subtitle[] {
 
   // Guard: if caller accidentally passes a URL instead of text content, bail cleanly
   if (vttString.trimStart().startsWith('http')) {
-    console.warn('[parseVTT] Received a URL instead of VTT text content. Fetch the URL first.');
     return [];
   }
 

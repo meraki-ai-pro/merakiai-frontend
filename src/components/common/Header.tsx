@@ -77,7 +77,7 @@ export function Header() {
   useEffect(() => { setMounted(true); }, []);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
-  const prefersVideo = currentSession?.prefersVideo ?? false;
+  const prefersVideo = currentSession?.prefersVideo ?? true;
   const currentMode = currentSession?.currentMode ?? 'learn';
   const isReviewMode = currentMode === 'review';
 
@@ -209,7 +209,7 @@ export function Header() {
                   className={cn(
                     'flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all',
                     !prefersVideo
-                      ? 'border border-slate-200 bg-slate-950 text-white shadow-sm dark:border-cyan-300/40 dark:bg-cyan-300 dark:text-slate-950'
+                      ? 'border border-blue-200 bg-blue-600 text-white shadow-sm dark:border-cyan-300/40 dark:bg-cyan-300 dark:text-slate-950'
                       : 'text-slate-500 hover:bg-slate-950/5 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
                   )}
                 >
@@ -226,7 +226,7 @@ export function Header() {
                   className={cn(
                     'flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all',
                     prefersVideo
-                      ? 'border border-slate-200 bg-slate-950 text-white shadow-sm dark:border-cyan-300/40 dark:bg-cyan-300 dark:text-slate-950'
+                      ? 'border border-blue-200 bg-blue-600 text-white shadow-sm dark:border-cyan-300/40 dark:bg-cyan-300 dark:text-slate-950'
                       : 'text-slate-500 hover:bg-slate-950/5 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
                   )}
                 >

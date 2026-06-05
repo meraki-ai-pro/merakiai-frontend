@@ -21,10 +21,10 @@ import {
 import { cn } from '@/lib/utils';
 
 const QUICK_STARTS = [
-  'What is froth flotation and how does it work?',
-  'Explain the role of collectors in flotation.',
-  'How does pH affect flotation performance?',
-  'What causes froth instability?',
+  'Explain the core idea from today\'s lesson.',
+  'Give me a simple summary before I practise.',
+  'Quiz me on the most important concepts.',
+  'What should I review before an assessment?',
 ];
 
 // ─── Mode cards — backend value, UI label, full description ──────────────────
@@ -39,7 +39,7 @@ const MODE_CARDS = [
     activeBg: 'bg-blue-50 border-blue-300 dark:bg-cyan-300/[0.08] dark:border-cyan-300/[0.3]',
     iconBg: 'bg-blue-100 dark:bg-cyan-300/[0.12]',
     bullets: [
-      { icon: MessageSquare, text: 'Ask any question about froth flotation in plain language' },
+      { icon: MessageSquare, text: 'Ask questions in plain language and get clear explanations' },
       { icon: Video,         text: 'Get answers as text or AI avatar video — your choice' },
       { icon: BookOpen,      text: 'Follow-up freely; the AI remembers your full conversation' },
     ],
@@ -55,7 +55,7 @@ const MODE_CARDS = [
     activeBg: 'bg-emerald-50 border-emerald-300 dark:bg-emerald-300/[0.08] dark:border-emerald-300/[0.3]',
     iconBg: 'bg-emerald-100 dark:bg-emerald-300/[0.12]',
     bullets: [
-      { icon: FlaskConical, text: 'Receive a realistic plant scenario to work through' },
+      { icon: FlaskConical, text: 'Receive a guided scenario or exercise to work through' },
       { icon: ListChecks,   text: 'Answer 3 guided questions; get scored feedback after each' },
       { icon: BarChart2,    text: 'Finish with a personalised summary of key learning points' },
     ],
@@ -132,34 +132,34 @@ export function ChatContainer() {
           <div className="w-full max-w-6xl">
 
             {/* Hero */}
-            <div className="relative mb-8 overflow-hidden rounded-[32px] border border-white/70 bg-slate-950 p-6 text-white shadow-2xl shadow-blue-950/10 dark:border-white/10 sm:p-8 lg:p-10">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(56,189,248,0.32),transparent_28%),radial-gradient(circle_at_82%_10%,rgba(237,232,176,0.26),transparent_24%),linear-gradient(135deg,#081629_0%,#1456b8_52%,#04101f_100%)]" />
-              <div className="absolute -right-24 top-20 h-72 w-[34rem] rotate-[-14deg] rounded-[50%] border border-white/[0.14] bg-white/[0.14] blur-sm" />
+            <div className="relative mb-8 overflow-hidden rounded-[32px] border border-blue-200/80 bg-[#edf6fb] p-6 text-slate-950 shadow-2xl shadow-blue-950/10 dark:border-white/10 dark:bg-slate-950 dark:text-white sm:p-8 lg:p-10">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(56,189,248,0.24),transparent_30%),radial-gradient(circle_at_82%_10%,rgba(237,232,176,0.44),transparent_26%),linear-gradient(135deg,#f8fcff_0%,#dff3fb_52%,#f8fbff_100%)] dark:bg-[radial-gradient(circle_at_14%_18%,rgba(56,189,248,0.32),transparent_28%),radial-gradient(circle_at_82%_10%,rgba(237,232,176,0.26),transparent_24%),linear-gradient(135deg,#081629_0%,#1456b8_52%,#04101f_100%)]" />
+              <div className="absolute -right-24 top-20 h-72 w-[34rem] rotate-[-14deg] rounded-[50%] border border-blue-200/70 bg-white/70 blur-sm dark:border-white/[0.14] dark:bg-white/[0.14]" />
               <div className="relative z-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/[0.3] bg-cyan-100/[0.1] px-4 py-2 text-sm font-semibold text-cyan-50">
-                    <Zap className="h-4 w-4 text-cyan-200" />
+                  <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-sm font-semibold text-blue-950 shadow-sm shadow-blue-950/[0.06] dark:border-cyan-200/[0.3] dark:bg-cyan-100/[0.1] dark:text-cyan-50 dark:shadow-none">
+                    <Zap className="h-4 w-4 text-blue-700 dark:text-cyan-200" />
                     AI learning workspace
                   </div>
                   <h1 className="mt-6 max-w-3xl text-balance text-4xl font-semibold leading-tight sm:text-5xl">
-                    Choose how you want to master froth flotation today.
+                    Choose how you want to learn with Meraki today.
                   </h1>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200">
-                    Start with an explanation, practice a plant scenario, or review for assessment. Meraki keeps the flow connected so each session builds on the last.
+                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-200">
+                    Start with an explanation, practise with guided exercises, or review for assessment. Meraki keeps the flow connected so each session builds on the last.
                   </p>
                 </div>
 
-                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.1] p-4 backdrop-blur">
-                  <div className="rounded-2xl border border-white/[0.12] bg-slate-950/70 p-4">
-                    <p className="text-sm font-semibold text-cyan-100">Suggested prompt</p>
-                    <p className="mt-3 text-lg leading-7 text-white">
-                      Diagnose why recovery is falling while froth is becoming too persistent.
+                <div className="rounded-3xl border border-blue-200/80 bg-white/70 p-4 shadow-sm shadow-blue-950/[0.06] backdrop-blur dark:border-white/[0.12] dark:bg-white/[0.1] dark:shadow-none">
+                  <div className="rounded-2xl border border-slate-200 bg-white/82 p-4 dark:border-white/[0.12] dark:bg-slate-950/70">
+                    <p className="text-sm font-semibold text-blue-950 dark:text-cyan-100">Suggested prompt</p>
+                    <p className="mt-3 text-lg leading-7 text-slate-950 dark:text-white">
+                      Explain the lesson simply, then give me practice questions.
                     </p>
-                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-medium text-slate-200">
-                      <span className="rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-2">Voice ready</span>
-                      <span className="rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-2">Video optional</span>
-                      <span className="rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-2">Practice scoring</span>
-                      <span className="rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-2">Review drills</span>
+                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-medium text-slate-600 dark:text-slate-200">
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Voice ready</span>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Video optional</span>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Practice scoring</span>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Review drills</span>
                     </div>
                   </div>
                 </div>
