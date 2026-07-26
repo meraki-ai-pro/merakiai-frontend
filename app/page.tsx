@@ -9,7 +9,6 @@ import {
   BookOpenCheck,
   Brain,
   CheckCircle2,
-  CirclePlay,
   FileText,
   FlaskConical,
   GraduationCap,
@@ -82,13 +81,6 @@ const featureCards = [
   },
 ]
 
-const workflowItems = [
-  'Ask a concept question in Learn mode',
-  'Switch to Practice for guided exercises',
-  'Get scored feedback on your reasoning',
-  'Use Review mode to test retention',
-]
-
 export default function Home() {
   const router = useRouter()
   const goToDashboard = () => router.push('/dashboard')
@@ -134,18 +126,18 @@ export default function Home() {
             </div>
           </nav>
 
-          <div className="grid flex-1 items-center gap-10 py-14 lg:grid-cols-[1.02fr_0.98fr] lg:py-16">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-sm font-semibold text-blue-950 shadow-lg shadow-blue-950/[0.08] backdrop-blur dark:border-cyan-200/[0.3] dark:bg-cyan-100/10 dark:text-cyan-50 dark:shadow-cyan-950/[0.2]">
+          <div className="flex flex-1 items-center py-14 lg:py-16">
+            <div className="w-full">
+              {/* <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-sm font-semibold text-blue-950 shadow-lg shadow-blue-950/[0.08] backdrop-blur dark:border-cyan-200/[0.3] dark:bg-cyan-100/10 dark:text-cyan-50 dark:shadow-cyan-950/[0.2]">
                 <MerakiLogo variant="color" className="h-5 w-5 dark:hidden" decorative />
                 <MerakiLogo variant="white" className="hidden h-5 w-5 dark:block" decorative />
                 AI tutor for Learn, Practice, and Review
-              </div>
+              </div> */}
 
               <h1 className="mt-7 max-w-4xl text-balance text-5xl font-semibold leading-[1.03] text-slate-950 dark:text-white sm:text-6xl lg:text-7xl">
                 Meet Meraki AI: your adaptive tutor for focused learning.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-700 dark:text-slate-100">
+              <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-700 dark:text-slate-100">
                 Meraki brings clear explanations, guided practice, review questions, voice conversations, and avatar video lessons into one focused study workspace.
               </p>
 
@@ -164,7 +156,7 @@ export default function Home() {
                 </Button>
               </div>
 
-              <div className="mt-9 grid gap-3 sm:grid-cols-3">
+              <div className="mt-9 grid max-w-5xl gap-3 sm:grid-cols-3">
                 {modeCards.map((mode) => (
                   <div key={mode.label} className="rounded-2xl border border-blue-200/80 bg-white/72 p-4 shadow-sm shadow-blue-950/[0.04] backdrop-blur dark:border-white/[0.15] dark:bg-white/[0.1]">
                     <mode.icon className="h-5 w-5 text-blue-700 dark:text-cyan-200" />
@@ -172,59 +164,6 @@ export default function Home() {
                     <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-200">{mode.title}</p>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            <div className="rounded-[28px] border border-blue-200/80 bg-white/70 p-4 shadow-2xl shadow-blue-950/[0.12] backdrop-blur-xl dark:border-white/[0.2] dark:bg-white/[0.12] dark:shadow-blue-950/[0.4]">
-              <div className="rounded-[22px] border border-blue-100 bg-white/82 p-5 shadow-sm shadow-blue-950/[0.06] dark:border-white/[0.15] dark:bg-slate-950/70 dark:shadow-none">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-blue-950 dark:text-cyan-100">Ask Meraki</p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Learn mode preview</p>
-                  </div>
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-300/[0.3] dark:bg-emerald-300/[0.1] dark:text-emerald-100">
-                    Video ready
-                  </span>
-                </div>
-
-                <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/[0.1] dark:bg-white/[0.06]">
-                  <p className="text-base leading-7 text-slate-950 dark:text-white">
-                    Explain the most important ideas from today&apos;s lesson.
-                  </p>
-                  <div className="mt-5 flex items-center gap-2">
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm shadow-blue-950/[0.06] dark:border-white/[0.15] dark:bg-white/[0.1] dark:text-white dark:shadow-none" aria-label="Use voice input">
-                      <Mic className="h-4 w-4" />
-                    </button>
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm shadow-blue-950/[0.06] dark:border-white/[0.15] dark:bg-white/[0.1] dark:text-white dark:shadow-none" aria-label="Play video preview">
-                      <CirclePlay className="h-4 w-4" />
-                    </button>
-                    <Button onClick={goToDashboard} className="ml-auto rounded-full bg-blue-600 text-white hover:bg-blue-700 dark:bg-white dark:text-slate-950 dark:hover:bg-cyan-50">
-                      Ask
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-4 sm:grid-cols-[0.8fr_1.2fr]">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm shadow-blue-950/[0.06] dark:border-white/[0.1] dark:bg-black dark:shadow-none">
-                    <div className="aspect-video overflow-hidden rounded-xl bg-[radial-gradient(circle_at_50%_18%,#8be7ff_0%,#1d6ed1_26%,#07162e_58%,#000_100%)]">
-                      <div className="flex h-full items-center justify-center">
-                        <div className="relative h-20 w-20 rounded-full border border-cyan-100/70 bg-[radial-gradient(circle_at_35%_30%,#fff_0%,#6ee7ff_14%,#185ac8_42%,#07162e_75%)] shadow-2xl shadow-cyan-300/[0.4]">
-                          <div className="absolute inset-3 rounded-full border border-white/[0.3]" />
-                        </div>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-xs font-medium text-slate-600 dark:text-slate-300">Avatar explanation with subtitles</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {workflowItems.map((item) => (
-                      <div key={item} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/90 p-3 text-sm font-medium text-slate-700 dark:border-white/[0.1] dark:bg-white/[0.06] dark:text-slate-100">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-200" />
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
