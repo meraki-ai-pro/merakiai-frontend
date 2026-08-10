@@ -2,6 +2,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/lib/constants';
 import { debugBackend } from '@/lib/debug';
 import type {
   ApiResponse,
+  ConversationsResponse,
   LoginResponse,
   SignupRequest,
   SignupResponse,
@@ -229,7 +230,7 @@ class ApiClient {
   }
 
   getConversations(sessionId: string, limit = 50, offset = 0) {
-    return this.request<{ conversations: object[] }>(
+    return this.request<ConversationsResponse>(
       `${API_ENDPOINTS.SESSIONS_CONVERSATIONS(sessionId)}?limit=${limit}&offset=${offset}`
     );
   }

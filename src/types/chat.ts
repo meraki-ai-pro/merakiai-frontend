@@ -1,5 +1,21 @@
+import type { ConversationAttachment, RetrievedSource } from './api';
+
 export type TutorMode = 'learn' | 'application' | 'review';
 export type ResponseFormat = 'text' | 'video';
+
+export type { ConversationAttachment, RetrievedSource };
+
+/**
+ * A single "what's happening" step surfaced while the assistant works on a
+ * turn (e.g. searching course materials, writing the answer). Rendered live in
+ * the progress panel and persisted on the finished message so the transcript
+ * keeps a "Completed in N steps" summary.
+ */
+export interface ProgressStep {
+  stage: string;
+  label: string;
+  status: 'active' | 'done';
+}
 
 export interface Message {
   id: string;
@@ -12,6 +28,17 @@ export interface Message {
   pendingVideo?: boolean;
   mode: TutorMode;
   timestamp: Date;
+
+  // Progress steps captured while this assistant turn was generated.
+  progressSteps?: ProgressStep[];
+
+  // Course passages this answer was grounded in. Persisted on the conversation
+  // row, so these survive a reload and the citation markers stay clickable.
+  sources?: RetrievedSource[];
+
+  // Photos the student submitted with this turn, carrying short-lived signed
+  // URLs minted at fetch time — student-uploads is a private bucket.
+  attachments?: ConversationAttachment[];
 
   evaluation?: PracticeEvaluation | ReviewEvaluation | null;
   messageType?: 'prompt' | 'evaluation' | 'completed';

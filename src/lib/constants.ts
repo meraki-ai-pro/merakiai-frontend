@@ -1,4 +1,7 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// NEXT_PUBLIC_API_BASE lets you route HTTP through the same-origin Next proxy
+// (set it to "/api/backend") to avoid CORS/ngrok issues while keeping WS direct.
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 function toWebSocketUrl(value: string) {
   try {

@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Message, Session, VideoResponse, TutorMode, ActiveModeSession } from '@/types';
+import type { Message, Session, VideoResponse, TutorMode, ActiveModeSession, ProgressStep } from '@/types';
+import type { RetrievedSource } from '@/types/api';
+
+export type AvatarStatus = 'off' | 'connecting' | 'live' | 'error';
 
 // Shared uuid util — safe fallback for non-secure contexts (HTTP) and SSR
 export const newId = (): string => {
@@ -25,6 +28,27 @@ export interface ChatState {
   error: string | null;
   isCreatingSession: boolean;
 
+  // ── Live streaming assistant turn (Learn mode) ─────────────────────────────
+  isStreamingResponse: boolean;
+  streamingContent: string;
+  streamingSteps: ProgressStep[];
+  // Final message(s) held back until the smooth reveal catches up (pop-free
+  // handoff). An array because one mode-session turn can produce two messages
+  // (e.g. an evaluation card + the next question) that arrive as a single push
+  // after several back-to-back typewriter segments.
+  pendingFinals: Message[];
+  // Passages retrieval settled on for the in-flight turn. Arrive ahead of the
+  // first token so the answer can show its grounding while it is still writing.
+  streamingSources: RetrievedSource[];
+
+  // ── Source inspection side sheet ───────────────────────────────────────────
+  sourceDrawer: { sources: RetrievedSource[]; activeCitation: number | null } | null;
+
+  // ── Real-time D-ID avatar (WebRTC) ─────────────────────────────────────────
+  avatarStream: MediaStream | null;
+  avatarStatus: AvatarStatus;
+  avatarSpeaking: boolean;
+
   // ── Mode session tracking ──────────────────────────────────────────────────
   activeModeSession: ActiveModeSession | null;
   isStartingModeSession: boolean;
@@ -43,10 +67,27 @@ export interface ChatState {
   setError: (v: string | null) => void;
   setIsCreatingSession: (v: boolean) => void;
 
+  // Live streaming turn actions
+  startStreamingResponse: () => void;
+  appendStreamingChunk: (text: string) => void;
+  setStreamingStep: (stage: string, label: string) => void;
+  setStreamingTarget: (text: string) => void;
+  setPendingFinals: (messages: Message[]) => void;
+  commitPendingFinals: () => void;
+  clearStreamingResponse: () => void;
+  setStreamingSources: (sources: RetrievedSource[]) => void;
+  openSourceDrawer: (sources: RetrievedSource[], citation?: number) => void;
+  closeSourceDrawer: () => void;
+
   setActiveModeSession: (v: ActiveModeSession | null) => void;
   setIsStartingModeSession: (v: boolean) => void;
   setIsSwitchingMode: (v: boolean) => void;
   updateActiveModeSession: (updates: Partial<ActiveModeSession>) => void;
+
+  // Real-time avatar actions
+  setAvatarStream: (stream: MediaStream | null) => void;
+  setAvatarStatus: (status: AvatarStatus) => void;
+  setAvatarSpeaking: (speaking: boolean) => void;
 
   // Legacy aliases
   conversations: Session[];
@@ -68,6 +109,15 @@ export const useChatStore = create<ChatState>()(
       currentVideoResponse: null,
       error: null,
       isCreatingSession: false,
+      isStreamingResponse: false,
+      streamingContent: '',
+      streamingSteps: [],
+      pendingFinals: [],
+      streamingSources: [],
+      sourceDrawer: null,
+      avatarStream: null,
+      avatarStatus: 'off',
+      avatarSpeaking: false,
       activeModeSession: null,
       isStartingModeSession: false,
       isSwitchingMode: false,
@@ -80,7 +130,8 @@ export const useChatStore = create<ChatState>()(
             : 'New session',
           mode,
           currentMode: mode,
-          prefersVideo: true,
+          // Text-first: video is opt-in via the toggle, never forced on.
+          prefersVideo: false,
           createdAt: new Date(),
           updatedAt: new Date(),
           messageCount: 0,
@@ -155,6 +206,75 @@ export const useChatStore = create<ChatState>()(
       setVideoResponse: (v) => set({ currentVideoResponse: v }),
       setError: (v) => set({ error: v }),
       setIsCreatingSession: (v) => set({ isCreatingSession: v }),
+
+      // ── Live streaming turn ────────────────────────────────────────────────
+      // Note: content is intentionally NOT reset here. Callers clear it
+      // explicitly via clearStreamingResponse() before starting a brand-new
+      // turn. This lets a mode-session turn's multiple back-to-back
+      // typewriter segments (e.g. evaluation text, then next-question text)
+      // concatenate into one continuous reveal instead of wiping mid-turn.
+      startStreamingResponse: () => set({ isStreamingResponse: true }),
+
+      appendStreamingChunk: (text) =>
+        set((state) => ({
+          isStreamingResponse: true,
+          streamingContent: state.streamingContent + text,
+        })),
+
+      setStreamingStep: (stage, label) =>
+        set((state) => {
+          // Mark the previously-active step done, then append the new one.
+          const prior = state.streamingSteps.map((s) =>
+            s.status === 'active' ? { ...s, status: 'done' as const } : s
+          );
+          return {
+            isStreamingResponse: true,
+            streamingSteps: [...prior, { stage, label, status: 'active' as const }],
+          };
+        }),
+
+      // Set the authoritative full text (from response_complete) as the reveal
+      // target so the smoother finishes on the exact final content.
+      setStreamingTarget: (text) => set({ streamingContent: text }),
+
+      setPendingFinals: (messages) => set({ pendingFinals: messages }),
+
+      // Called once the smooth reveal has caught up: commit the held-back
+      // message(s) in order and tear down the streaming view (no visible pop).
+      commitPendingFinals: () => {
+        const pending = get().pendingFinals;
+        if (!pending.length) return;
+        for (const message of pending) get().addMessage(message);
+        set({
+          isStreamingResponse: false,
+          streamingContent: '',
+          streamingSteps: [],
+          pendingFinals: [],
+          // The committed message carries its own copy of the sources; the
+          // live-turn buffer is done with.
+          streamingSources: [],
+        });
+      },
+
+      clearStreamingResponse: () =>
+        set({
+          isStreamingResponse: false,
+          streamingContent: '',
+          streamingSteps: [],
+          pendingFinals: [],
+          streamingSources: [],
+        }),
+
+      setStreamingSources: (sources) => set({ streamingSources: sources }),
+
+      openSourceDrawer: (sources, citation) =>
+        set({ sourceDrawer: { sources, activeCitation: citation ?? null } }),
+
+      closeSourceDrawer: () => set({ sourceDrawer: null }),
+
+      setAvatarStream: (stream) => set({ avatarStream: stream }),
+      setAvatarStatus: (status) => set({ avatarStatus: status }),
+      setAvatarSpeaking: (speaking) => set({ avatarSpeaking: speaking }),
 
       setActiveModeSession: (v) => set({ activeModeSession: v }),
       setIsStartingModeSession: (v) => set({ isStartingModeSession: v }),

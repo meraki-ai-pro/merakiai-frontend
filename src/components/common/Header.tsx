@@ -77,7 +77,8 @@ export function Header() {
   useEffect(() => { setMounted(true); }, []);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
-  const prefersVideo = currentSession?.prefersVideo ?? true;
+  // Text-first: default to text when the preference is unknown.
+  const prefersVideo = currentSession?.prefersVideo ?? false;
   const currentMode = currentSession?.currentMode ?? 'learn';
   const isReviewMode = currentMode === 'review';
 

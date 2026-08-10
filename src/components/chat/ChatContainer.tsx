@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { useChatStore } from '@/store/chatStore';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
+import { AvatarStage } from './AvatarStage';
+import { SourcesDrawer } from '@/components/sources/SourcesDrawer';
 import { ModeSelector } from '@/components/mode/ModeSelector';
 import { useChat } from '@/hooks/use-chat';
+import { useAvatarStream } from '@/hooks/use-avatar-stream';
 import {
   BookOpen,
   FlaskConical,
@@ -85,6 +88,9 @@ export function ChatContainer() {
   const isStartingModeSession = useChatStore((s) => s.isStartingModeSession);
 
   const { sendMessage, startModeSession, startNewSession } = useChat();
+
+  // Owns the real-time D-ID avatar WebRTC connection for the active session.
+  useAvatarStream();
 
   const [clickedQuickStart, setClickedQuickStart] = useState<string | null>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
@@ -279,9 +285,13 @@ export function ChatContainer() {
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <AvatarStage />
         <MessageList />
         <InputArea />
       </div>
+      {/* Side sheet — mounted once here rather than per message, so opening a
+          citation from any turn reuses the same panel. */}
+      <SourcesDrawer />
       {modeModal}
     </>
   );

@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
 import { apiClient } from '@/services/api';
+import { hydrateSupabaseSession, loginMfaRequired, verifyLoginChallenge } from '@/lib/mfa';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function LoginForm() {
@@ -22,6 +24,25 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── MFA step-up ──────────────────────────────────────────────────────────
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaError, setMfaError] = useState<string | null>(null);
+  const [verifyingMfa, setVerifyingMfa] = useState(false);
+
+  // Fetch role + route once authentication (and any MFA step-up) is complete.
+  const finishLogin = async () => {
+    const profileRes = await apiClient.getUserProfile();
+    if (profileRes.success && profileRes.data) {
+      setUser(profileRes.data);
+      toast.success('Welcome back!');
+      router.push(profileRes.data.role === 'admin' ? '/admin' : '/dashboard');
+    } else {
+      toast.success('Welcome back!');
+      router.push('/dashboard');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
@@ -29,7 +50,7 @@ export function LoginForm() {
     setIsLoading(true);
     setError(null);
 
-    // Step 1 — authenticate
+    // Step 1 — authenticate against the backend
     const res = await apiClient.login(email.trim(), password);
 
     if (!res.success || !res.data) {
@@ -39,27 +60,98 @@ export function LoginForm() {
     }
 
     // apiClient.login() already wrote the token to the cookie.
-    // Set partial user from login response so the store is not empty.
     setAuth(
       { id: res.data.user.id, email: res.data.user.email },
       res.data.access_token
     );
 
-    // Step 2 — fetch full profile to get role (login endpoint does not return role)
-    const profileRes = await apiClient.getUserProfile();
+    // Step 2 — hydrate the supabase-js session so we can check/step-up MFA.
+    await hydrateSupabaseSession(res.data.access_token, res.data.refresh_token);
+    if (await loginMfaRequired()) {
+      setMfaStep(true);
+      setMfaCode('');
+      setMfaError(null);
+      setIsLoading(false);
+      return;
+    }
 
-    if (profileRes.success && profileRes.data) {
-      // Hydrate full user object (role, avatar_id, voice_id, voice_gender, etc.)
-      setUser(profileRes.data);
-      toast.success('Welcome back!');
-      // Step 3 — route based on role
-      router.push(profileRes.data.role === 'admin' ? '/admin' : '/dashboard');
-    } else {
-      // Profile fetch failed — proceed to dashboard as a fallback
-      toast.success('Welcome back!');
-      router.push('/dashboard');
+    // Step 3 — no MFA required: finish login.
+    await finishLogin();
+  };
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mfaCode.length !== 6 || verifyingMfa) return;
+    setVerifyingMfa(true);
+    setMfaError(null);
+    try {
+      await verifyLoginChallenge(mfaCode);
+      await finishLogin();
+    } catch (err) {
+      setMfaError(err instanceof Error ? err.message : 'Verification failed. Try again.');
+      setMfaCode('');
+      setVerifyingMfa(false);
     }
   };
+
+  if (mfaStep) {
+    return (
+      <form onSubmit={handleMfaSubmit} className="flex flex-col gap-5">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-cyan-300/[0.14] dark:text-cyan-200">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Two-factor verification</h2>
+          <p className="max-w-xs text-xs text-slate-500 dark:text-slate-400">
+            Enter the 6-digit code from your authenticator app to finish signing in.
+          </p>
+        </div>
+
+        {mfaError && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 text-destructive mt-0.5" />
+            <p className="text-xs text-destructive">{mfaError}</p>
+          </div>
+        )}
+
+        <div className="flex justify-center">
+          <InputOTP
+            maxLength={6}
+            value={mfaCode}
+            onChange={(v) => { setMfaCode(v); setMfaError(null); }}
+            disabled={verifyingMfa}
+            autoFocus
+          >
+            <InputOTPGroup>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <InputOTPSlot key={i} index={i} className="h-12 w-11 text-base" />
+              ))}
+            </InputOTPGroup>
+          </InputOTP>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={mfaCode.length !== 6 || verifyingMfa}
+          className="h-12 rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/[0.22] hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
+        >
+          {verifyingMfa ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying…</>
+          ) : (
+            'Verify & continue'
+          )}
+        </Button>
+
+        <button
+          type="button"
+          onClick={() => { setMfaStep(false); setMfaError(null); apiClient.logout(); }}
+          className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to sign in
+        </button>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">

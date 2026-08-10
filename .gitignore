@@ -7,6 +7,10 @@ node_modules/
 # Next.js build output
 .next/
 out/
+tsconfig.tsbuildinfo
+
+# npm lockfile (this project uses pnpm)
+package-lock.json
 
 # Local env files
 .env.*.local

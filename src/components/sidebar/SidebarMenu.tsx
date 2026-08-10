@@ -7,6 +7,7 @@ import { CheckCircle2, ChevronDown, Loader2, LogOut, Settings } from 'lucide-rea
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { MfaSettings } from '@/components/auth/MfaSettings';
 
 interface SidebarMenuProps {
   collapsed?: boolean;
@@ -220,6 +221,11 @@ function SettingsDropdown({
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-3 border-t border-slate-200/70 pt-3 dark:border-white/10">
+        <p className="mb-2 text-xs font-semibold text-slate-950 dark:text-white">Security</p>
+        <MfaSettings />
       </div>
     </div>
   );

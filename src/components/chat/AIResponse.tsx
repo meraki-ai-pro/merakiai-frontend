@@ -1,12 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useChatStore } from '@/store/chatStore';
 import { VideoPlayer } from './VideoPlayer';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
 import type { Message } from '@/types';
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer';
+import { AssistantProgress } from './AssistantProgress';
+import { BoardStage } from '@/components/board/BoardStage';
+import { hasBoard } from '@/lib/board';
+import { SourcesProvider } from '@/components/sources/SourcesContext';
+import { SourcesBar } from '@/components/sources/SourcesBar';
 import { PracticeEvalCard, PracticeCompletedCard } from '@/components/mode/PracticeModeUI';
 import { ReviewEvalCard, ReviewCompletedCard } from '@/components/mode/ReviewModeUI';
 
@@ -32,7 +37,14 @@ function stripMcqOptions(content: string): string {
 
 export function AIResponse({ message }: AIResponseProps) {
   const currentVideoResponse = useChatStore((s) => s.currentVideoResponse);
+  const openSourceDrawer = useChatStore((s) => s.openSourceDrawer);
   const [showTranscript, setShowTranscript] = useState(false);
+
+  const sources = message.sources ?? [];
+  const openSources = useCallback(
+    (citation?: number) => openSourceDrawer(sources, citation),
+    [openSourceDrawer, sources],
+  );
 
   // Only show the video player for the latest assistant message with that URL
   const showVideo =
@@ -59,7 +71,12 @@ export function AIResponse({ message }: AIResponseProps) {
       </Avatar>
 
       {/* Content */}
+      <SourcesProvider sources={sources} open={openSources}>
       <div className="flex flex-1 flex-col gap-2 max-w-2xl min-w-0">
+        {message.progressSteps && message.progressSteps.length > 0 && (
+          <AssistantProgress steps={message.progressSteps} isStreaming={false} />
+        )}
+
         {showVideo ? (
           // ── Video response ──────────────────────────────────────────────
           <div className="overflow-hidden rounded-2xl border border-white/70 bg-white shadow-xl shadow-blue-950/10 dark:border-white/10 dark:bg-white/[0.06]">
@@ -156,11 +173,19 @@ export function AIResponse({ message }: AIResponseProps) {
             })()}
           </>
 
+        ) : hasBoard(message.content) ? (
+          // ── Lesson board (maths explanations) ───────────────────────────
+          <BoardStage content={message.content} />
+
         ) : (
           // ── Standard learn-mode text response ───────────────────────────
           <div className="rounded-2xl border border-white/70 bg-white/[0.88] px-4 py-3 shadow-sm shadow-blue-950/5 backdrop-blur dark:border-white/10 dark:bg-white/[0.06]">
             <MarkdownRenderer content={message.content} />
           </div>
+        )}
+
+        {sources.length > 0 && (
+          <SourcesBar sources={sources} content={message.content} />
         )}
 
         {/* Timestamp on hover */}
@@ -170,6 +195,7 @@ export function AIResponse({ message }: AIResponseProps) {
             : new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
+      </SourcesProvider>
     </div>
   );
 }

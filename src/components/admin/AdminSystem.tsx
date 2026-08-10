@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { adminApiClient } from '@/services/adminApi';
+import type { MediaKeyStatus } from '@/services/adminApi';
 import {
   Video,
   Mic,
@@ -9,6 +12,12 @@ import {
   Info,
   Zap,
   Globe,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Loader2,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -57,19 +66,181 @@ function ServiceRow({
   );
 }
 
+// ─── Editable API key row ─────────────────────────────────────────────────────
+function SourceBadge({ source }: { source: MediaKeyStatus['source'] }) {
+  const map = {
+    override: { label: 'Custom', cls: 'bg-blue-600/[0.12] dark:bg-cyan-300/[0.1] text-blue-600 dark:text-cyan-200' },
+    env:      { label: 'From .env', cls: 'bg-emerald-500/10 text-emerald-400' },
+    unset:    { label: 'Not set', cls: 'bg-red-500/10 text-red-400' },
+  } as const;
+  const cfg = map[source];
+  return <span className={cn('rounded-md px-2 py-0.5 text-[10px] font-medium', cfg.cls)}>{cfg.label}</span>;
+}
+
+function KeyRow({ item, onSaved }: { item: MediaKeyStatus; onSaved: (keys: MediaKeyStatus[]) => void }) {
+  const [value, setValue] = useState('');
+  const [reveal, setReveal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const save = async (clear = false) => {
+    setSaving(true);
+    setResult(null);
+    const res = await adminApiClient.updateMediaKeys({ [item.name]: clear ? '' : value.trim() });
+    if (res.success && res.data) {
+      setValue('');
+      setResult({ ok: true, msg: clear ? 'Reverted to .env value.' : 'API key updated.' });
+      onSaved(res.data.keys);
+    } else {
+      setResult({ ok: false, msg: res.error?.message ?? 'Update failed.' });
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200/70 dark:border-white/10 p-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-slate-950 dark:text-white">{item.label}</p>
+            <SourceBadge source={item.source} />
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{item.service}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">Current</p>
+          <p className="font-mono text-xs text-slate-700 dark:text-slate-300">{item.masked ?? '—'}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <input
+            type={reveal ? 'text' : 'password'}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={`New ${item.label}…`}
+            autoComplete="off"
+            className="w-full rounded-lg border border-slate-200/80 bg-white/70 dark:border-white/10 dark:bg-white/[0.06] pl-3 pr-9 py-2 text-xs font-mono text-slate-950 dark:text-white placeholder:font-sans placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-200/70 dark:focus:ring-cyan-300/[0.16]"
+          />
+          <button
+            type="button"
+            onClick={() => setReveal((r) => !r)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            title={reveal ? 'Hide' : 'Show'}
+          >
+            {reveal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+        <button
+          onClick={() => save(false)}
+          disabled={saving || !value.trim()}
+          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+          Save
+        </button>
+        {item.source === 'override' && (
+          <button
+            onClick={() => save(true)}
+            disabled={saving}
+            className="rounded-lg border border-slate-200/80 dark:border-white/10 px-3 py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors disabled:opacity-40"
+            title="Remove custom key and use the .env value"
+          >
+            Revert
+          </button>
+        )}
+      </div>
+
+      {result && (
+        <div className={cn('mt-2 flex items-center gap-1.5 text-[11px]', result.ok ? 'text-emerald-400' : 'text-red-400')}>
+          {result.ok ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+          {result.msg}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MediaKeysPanel() {
+  const [keys, setKeys] = useState<MediaKeyStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const res = await adminApiClient.getMediaKeys();
+    if (res.success && res.data) {
+      setKeys(res.data.keys);
+      setError(null);
+    } else {
+      setError(res.error?.message ?? 'Failed to load media keys');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  return (
+    <div className="rounded-2xl border border-white/70 bg-white/[0.78] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="rounded-lg p-2 bg-blue-600/[0.12] dark:bg-cyan-300/[0.1] text-blue-600 dark:text-cyan-200">
+            <KeyRound className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Media Service API Keys</h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Rotate provider keys without touching the server</p>
+          </div>
+        </div>
+        <button onClick={load} className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+          <RefreshCw className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-5 w-5 animate-spin text-slate-500 dark:text-slate-400" />
+        </div>
+      ) : error ? (
+        <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-3 text-xs text-red-400">
+          <XCircle className="h-4 w-4 flex-shrink-0" /> {error}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {keys.map((k) => (
+            <KeyRow key={k.name} item={k} onSaved={setKeys} />
+          ))}
+          <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-cyan-300/[0.2] dark:bg-cyan-300/[0.08]">
+            <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-700 dark:text-cyan-200" />
+            <p className="text-[11px] leading-relaxed text-blue-900/70 dark:text-cyan-100/70">
+              A custom key is stored as an override in <code className="rounded bg-blue-400/[0.12] px-1">media_config.json</code> and
+              takes effect on the media workers&apos; next call — no restart needed. Keys are shown masked and never returned in full.
+              <span className="font-medium"> Revert</span> removes the override and falls back to the server&apos;s <code className="rounded bg-blue-400/[0.12] px-1">.env</code> value.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdminSystem() {
   return (
     <div className="space-y-5">
-      {/* Video pipeline */}
+      {/* Editable media service keys */}
+      <MediaKeysPanel />
+
+      {/* Reference: pipelines & infrastructure */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <InfoCard icon={Video} iconColor="bg-blue-500/15 text-blue-400" title="Video Generation (D-ID)">
           <div className="space-y-0.5">
             <ServiceRow label="Provider" value="D-ID API" />
+            <ServiceRow label="Fallback provider" value="Tavus" status="fallback" />
             <ServiceRow label="Mode support" value="Learn + Practice only" />
             <ServiceRow label="Review mode" value="Text only (enforced)" status="inactive" />
             <ServiceRow label="Avatar — Amy" value="Female presenter" />
             <ServiceRow label="Avatar — Josh" value="Male presenter" />
-            <ServiceRow label="Voice bundling" value="Auto-matched to avatar gender" />
             <ServiceRow label="Subtitle format" value="VTT (converted from SRT)" />
           </div>
 
@@ -91,7 +262,7 @@ export function AdminSystem() {
 
         <InfoCard icon={Mic} iconColor="bg-blue-600/[0.12] dark:bg-cyan-300/[0.1] text-blue-600 dark:text-cyan-200" title="Audio & TTS Pipeline">
           <div className="space-y-0.5">
-            <ServiceRow label="TTS service" value="ElevenLabs / OpenAI TTS" />
+            <ServiceRow label="TTS service" value="ElevenLabs (turbo v2.5)" />
             <ServiceRow label="Output format" value="MP3 bytes → Supabase Storage" />
             <ServiceRow label="STT service" value="Whisper (OpenAI)" />
             <ServiceRow label="Voice input" value="WebM → MP3 transcription" />
@@ -102,7 +273,7 @@ export function AdminSystem() {
 
         <InfoCard icon={Cpu} iconColor="bg-emerald-500/15 text-emerald-400" title="AI & RAG Pipeline">
           <div className="space-y-0.5">
-            <ServiceRow label="LLM" value="Anthropic Claude (Opus)" />
+            <ServiceRow label="LLM" value="Anthropic Claude (per-mode)" />
             <ServiceRow label="Embeddings" value="OpenAI text-embedding" />
             <ServiceRow label="Vector store" value="Pinecone (mode namespaces)" />
             <ServiceRow label="Learn mode" value="/rag/turn endpoint" />

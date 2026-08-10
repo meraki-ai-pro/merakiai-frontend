@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { adminApiClient } from '@/services/adminApi';
-import type { AdminStats, AdminUser, AdminSession, AdminUserFeedback } from '@/services/adminApi';
+import type { AdminOverview as AdminOverviewData, AdminUser, RecentFeedbackItem } from '@/services/adminApi';
 import {
   Users,
   FileText,
@@ -10,13 +10,10 @@ import {
   Star,
   TrendingUp,
   Activity,
-  Clock,
   MessageSquareHeart,
-  Video,
   BookOpen,
   FlaskConical,
   ClipboardCheck,
-  AlertCircle,
   ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -71,17 +68,18 @@ function SectionHeader({ title, href }: { title: string; href: string }) {
 
 // ─── Mode badge ───────────────────────────────────────────────────────────────
 function ModeBadge({ mode }: { mode: string }) {
-  const map: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
-    learn:    { icon: BookOpen,       color: 'text-blue-400',   bg: 'bg-blue-400/10' },
-    practice: { icon: FlaskConical,   color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    review:   { icon: ClipboardCheck, color: 'text-amber-400',  bg: 'bg-amber-400/10' },
+  const map: Record<string, { icon: React.ElementType; color: string; bg: string; label: string }> = {
+    learn:       { icon: BookOpen,       color: 'text-blue-400',    bg: 'bg-blue-400/10',    label: 'learn' },
+    application: { icon: FlaskConical,   color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'practice' },
+    practice:    { icon: FlaskConical,   color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'practice' },
+    review:      { icon: ClipboardCheck, color: 'text-amber-400',   bg: 'bg-amber-400/10',   label: 'review' },
   };
-  const cfg = map[mode] ?? { icon: Activity, color: 'text-slate-500 dark:text-slate-400', bg: 'bg-white/5' };
+  const cfg = map[mode] ?? { icon: Activity, color: 'text-slate-500 dark:text-slate-400', bg: 'bg-white/5', label: mode };
   const Icon = cfg.icon;
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium', cfg.bg, cfg.color)}>
       <Icon className="h-2.5 w-2.5" />
-      {mode}
+      {cfg.label}
     </span>
   );
 }
@@ -104,36 +102,38 @@ function FeedbackBadge({ type }: { type: string }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function AdminOverview() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [stats, setStats] = useState<AdminOverviewData | null>(null);
+  const [totalDocuments, setTotalDocuments] = useState<number | null>(null);
   const [recentUsers, setRecentUsers] = useState<AdminUser[]>([]);
-  const [recentSessions, setRecentSessions] = useState<AdminSession[]>([]);
-  const [recentFeedback, setRecentFeedback] = useState<AdminUserFeedback[]>([]);
+  const [sessionsByMode, setSessionsByMode] = useState<Record<string, number>>({});
+  const [recentFeedback, setRecentFeedback] = useState<RecentFeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [statsRes, usersRes, sessionsRes, feedbackRes] = await Promise.allSettled([
-          adminApiClient.getStats(),
-          adminApiClient.getUsers(),
-          adminApiClient.getAllSessions(5),
-          adminApiClient.getAllUserFeedback(),
+        const [overviewRes, usersRes, docsRes, sessionsRes, feedbackRes] = await Promise.allSettled([
+          adminApiClient.getOverview(),
+          adminApiClient.getUsers({ pageSize: 5 }),
+          adminApiClient.getDocuments({ pageSize: 1 }),
+          adminApiClient.getSessionAnalytics(),
+          adminApiClient.getFeedbackAnalytics(),
         ]);
 
-        if (statsRes.status === 'fulfilled' && statsRes.value.success && statsRes.value.data) {
-          setStats(statsRes.value.data);
+        if (overviewRes.status === 'fulfilled' && overviewRes.value.success && overviewRes.value.data) {
+          setStats(overviewRes.value.data);
         }
-        if (usersRes.status === 'fulfilled' && usersRes.value.success) {
-          const data = usersRes.value.data;
-          setRecentUsers(Array.isArray(data) ? data.slice(0, 5) : []);
+        if (usersRes.status === 'fulfilled' && usersRes.value.success && usersRes.value.data) {
+          setRecentUsers(usersRes.value.data.items.slice(0, 5));
         }
-        if (sessionsRes.status === 'fulfilled' && sessionsRes.value.success) {
-          const data = sessionsRes.value.data;
-          setRecentSessions(Array.isArray(data) ? data : []);
+        if (docsRes.status === 'fulfilled' && docsRes.value.success && docsRes.value.data) {
+          setTotalDocuments(docsRes.value.data.total);
         }
-        if (feedbackRes.status === 'fulfilled' && feedbackRes.value.success) {
-          const data = feedbackRes.value.data;
-          setRecentFeedback(Array.isArray(data) ? data.slice(0, 5) : []);
+        if (sessionsRes.status === 'fulfilled' && sessionsRes.value.success && sessionsRes.value.data) {
+          setSessionsByMode(sessionsRes.value.data.by_mode ?? {});
+        }
+        if (feedbackRes.status === 'fulfilled' && feedbackRes.value.success && feedbackRes.value.data) {
+          setRecentFeedback(feedbackRes.value.data.user_feedback.recent.slice(0, 5));
         }
       } catch {
         // Individual fetch failures are silently handled above via allSettled —
@@ -183,21 +183,21 @@ export function AdminOverview() {
         />
         <StatCard
           label="Documents"
-          value={stats?.total_documents ?? '—'}
+          value={totalDocuments ?? '—'}
           icon={FileText}
           color="bg-blue-600/[0.12] dark:bg-cyan-300/[0.1] text-blue-600 dark:text-cyan-200"
-          sub="indexed in Pinecone"
+          sub="ingested documents"
         />
         <StatCard
-          label="Active Today"
-          value={stats?.active_sessions_today ?? '—'}
+          label="Active (30d)"
+          value={stats?.active_users_30d ?? '—'}
           icon={Activity}
           color="bg-emerald-500/15 text-emerald-400"
-          sub="sessions started"
+          sub="active users"
         />
         <StatCard
           label="Feedback"
-          value={stats?.feedback_count ?? '—'}
+          value={stats?.user_feedback_count ?? '—'}
           icon={MessageSquareHeart}
           color="bg-pink-500/15 text-pink-400"
           sub="user submissions"
@@ -245,35 +245,31 @@ export function AdminOverview() {
           )}
         </div>
 
-        {/* Recent Sessions */}
+        {/* Sessions by mode (aggregate — no per-session admin list endpoint) */}
         <div className="rounded-2xl border border-white/70 bg-white/[0.78] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] p-4">
-          <SectionHeader title="Recent Sessions" href="/admin/sessions" />
-          {recentSessions.length === 0 ? (
+          <SectionHeader title="Sessions by Mode" href="/admin/sessions" />
+          {Object.keys(sessionsByMode).length === 0 ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 py-6 text-center">No sessions data</p>
           ) : (
-            <ul className="space-y-2">
-              {recentSessions.map((session) => (
-                <li key={session.id} className="rounded-lg p-2 hover:bg-blue-50 dark:hover:bg-cyan-300/[0.08] transition-colors">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <ModeBadge mode={session.current_mode} />
-                    <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
-                      {session.prefers_video && <Video className="h-2.5 w-2.5 text-blue-400/60" />}
-                      {session.ended_at ? (
-                        <span className="text-slate-500 dark:text-slate-400">ended</span>
-                      ) : (
-                        <span className="text-emerald-400/70 flex items-center gap-0.5">
-                          <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                          live
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" />
-                    {new Date(session.started_at).toLocaleString()}
-                  </p>
-                </li>
-              ))}
+            <ul className="space-y-2.5 pt-1">
+              {(['learn', 'application', 'review'] as const)
+                .filter((mode) => sessionsByMode[mode] != null)
+                .map((mode) => {
+                  const total = Object.values(sessionsByMode).reduce((a, b) => a + b, 0) || 1;
+                  const count = sessionsByMode[mode] ?? 0;
+                  return (
+                    <li key={mode} className="flex items-center gap-3">
+                      <div className="w-24 flex-shrink-0">
+                        <ModeBadge mode={mode} />
+                      </div>
+                      <div className="flex-1 h-1.5 rounded-full bg-white/70 dark:bg-white/[0.06]">
+                        <div className="h-full rounded-full bg-blue-500/60" style={{ width: `${(count / total) * 100}%` }} />
+                      </div>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 w-8 text-right tabular-nums">{count}</span>
+                    </li>
+                  );
+                })}
+              <li className="pt-1 text-[10px] text-slate-500 dark:text-slate-400 text-center">last 30 days</li>
             </ul>
           )}
         </div>

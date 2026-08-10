@@ -5,6 +5,7 @@ import { useChatStore } from '@/store/chatStore';
 import { UserMessage } from './UserMessage';
 import { AIResponse } from './AIResponse';
 import { LoadingState } from './LoadingState';
+import { StreamingResponse } from './StreamingResponse';
 import { useChat } from '@/hooks/use-chat';
 import { BookOpen, FlaskConical, ClipboardCheck, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,9 +40,10 @@ const EMPTY_STATE = {
 type EmptyStateKey = keyof typeof EMPTY_STATE;
 
 export function MessageList() {
-  const messages           = useChatStore((s) => s.messages);
-  const isLoadingMessage   = useChatStore((s) => s.isLoadingMessage);
-  const error              = useChatStore((s) => s.error);
+  const messages            = useChatStore((s) => s.messages);
+  const isLoadingMessage    = useChatStore((s) => s.isLoadingMessage);
+  const isStreamingResponse = useChatStore((s) => s.isStreamingResponse);
+  const error               = useChatStore((s) => s.error);
   const currentSessionId   = useChatStore((s) => s.currentSessionId);
   const sessions           = useChatStore((s) => s.sessions);
   const activeModeSession  = useChatStore((s) => s.activeModeSession);
@@ -64,9 +66,12 @@ export function MessageList() {
   const emptyConfig = EMPTY_STATE[emptyMode];
   const EmptyIcon   = emptyConfig.icon;
 
+  const streamingContent = useChatStore((s) => s.streamingContent);
+  const streamingStepCount = useChatStore((s) => s.streamingSteps.length);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoadingMessage]);
+  }, [messages, isLoadingMessage, isStreamingResponse, streamingContent, streamingStepCount]);
 
   const lastMessage = messages[messages.length - 1];
   const showRetry =
@@ -76,7 +81,7 @@ export function MessageList() {
     lastMessage.role === 'user' &&
     currentMode === 'learn';
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && !isStreamingResponse) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="rounded-[28px] border border-white/70 bg-white/[0.78] px-8 py-7 shadow-xl shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
@@ -108,11 +113,15 @@ export function MessageList() {
           </div>
         ))}
 
-        {isLoadingMessage && (
+        {isStreamingResponse ? (
+          <div className="animate-in fade-in duration-200">
+            <StreamingResponse />
+          </div>
+        ) : isLoadingMessage ? (
           <div className="animate-in fade-in duration-200">
             <LoadingState />
           </div>
-        )}
+        ) : null}
 
         {showRetry && (
           <div className="animate-in fade-in duration-200 flex flex-col items-start gap-2">
