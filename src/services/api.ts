@@ -1,8 +1,21 @@
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/constants';
 import { debugBackend } from '@/lib/debug';
 import type {
+  AcademicLevelOption,
   ApiResponse,
+  ConceptVideoAsset,
   ConversationsResponse,
+  CourseAnalytics,
+  CourseStudent,
+  InviteCode,
+  KnowledgeFile,
+  KnowledgePatch,
+  KnowledgeUploadOptions,
+  LecturerCourse,
+  LecturerCourseCreate,
+  RenderAsset,
+  RenderRequestBody,
+  TestQueryResponse,
   LoginResponse,
   SignupRequest,
   SignupResponse,
@@ -227,6 +240,169 @@ class ApiClient {
     return this.request<EndSessionResponse>(API_ENDPOINTS.SESSIONS_END(sessionId), {
       method: 'POST',
     });
+  }
+
+  // ─── Lecturer ────────────────────────────────────────────────────────────
+  // Every one of these is ownership-checked server-side; the UI showing a
+  // course is never what authorises access to it.
+
+  /** The level vocabulary, served so the dropdown cannot drift from the
+   *  CHECK constraint or the teaching prompts. */
+  listAcademicLevels() {
+    return this.request<{ levels: AcademicLevelOption[] }>(
+      '/lecturer/courses/academic-levels'
+    );
+  }
+
+  listLecturerCourses() {
+    return this.request<{ courses: LecturerCourse[] }>('/lecturer/courses');
+  }
+
+  createLecturerCourse(body: LecturerCourseCreate) {
+    return this.request<{ course: LecturerCourse }>('/lecturer/courses', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getLecturerCourse(courseId: string) {
+    return this.request<{ course: LecturerCourse }>(`/lecturer/courses/${courseId}`);
+  }
+
+  updateLecturerCourse(courseId: string, body: Partial<LecturerCourseCreate>) {
+    return this.request<{ course: LecturerCourse }>(`/lecturer/courses/${courseId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
+  listKnowledge(courseId: string) {
+    return this.request<{ documents: KnowledgeFile[] }>(
+      `/lecturer/courses/${courseId}/knowledge`
+    );
+  }
+
+  /** Uploads land as DRAFT — publish only after a test query looks right. */
+  uploadKnowledge(courseId: string, file: File, opts: KnowledgeUploadOptions = {}) {
+    const params = new URLSearchParams({
+      doc_type: opts.docType ?? 'knowledge',
+      default_mode: opts.defaultMode ?? 'learn',
+      difficulty: opts.difficulty ?? 'beginner',
+      version: opts.version ?? '1',
+      is_published: String(opts.isPublished ?? false),
+    });
+    if (opts.targetModes?.length) params.set('target_modes', opts.targetModes.join(','));
+    if (opts.topic) params.set('topic', opts.topic);
+
+    const form = new FormData();
+    form.append('file', file);
+    return this.request<{ document_id: string; status: string }>(
+      `/lecturer/courses/${courseId}/knowledge?${params.toString()}`,
+      { method: 'POST', body: form }
+    );
+  }
+
+  updateKnowledge(courseId: string, documentId: string, body: KnowledgePatch) {
+    return this.request<{ document_id: string }>(
+      `/lecturer/courses/${courseId}/knowledge/${documentId}`,
+      { method: 'PATCH', body: JSON.stringify(body) }
+    );
+  }
+
+  deleteKnowledge(courseId: string, documentId: string) {
+    return this.request<{ document_id: string }>(
+      `/lecturer/courses/${courseId}/knowledge/${documentId}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  /** Retrieval only, no generated answer — a fluent answer over bad retrieval
+   *  is exactly what hides a problem before publishing. */
+  testKnowledgeQuery(courseId: string, question: string, mode = 'learn') {
+    return this.request<TestQueryResponse>(
+      `/lecturer/courses/${courseId}/knowledge/test-query`,
+      { method: 'POST', body: JSON.stringify({ question, mode }) }
+    );
+  }
+
+  listInviteCodes(courseId: string) {
+    return this.request<{ invite_codes: InviteCode[] }>(
+      `/lecturer/courses/${courseId}/invite-codes`
+    );
+  }
+
+  createInviteCode(courseId: string, maxUses?: number, expiresAt?: string) {
+    return this.request<{ invite_code: InviteCode }>(
+      `/lecturer/courses/${courseId}/invite-codes`,
+      { method: 'POST', body: JSON.stringify({ max_uses: maxUses ?? null, expires_at: expiresAt ?? null }) }
+    );
+  }
+
+  deactivateInviteCode(courseId: string, codeId: string) {
+    return this.request<{ code_id: string }>(
+      `/lecturer/courses/${courseId}/invite-codes/${codeId}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  listCourseStudents(courseId: string, status?: string) {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.request<{ students: CourseStudent[] }>(
+      `/lecturer/courses/${courseId}/students${q}`
+    );
+  }
+
+  addCourseStudent(courseId: string, email: string) {
+    return this.request<{ enrolment_id: string }>(
+      `/lecturer/courses/${courseId}/students`,
+      { method: 'POST', body: JSON.stringify({ email }) }
+    );
+  }
+
+  changeEnrolmentStatus(courseId: string, enrolmentId: string, status: string) {
+    return this.request<{ new_status: string }>(
+      `/lecturer/courses/${courseId}/students/${enrolmentId}`,
+      { method: 'PATCH', body: JSON.stringify({ status }) }
+    );
+  }
+
+  getCourseAnalytics(courseId: string) {
+    return this.request<CourseAnalytics>(`/lecturer/courses/${courseId}/analytics`);
+  }
+
+  listRenderAssets(courseId: string) {
+    return this.request<{ assets: RenderAsset[] }>(`/render/course/${courseId}`);
+  }
+
+  getRenderAsset(assetId: string) {
+    return this.request<{ asset: RenderAsset; preview_url: string | null }>(
+      `/render/${assetId}`
+    );
+  }
+
+  reviewRenderAsset(assetId: string, approved: boolean, note?: string) {
+    return this.request<{ approved: boolean }>(`/render/${assetId}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ approved, note: note ?? null }),
+    });
+  }
+
+  requestRender(body: RenderRequestBody) {
+    return this.request<{ status: string; asset: RenderAsset }>('/render', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /**
+   * GET /render/concept/{course}/{key} — the approved animation for a concept.
+   * `asset` is null when nothing has been rendered and approved, which is the
+   * normal case, not an error.
+   */
+  getConceptVideo(courseId: string, conceptKey: string) {
+    return this.request<{ asset: ConceptVideoAsset | null }>(
+      `/render/concept/${encodeURIComponent(courseId)}/${encodeURIComponent(conceptKey)}`
+    );
   }
 
   getConversations(sessionId: string, limit = 50, offset = 0) {

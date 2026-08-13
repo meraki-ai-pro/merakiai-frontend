@@ -35,9 +35,17 @@ function stripMcqOptions(content: string): string {
     .trim();
 }
 
+// Course of the open session, needed to resolve `::: video` slides. Read from
+// the store rather than threaded through props: the board is nested several
+// components deep and every level between is course-agnostic.
+function useActiveCourseId(): string | undefined {
+  return useChatStore((s) => s.sessions.find((x) => x.id === s.currentSessionId)?.courseId);
+}
+
 export function AIResponse({ message }: AIResponseProps) {
   const currentVideoResponse = useChatStore((s) => s.currentVideoResponse);
   const openSourceDrawer = useChatStore((s) => s.openSourceDrawer);
+  const courseId = useActiveCourseId();
   const [showTranscript, setShowTranscript] = useState(false);
 
   const sources = message.sources ?? [];
@@ -175,7 +183,7 @@ export function AIResponse({ message }: AIResponseProps) {
 
         ) : hasBoard(message.content) ? (
           // ── Lesson board (maths explanations) ───────────────────────────
-          <BoardStage content={message.content} />
+          <BoardStage content={message.content} courseId={courseId} />
 
         ) : (
           // ── Standard learn-mode text response ───────────────────────────

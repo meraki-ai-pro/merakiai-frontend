@@ -47,16 +47,26 @@ export interface Slide {
   title: string;
   body: string;
   plot?: PlotSpec;
+  /**
+   * Concept key for a lecturer-approved animated video, from `::: video <key>`.
+   * The key is resolved to a signed URL separately — the model only ever names
+   * a concept, never a URL, so it cannot point a student at arbitrary media.
+   */
+  videoConcept?: string;
   /** False while the closing fence has not arrived yet. */
   complete: boolean;
 }
 
-const OPEN_RE = /^:::\s*(slide|plot)\s*(.*)$/;
+const OPEN_RE = /^:::\s*(slide|plot|video)\s*(.*)$/;
 const CLOSE_RE = /^:::\s*$/;
+
+// Concept keys are lecturer-authored slugs. Anything else is a hallucination
+// and is dropped rather than sent to the API.
+const CONCEPT_KEY_RE = /^[a-z0-9][a-z0-9-]{0,118}[a-z0-9]$/i;
 
 /** True when the text uses board syntax at all. */
 export function hasBoard(text: string): boolean {
-  return /^:::\s*(slide|plot)\b/m.test(text);
+  return /^:::\s*(slide|plot|video)\b/m.test(text);
 }
 
 /**
@@ -116,7 +126,11 @@ export function parseBoard(text: string): Slide[] {
     if (!current) return;
     current.body = current.body.replace(/\n{3,}/g, '\n\n').trim();
     current.complete = complete;
-    if (current.body || current.plot || current.title) slides.push(current);
+    // videoConcept counts: a video slide is deliberately empty of prose, and
+    // without this it would be built and then silently discarded here.
+    if (current.body || current.plot || current.title || current.videoConcept) {
+      slides.push(current);
+    }
     current = null;
   };
 
@@ -129,6 +143,15 @@ export function parseBoard(text: string): Slide[] {
       if (kind === 'slide') {
         closeSlide(true);
         current = { id: nextId++, title: rest.trim(), body: '', complete: false };
+      } else if (kind === 'video') {
+        // A video is always its own slide — it is watched, not read alongside
+        // prose. An unrecognisable key is dropped: better an ordinary slide
+        // than a player pointing at nothing.
+        const key = rest.trim();
+        closeSlide(true);
+        if (CONCEPT_KEY_RE.test(key)) {
+          current = { id: nextId++, title: '', body: '', videoConcept: key, complete: false };
+        }
       } else {
         // A plot attaches to the open slide, or stands alone as its own.
         if (!current) current = { id: nextId++, title: rest.trim(), body: '', complete: false };

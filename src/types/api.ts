@@ -266,6 +266,17 @@ export interface RetrievedSource {
   relevance: 'high' | 'medium' | 'low';
 }
 
+/** A lecturer-approved concept animation, with a short-lived playback URL. */
+export interface ConceptVideoAsset {
+  id: string;
+  concept_key: string;
+  /** Signed URL — rendered-media is a private bucket. */
+  url: string;
+  duration_seconds?: number | null;
+  renderer?: 'manim' | 'remotion';
+  archetype?: string | null;
+}
+
 /** A student-submitted photo, re-signed for display on reload. */
 export interface ConversationAttachment {
   /** Short-lived signed URL — student-uploads is a private bucket. */

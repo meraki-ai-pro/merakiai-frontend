@@ -24,6 +24,13 @@ import { SourcesBar } from '@/components/sources/SourcesBar';
  * this view mounted; once the smooth reveal has caught up to the full text we
  * commit them, giving a seamless (pop-free) swap to the persisted message(s).
  */
+// Course of the open session, needed to resolve `::: video` slides. Read from
+// the store rather than threaded through props: the board is nested several
+// components deep and every level between is course-agnostic.
+function useActiveCourseId(): string | undefined {
+  return useChatStore((s) => s.sessions.find((x) => x.id === s.currentSessionId)?.courseId);
+}
+
 export function StreamingResponse() {
   const streamingContent = useChatStore((s) => s.streamingContent);
   const streamingSteps = useChatStore((s) => s.streamingSteps);
@@ -31,6 +38,7 @@ export function StreamingResponse() {
   const commitPendingFinals = useChatStore((s) => s.commitPendingFinals);
   const sources = useChatStore((s) => s.streamingSources);
   const openSourceDrawer = useChatStore((s) => s.openSourceDrawer);
+  const courseId = useActiveCourseId();
 
   const openSources = useCallback(
     (citation?: number) => openSourceDrawer(sources, citation),
@@ -61,7 +69,7 @@ export function StreamingResponse() {
           // A board answer builds itself slide by slide as the text arrives;
           // anything else stays a chat bubble.
           hasBoard(shown) ? (
-            <BoardStage content={shown} isStreaming />
+            <BoardStage content={shown} isStreaming courseId={courseId} />
           ) : (
             <div className="rounded-2xl border border-white/70 bg-white/[0.88] px-4 py-3 shadow-sm shadow-blue-950/5 backdrop-blur dark:border-white/10 dark:bg-white/[0.06]">
               <MarkdownRenderer content={shown} />
