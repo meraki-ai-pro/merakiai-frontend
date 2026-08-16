@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Check, Code2, Film, X } from 'lucide-react';
+import { Check, Code2, Film, Loader2, Sparkles, X } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import type { RenderAsset } from '@/types/lecturer';
 
@@ -44,6 +44,8 @@ export function VideosTab({ courseId }: { courseId: string }) {
 
   return (
     <div className="space-y-6">
+      <RequestVideoPanel courseId={courseId} onQueued={load} />
+
       {awaiting.length > 0 && (
         <section>
           <h2 className="mb-1 font-medium text-slate-900 dark:text-white">
@@ -88,6 +90,161 @@ export function VideosTab({ courseId }: { courseId: string }) {
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * Request a concept animation.
+ *
+ * The archetype list is fetched rather than hard-coded: GET /render/archetypes
+ * is what decides which renderer a request routes to, and it also reports the
+ * archetypes neither renderer supports. Offering an unsupported one here would
+ * only produce a 400 after the lecturer has written a script.
+ */
+function RequestVideoPanel({
+  courseId,
+  onQueued,
+}: {
+  courseId: string;
+  onQueued: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [conceptKey, setConceptKey] = useState('');
+  const [topic, setTopic] = useState('');
+  const [archetype, setArchetype] = useState('');
+  const [script, setScript] = useState('');
+  const [archetypes, setArchetypes] = useState<{ name: string; renderer: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open || archetypes.length) return;
+    void apiClient.listRenderArchetypes().then((r) => setArchetypes(r?.data?.archetypes ?? []));
+  }, [open, archetypes.length]);
+
+  const submit = async () => {
+    if (!conceptKey.trim() || !script.trim()) return;
+    setBusy(true);
+    const res = await apiClient.requestRender({
+      course_id: courseId,
+      concept_key: conceptKey.trim(),
+      source_script: script.trim(),
+      archetype: archetype || null,
+      topic: topic.trim() || null,
+      subject: 'mathematics',
+    });
+    setBusy(false);
+
+    if (!res.success || !res.data) {
+      toast.error(res.error?.message ?? 'Could not queue the video');
+      return;
+    }
+    // A repeat request for an unchanged script is a cache hit, not a new job —
+    // say so, otherwise "nothing happened" looks like a failure.
+    toast.success(
+      res.data.status === 'queued'
+        ? 'Queued — rendering takes a few minutes'
+        : `Already rendered (${res.data.status})`,
+    );
+    setConceptKey('');
+    setScript('');
+    setTopic('');
+    setOpen(false);
+    onQueued();
+  };
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
+            <Sparkles className="h-4 w-4" /> Generate a concept video
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Describe the concept in your own words. Meraki animates it, and it stays hidden from
+            students until you approve it below.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          {open ? 'Cancel' : 'New video'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="mt-5 grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm">
+              <span className="text-slate-600 dark:text-slate-300">Concept name</span>
+              <input
+                value={conceptKey}
+                onChange={(e) => setConceptKey(e.target.value)}
+                placeholder="chain-rule"
+                data-testid="render-concept-key"
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
+              />
+              <span className="mt-1 block text-xs text-slate-400">
+                Identifies the animation so a student asking about this concept gets it.
+              </span>
+            </label>
+
+            <label className="text-sm">
+              <span className="text-slate-600 dark:text-slate-300">Topic (optional)</span>
+              <input
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="Differentiation"
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
+              />
+            </label>
+          </div>
+
+          <label className="text-sm">
+            <span className="text-slate-600 dark:text-slate-300">Visual style</span>
+            <select
+              value={archetype}
+              onChange={(e) => setArchetype(e.target.value)}
+              data-testid="render-archetype"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
+            >
+              <option value="">Choose automatically</option>
+              {archetypes.map((a) => (
+                <option key={a.name} value={a.name}>
+                  {a.name.replace(/_/g, ' ')} ({a.renderer})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm">
+            <span className="text-slate-600 dark:text-slate-300">What should it show?</span>
+            <textarea
+              value={script}
+              onChange={(e) => setScript(e.target.value)}
+              rows={5}
+              data-testid="render-script"
+              placeholder="Show how the chain rule differentiates y = (3x^2 + 1)^5: name the outer and inner function, differentiate each, then multiply and substitute back."
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
+            />
+          </label>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={busy || !conceptKey.trim() || !script.trim()}
+              data-testid="render-submit"
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {busy ? 'Queueing…' : 'Generate video'}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

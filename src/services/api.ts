@@ -3,10 +3,20 @@ import { debugBackend } from '@/lib/debug';
 import type {
   AcademicLevelOption,
   ApiResponse,
+  Assessment,
+  AssessmentKind,
+  AssessmentQuestion,
+  AvailableAssessment,
+  MasteryTopic,
+  QuestionCreate,
+  SubmissionItem,
+  SubmitAssessmentResponse,
+  TakeAssessmentResponse,
   ConceptVideoAsset,
   ConversationsResponse,
   CourseAnalytics,
   CourseStudent,
+  Enrolment,
   InviteCode,
   KnowledgeFile,
   KnowledgePatch,
@@ -202,6 +212,27 @@ class ApiClient {
     );
   }
 
+  // ─── Enrolment (student side) ─────────────────────────────────────────────
+
+  /**
+   * GET /enrolments — the courses this student is actually on.
+   *
+   * Distinct from listCourses(): that returns everything the catalogue offers,
+   * while session creation is gated on enrolment. Picking a course from the
+   * catalogue that the student is not enrolled on yields a 403.
+   */
+  listMyEnrolments() {
+    return this.request<{ enrolments: Enrolment[] }>('/enrolments');
+  }
+
+  /** POST /enrolments/join — redeem an invite code read out in class. */
+  joinCourseByCode(code: string) {
+    return this.request<{ status: string; enrolment: Enrolment }>('/enrolments/join', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
   /**
    * POST /sessions/ — create a new session.
    * Requires course_id. The backend will 404 if the course doesn't exist.
@@ -370,6 +401,13 @@ class ApiClient {
     return this.request<CourseAnalytics>(`/lecturer/courses/${courseId}/analytics`);
   }
 
+  /** GET /render/archetypes — visual styles, and which renderer each routes to. */
+  listRenderArchetypes() {
+    return this.request<{ archetypes: { name: string; renderer: string }[]; unsupported: string[] }>(
+      '/render/archetypes'
+    );
+  }
+
   listRenderAssets(courseId: string) {
     return this.request<{ assets: RenderAsset[] }>(`/render/course/${courseId}`);
   }
@@ -465,6 +503,72 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ avatar_id: avatarId } as AvatarSelectRequest),
     });
+  }
+
+  // ─── Assessments ──────────────────────────────────────────────────────────
+
+  /** POST /assessments — lecturer creates a pre/post/retention paper. */
+  createAssessment(payload: {
+    course_id: string;
+    kind: AssessmentKind;
+    title: string;
+    instructions?: string | null;
+  }) {
+    return this.request<{ status: string; assessment: Assessment }>('/assessments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  listAssessments(courseId: string) {
+    return this.request<{ assessments: Assessment[] }>(`/assessments/course/${courseId}`);
+  }
+
+  addAssessmentQuestion(assessmentId: string, payload: QuestionCreate) {
+    return this.request<{ status: string; question: AssessmentQuestion | null }>(
+      `/assessments/${assessmentId}/questions`,
+      { method: 'POST', body: JSON.stringify(payload) }
+    );
+  }
+
+  publishAssessment(assessmentId: string) {
+    return this.request<{ status: string; assessment_id: string; questions: number }>(
+      `/assessments/${assessmentId}/publish`,
+      { method: 'PATCH' }
+    );
+  }
+
+  getAssessmentResults(assessmentId: string) {
+    return this.request<Record<string, unknown>>(`/assessments/${assessmentId}/results`);
+  }
+
+  getLearningGain(courseId: string) {
+    return this.request<Record<string, unknown>>(
+      `/assessments/course/${courseId}/learning-gain`
+    );
+  }
+
+  /** GET /assessments/available/{course} — what this student may sit. */
+  listAvailableAssessments(courseId: string) {
+    return this.request<{ assessments: AvailableAssessment[] }>(
+      `/assessments/available/${courseId}`
+    );
+  }
+
+  /** GET /assessments/{id}/take — questions with the answer key withheld. */
+  takeAssessment(assessmentId: string) {
+    return this.request<TakeAssessmentResponse>(`/assessments/${assessmentId}/take`);
+  }
+
+  submitAssessment(assessmentId: string, answers: SubmissionItem[]) {
+    return this.request<SubmitAssessmentResponse>(`/assessments/${assessmentId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  }
+
+  getMyMastery(courseId: string) {
+    return this.request<{ topics: MasteryTopic[] }>(`/assessments/mastery/${courseId}`);
   }
 
   // ─── Feedback ─────────────────────────────────────────────────────────────

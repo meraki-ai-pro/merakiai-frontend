@@ -285,6 +285,10 @@ export function ChatContainer() {
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {/* AvatarStage stays a direct child here, rendered exactly once and
+            never remounted: the <video> owns the WebRTC MediaStream, and a
+            remount costs a ~15s reconnect. It aligns itself to the message
+            column so it reads as part of the conversation. */}
         <AvatarStage />
         <MessageList />
         <InputArea />

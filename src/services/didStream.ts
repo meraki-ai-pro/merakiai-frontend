@@ -39,10 +39,16 @@ interface CreateStreamResponse {
 
 const REGISTRY = new Map<string, DidStream>();
 
+// How long to wait for media before calling it. D-ID's own handshake is a few
+// seconds on a healthy network; 25s is generous enough not to trip a slow
+// campus connection while still resolving the spinner well inside a turn.
+const CONNECT_TIMEOUT_MS = 25_000;
+
 export class DidStream {
   private pc: RTCPeerConnection | null = null;
   private streamId = '';
   private closed = false;
+  private connectTimer: ReturnType<typeof setTimeout> | null = null;
 
   public onStream: (stream: MediaStream | null) => void;
   public onStatus: (status: DidStreamStatus) => void;
@@ -105,6 +111,17 @@ export class DidStream {
       const pc = new RTCPeerConnection({ iceServers: data.ice_servers ?? [] });
       this.pc = pc;
 
+      // D-ID's media server is Janus, and its offer carries a datachannel
+      // m-line. Creating this channel before setRemoteDescription is what
+      // their reference client does; answering without it leaves that m-line
+      // rejected, which is the sort of asymmetry Janus is unforgiving about.
+      // It also carries D-ID's stream events, so it costs nothing to keep.
+      try {
+        pc.createDataChannel('JanusDataChannel');
+      } catch {
+        /* a datachannel is not essential to receiving media */
+      }
+
       pc.ontrack = (event) => {
         if (event.streams && event.streams[0]) {
           this.onStream(event.streams[0]);
@@ -112,18 +129,52 @@ export class DidStream {
       };
 
       pc.onicecandidate = (event) => {
+        // A null candidate means gathering has finished. D-ID's reference
+        // client posts session_id alone for that case, and it matters: without
+        // the end-of-candidates signal the media server keeps waiting for more
+        // instead of completing negotiation with what it has.
         if (event.candidate) void this.sendIce(event.candidate);
+        else void this.sendEndOfCandidates();
       };
 
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState;
         debugBackend('did:iceState', state);
         if (state === 'connected' || state === 'completed') {
+          this.clearConnectTimer();
           this.onStatus('live');
         } else if (state === 'failed' || state === 'closed') {
+          this.clearConnectTimer();
+          this.onStatus('error');
+        }
+        // 'disconnected' is deliberately NOT an error here: it is often a
+        // transient blip that recovers on its own. The connect timeout below
+        // is what stops it hanging for ever.
+      };
+
+      // connectionState, not just iceConnectionState. When media cannot be
+      // established at all — a network that blocks the media leg even with
+      // TURN available — ICE settles on 'disconnected' and never reaches
+      // 'failed', while connectionState does go to 'failed'. Watching only ICE
+      // left the student on "Connecting your AI tutor…" indefinitely.
+      pc.onconnectionstatechange = () => {
+        debugBackend('did:connState', pc.connectionState);
+        if (pc.connectionState === 'failed') {
+          this.clearConnectTimer();
           this.onStatus('error');
         }
       };
+
+      // Backstop for the case where neither handler ever fires a terminal
+      // state. A spinner that never resolves reads as a broken product; an
+      // error state lets the UI say so and keeps the text answer usable.
+      this.connectTimer = setTimeout(() => {
+        if (this.closed) return;
+        if (pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
+          debugBackend('did:connectTimeout', pc.iceConnectionState);
+          this.onStatus('error');
+        }
+      }, CONNECT_TIMEOUT_MS);
 
       await pc.setRemoteDescription(data.offer);
       const answer = await pc.createAnswer();
@@ -169,9 +220,30 @@ export class DidStream {
     }
   }
 
+  /** Tell D-ID that candidate gathering is finished. */
+  private async sendEndOfCandidates() {
+    try {
+      await fetch(this.url(`/stream/${encodeURIComponent(this.streamId)}/ice`), {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({ session_id: this.sessionId }),
+      });
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  private clearConnectTimer() {
+    if (this.connectTimer) {
+      clearTimeout(this.connectTimer);
+      this.connectTimer = null;
+    }
+  }
+
   close() {
     if (this.closed) return;
     this.closed = true;
+    this.clearConnectTimer();
     this.onStream(null);
     if (this.streamId) {
       // Fire-and-forget cleanup so D-ID releases the stream resource.

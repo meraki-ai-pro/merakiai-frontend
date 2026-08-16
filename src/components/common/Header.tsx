@@ -11,6 +11,8 @@ import { useUIStore } from '@/store/uiStore';
 import { useChatStore } from '@/store/chatStore';
 import { useChat } from '@/hooks/use-chat';
 import { ModeSelector } from '@/components/mode/ModeSelector';
+import { CourseSwitcher } from '@/components/course/CourseSwitcher';
+import { FeedbackButton } from '@/components/feedback/FeedbackDialog';
 import {
   Tooltip,
   TooltipContent,
@@ -138,6 +140,7 @@ export function Header() {
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">Learn, Practice, Review</p>
             </div>
+            <CourseSwitcher />
           </div>
 
           {/* Center: mode tabs — only shown when a session is active */}
@@ -246,6 +249,8 @@ export function Header() {
                 {currentSession.messageCount || 0} msgs
               </span>
             )}
+
+            <FeedbackButton />
 
             {mounted && (
               <Button

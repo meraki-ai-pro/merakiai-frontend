@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useChatStore, newId } from "@/store/chatStore";
 import { useUserStore } from "@/store/userStore";
+import { useCourseStore } from "@/store/courseStore";
 import { apiClient, tokenStore } from "@/services/api";
 import { MerakiWebSocket } from "@/services/websocket";
 import { parseVTT, getVideoDurationFromSubtitles } from "@/lib/vtt-parser";
@@ -1222,16 +1223,28 @@ export function useChat() {
       setError(null);
 
       try {
-        let resolvedCourseId = courseId ?? DEFAULT_COURSE_ID;
+        // Order matters: an explicit argument, then what the student picked in
+        // the course switcher, then their enrolments. DEFAULT_COURSE_ID is last
+        // and only covers a single-course deployment — reaching for it first
+        // started every session on 'froth-flotation' no matter what the student
+        // was enrolled on, which the backend then rejected as a 403.
+        let resolvedCourseId = courseId ?? useCourseStore.getState().selectedCourseId;
+
+        if (!resolvedCourseId) {
+          const enrolled = await useCourseStore.getState().loadCourses();
+          resolvedCourseId = enrolled[0]?.id ?? null;
+        }
+
         if (!resolvedCourseId) {
           const coursesRes = await apiClient.listCourses();
-          if (coursesRes.success && coursesRes.data?.courses.length) {
-            resolvedCourseId = coursesRes.data.courses[0].id;
-          } else {
-            throw new Error(
-              "No courses available. Please contact your administrator.",
-            );
-          }
+          resolvedCourseId =
+            coursesRes.data?.courses?.[0]?.id ?? DEFAULT_COURSE_ID ?? null;
+        }
+
+        if (!resolvedCourseId) {
+          throw new Error(
+            "You are not enrolled on any course yet. Enter the invite code your lecturer gave you.",
+          );
         }
 
         const res = await apiClient.createSession({

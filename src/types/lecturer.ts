@@ -36,6 +36,20 @@ export type TutorModeName = 'learn' | 'review' | 'application';
 
 export type EnrolmentStatus = 'active' | 'completed' | 'withdrawn' | 'archived';
 
+/**
+ * A student's own enrolment row, as returned by GET /enrolments.
+ *
+ * The API returns course_id only — there is no join to the course name — so a
+ * caller wanting a title has to resolve it against GET /sessions/courses.
+ */
+export interface Enrolment {
+  id: string;
+  course_id: string;
+  status: EnrolmentStatus;
+  enrolled_at?: string | null;
+  completed_at?: string | null;
+}
+
 export interface LecturerCourse {
   id: string;
   name: string;

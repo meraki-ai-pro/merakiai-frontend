@@ -98,12 +98,19 @@ export const AUDIO_CONSTRAINTS = {
 // ─── Application (Practice) session types ────────────────────────────────────
 // These are sent as session_type to the backend. The backend mode is
 // 'application'; the UI labels them as "Practice" for student-facing copy.
+//
+// The values must stay domain-neutral. They are not opaque ids: the backend
+// puts session_type into the retrieval seed and states it in the prompt
+// (modes_sessions/service.py), so the froth-flotation values these once had —
+// flotation_basics, reagents, surface_chemistry — were steering retrieval on
+// every other course. A Calculus student picking "Core Concepts" was asking
+// for flotation basics.
 export const PRACTICE_SESSION_TYPES = [
-  { value: 'flotation_basics',   label: 'Core Concepts' },
-  { value: 'reagents',           label: 'Key Terms' },
-  { value: 'process_variables',  label: 'Applied Concepts' },
-  { value: 'troubleshooting',    label: 'Problem Solving' },
-  { value: 'surface_chemistry',  label: 'Advanced Concepts' },
+  { value: 'core_concepts',     label: 'Core Concepts' },
+  { value: 'key_terms',         label: 'Key Terms' },
+  { value: 'applied_concepts',  label: 'Applied Concepts' },
+  { value: 'problem_solving',   label: 'Problem Solving' },
+  { value: 'advanced_concepts', label: 'Advanced Concepts' },
 ] as const;
 
 // ─── Review session types ─────────────────────────────────────────────────────
@@ -132,6 +139,10 @@ export const REVIEW_SESSION_TYPES = [
 
 export const DIFFICULTY_LEVELS = ['Basic', 'Intermediate', 'Advanced'] as const;
 
-// ─── Default course — used when no course has been explicitly selected ─────────
-// Update this to match a real course id from GET /sessions/courses
-export const DEFAULT_COURSE_ID = 'froth-flotation';
+// ─── Last-resort course id ────────────────────────────────────────────────────
+// Empty on purpose. A session's course now comes from the student's own
+// enrolments via the course switcher (see courseStore); this is only consulted
+// when that yields nothing, and falling back to a hard-coded course sent every
+// such session to froth-flotation regardless of what the student was enrolled
+// on. Empty means "ask them to pick one" instead of guessing wrong.
+export const DEFAULT_COURSE_ID = '';

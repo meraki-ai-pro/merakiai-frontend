@@ -17,9 +17,17 @@ import { apiClient } from '@/services/api';
 import { KnowledgeTab } from '@/components/lecturer/KnowledgeTab';
 import { StudentsTab } from '@/components/lecturer/StudentsTab';
 import { VideosTab } from '@/components/lecturer/VideosTab';
+import { AssessmentsTab } from '@/components/lecturer/AssessmentsTab';
 import type { CourseAnalytics, LecturerCourse } from '@/types/lecturer';
 
-const TABS = ['Overview', 'Knowledge', 'Students', 'Videos', 'Settings'] as const;
+const TABS = [
+  'Overview',
+  'Knowledge',
+  'Students',
+  'Videos',
+  'Assessments',
+  'Settings',
+] as const;
 type Tab = (typeof TABS)[number];
 
 export default function CourseWorkspace() {
@@ -88,6 +96,7 @@ export default function CourseWorkspace() {
       {tab === 'Knowledge' && <KnowledgeTab courseId={courseId} />}
       {tab === 'Students' && <StudentsTab courseId={courseId} />}
       {tab === 'Videos' && <VideosTab courseId={courseId} />}
+      {tab === 'Assessments' && <AssessmentsTab courseId={courseId} />}
       {tab === 'Settings' && course && (
         <SettingsTab course={course} onSaved={setCourse} />
       )}
