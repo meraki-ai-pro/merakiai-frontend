@@ -23,7 +23,7 @@ export function SidebarMenu({ collapsed = false }: SidebarMenuProps) {
   const currentAvatarId = user?.avatar_id;
   // Login sends everyone to /dashboard, so without this the teaching workspace
   // is reachable only by typing the URL.
-  const isLecturer =
+  const isInstructor =
     user?.role === 'lecturer' || user?.role === 'admin' || user?.role === 'super_admin';
 
   const handleLogout = () => {
@@ -86,12 +86,12 @@ export function SidebarMenu({ collapsed = false }: SidebarMenuProps) {
               </span>
             </div>
           )}
-          {isLecturer && (
+          {isInstructor && (
             <Link
-              href="/lecturer"
+              href="/instructor"
               className="flex w-full items-center justify-center rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-950/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white"
-              title="Teaching workspace"
-              aria-label="Teaching workspace"
+              title="Instructor workspace"
+              aria-label="Instructor workspace"
             >
               <GraduationCap className="h-3.5 w-3.5" />
             </Link>
@@ -131,13 +131,13 @@ export function SidebarMenu({ collapsed = false }: SidebarMenuProps) {
   return (
     <>
       <div className="flex flex-col gap-3">
-        {isLecturer && (
+        {isInstructor && (
           <Link
-            href="/lecturer"
+            href="/instructor"
             className="flex w-full items-center gap-2.5 rounded-2xl px-2 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-950/[0.04] dark:text-slate-200 dark:hover:bg-white/[0.08]"
           >
             <GraduationCap className="h-4 w-4 text-primary" />
-            Teaching workspace
+            Instructor workspace
           </Link>
         )}
 

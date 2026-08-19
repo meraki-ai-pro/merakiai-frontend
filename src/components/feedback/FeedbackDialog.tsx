@@ -136,7 +136,7 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
               How was this session?
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Your answers go to your lecturer and the research team. They are not shown to other
+              Your answers go to your instructor and the research team. They are not shown to other
               students.
             </p>
           </div>

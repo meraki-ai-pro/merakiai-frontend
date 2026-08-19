@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Students tab: invite codes, class list, enrolment status.
+ * Instructor students tab: invite codes, class list, enrolment status.
  *
  * Completion and departure are deliberately different actions here, because
  * they are different states: a completed student keeps access to the material,
@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Check, Copy, Plus, Ticket } from 'lucide-react';
 import { apiClient } from '@/services/api';
-import type { CourseStudent, EnrolmentStatus, InviteCode } from '@/types/lecturer';
+import type { CourseStudent, EnrolmentStatus, InviteCode } from '@/types/instructor';
 
 const STATUS_STYLES: Record<EnrolmentStatus, string> = {
   active: 'text-emerald-600 dark:text-emerald-400',
@@ -87,7 +87,7 @@ export function StudentsTab({ courseId }: { courseId: string }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+      <section className="rounded-[28px] border border-white/70 bg-white/[0.68] p-6 shadow-lg shadow-blue-950/[0.05] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
             <Ticket className="h-4 w-4" /> Invite codes
@@ -95,7 +95,7 @@ export function StudentsTab({ courseId }: { courseId: string }) {
           <button
             type="button"
             onClick={createCode}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="flex items-center gap-1.5 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950"
           >
             <Plus className="h-3.5 w-3.5" /> New code
           </button>
@@ -141,7 +141,7 @@ export function StudentsTab({ courseId }: { courseId: string }) {
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+      <section className="rounded-[28px] border border-white/70 bg-white/[0.68] p-6 shadow-lg shadow-blue-950/[0.05] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
         <h2 className="font-medium text-slate-900 dark:text-white">Add an existing account</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           <input
@@ -175,7 +175,7 @@ export function StudentsTab({ courseId }: { courseId: string }) {
             {students.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/70 bg-white/[0.68] p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.05]"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-slate-900 dark:text-white">

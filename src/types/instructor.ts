@@ -1,5 +1,5 @@
 /**
- * Lecturer-side shapes.
+ * Instructor-side shapes.
  *
  * These mirror the /lecturer and /render endpoints. Every field the API can
  * omit is optional here — a dashboard that crashes because a course has no
@@ -50,7 +50,7 @@ export interface Enrolment {
   completed_at?: string | null;
 }
 
-export interface LecturerCourse {
+export interface InstructorCourse {
   id: string;
   name: string;
   description?: string | null;
@@ -66,7 +66,7 @@ export interface LecturerCourse {
   student_count?: number;
 }
 
-export interface LecturerCourseCreate {
+export interface InstructorCourseCreate {
   id: string;
   name: string;
   description?: string | null;

@@ -1,6 +1,7 @@
 'use client';
 
 import type { RetrievedSource } from '@/types/api';
+import { studentSourceLabel } from '@/components/sources/sourceLabel';
 
 const RELEVANCE_DOT: Record<RetrievedSource['relevance'], string> = {
   high: 'bg-emerald-500',
@@ -23,15 +24,16 @@ interface CitationBadgeProps {
  * answers "where did this come from?" without opening anything.
  */
 export function CitationBadge({ citation, source, onClick }: CitationBadgeProps) {
+  const sourceLabel = source ? studentSourceLabel(source) : '';
   const label = source
-    ? `Source ${citation}: ${source.location}`
+    ? `Source ${citation}: ${sourceLabel}`
     : `Source ${citation}`;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      title={source ? `${source.location}\n\n${source.text.slice(0, 220)}…` : label}
+      title={source ? `${sourceLabel}\n\n${source.text.slice(0, 220)}…` : label}
       aria-label={label}
       className="mx-0.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0 align-baseline text-[0.7em] font-semibold leading-relaxed text-blue-700 transition hover:border-blue-400 hover:bg-blue-100 dark:border-cyan-300/25 dark:bg-cyan-300/10 dark:text-cyan-200 dark:hover:bg-cyan-300/20"
     >

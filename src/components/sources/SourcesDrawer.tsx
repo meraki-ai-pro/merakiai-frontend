@@ -5,6 +5,7 @@ import { FileText, Sigma, X } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer';
 import type { RetrievedSource } from '@/types/api';
+import { studentSourceLabel } from '@/components/sources/sourceLabel';
 
 const RELEVANCE_STYLE: Record<RetrievedSource['relevance'], string> = {
   high: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300',
@@ -79,6 +80,7 @@ export function SourcesDrawer() {
         <ol className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
           {sources.map((source) => {
             const isActive = source.citation === activeCitation;
+            const sourceLabel = studentSourceLabel(source);
             return (
               <li
                 key={source.id || source.citation}
@@ -100,7 +102,7 @@ export function SourcesDrawer() {
                       <FileText className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" aria-hidden />
                     )}
                     <span className="truncate text-xs font-medium text-slate-700 dark:text-slate-200">
-                      {source.location}
+                      {sourceLabel}
                     </span>
                   </div>
                   <span

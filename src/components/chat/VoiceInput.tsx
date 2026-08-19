@@ -1,12 +1,8 @@
-// FILE PATH: src/components/chat/VoiceInput.tsx
-// FIXED: TypeScript declarations and added mode switcher UI
-
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Mic, MicOff, Loader2, Upload } from 'lucide-react';
+import { AudioLines, Mic, Loader2 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
-import { useChatStore } from '@/store/chatStore';
 import { apiClient } from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -15,7 +11,6 @@ interface VoiceInputProps {
   disabled?: boolean;
 }
 
-// ✅ FIXED: Proper TypeScript declarations for Web Speech API
 interface SpeechRecognitionErrorEvent extends Event {
   error: string;
   message?: string;
@@ -74,10 +69,9 @@ type InputMode = 'speech' | 'upload';
 export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInputProps) {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [isSpeechSupported, setIsSpeechSupported] = useState(true);
-  const [mode, setMode] = useState<InputMode>('speech');
+  const [mode, setMode] = useState<InputMode>('upload');
   const [duration, setDuration] = useState(0);
 
-  const currentSessionId = useChatStore((s) => s.currentSessionId);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -136,11 +130,14 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
 
   // ─── Mode 1: Web Speech API ────────────────────────────────────────────────
   const startSpeechRecognition = useCallback(async () => {
+    let permissionStream: MediaStream | null = null;
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
       toast.error('Microphone access denied.');
       return;
+    } finally {
+      permissionStream?.getTracks().forEach((track) => track.stop());
     }
 
     const SpeechRecognitionAPI =
@@ -211,22 +208,19 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
 
   // ─── Mode 2: File Upload ───────────────────────────────────────────────────
   const startFileRecording = useCallback(async () => {
-    if (!currentSessionId) {
-      toast.error('No active session. Start a conversation first.');
-      return;
-    }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Check supported MIME types
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : 'audio/mp4';
-      
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mimeType = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+      ].find((type) => MediaRecorder.isTypeSupported(type));
+
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
@@ -240,7 +234,9 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
         stopTimer();
         setIsRecording(false);
 
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mediaRecorder.mimeType || mimeType || 'audio/webm',
+        });
 
         if (audioBlob.size === 0) {
           setRecordingState('idle');
@@ -251,7 +247,7 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
         // Upload to backend
         setRecordingState('uploading');
         
-        const res = await apiClient.uploadVoice(currentSessionId, audioBlob);
+        const res = await apiClient.transcribeVoice(audioBlob);
 
         setRecordingState('idle');
 
@@ -272,7 +268,7 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
     } catch {
       toast.error('Microphone access denied.');
     }
-  }, [currentSessionId, startTimer, stopTimer, setIsRecording, onRecordingComplete]);
+  }, [startTimer, stopTimer, setIsRecording, onRecordingComplete]);
 
   const handleClick = () => {
     if (disabled) return;
@@ -354,12 +350,10 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
         aria-label={mode === 'speech' ? 'Start voice input' : 'Record and upload'}
         title={mode === 'speech' ? 'Browser speech recognition' : 'Record & transcribe via backend'}
       >
-        {!isSpeechSupported ? (
-          <MicOff className="h-4 w-4" />
-        ) : mode === 'speech' ? (
+        {mode === 'speech' ? (
           <Mic className="h-4 w-4" />
         ) : (
-          <Upload className="h-4 w-4" />
+          <AudioLines className="h-4 w-4" />
         )}
       </button>
     </div>

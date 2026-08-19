@@ -27,6 +27,7 @@ export interface ChatState {
   currentVideoResponse: VideoResponse | null;
   error: string | null;
   isCreatingSession: boolean;
+  sessionsLoadedFromBackend: boolean;
 
   // ── Live streaming assistant turn (Learn mode) ─────────────────────────────
   isStreamingResponse: boolean;
@@ -66,6 +67,7 @@ export interface ChatState {
   setVideoResponse: (v: VideoResponse | null) => void;
   setError: (v: string | null) => void;
   setIsCreatingSession: (v: boolean) => void;
+  setSessionsLoadedFromBackend: (v: boolean) => void;
 
   // Live streaming turn actions
   startStreamingResponse: () => void;
@@ -109,6 +111,7 @@ export const useChatStore = create<ChatState>()(
       currentVideoResponse: null,
       error: null,
       isCreatingSession: false,
+      sessionsLoadedFromBackend: false,
       isStreamingResponse: false,
       streamingContent: '',
       streamingSteps: [],
@@ -206,6 +209,7 @@ export const useChatStore = create<ChatState>()(
       setVideoResponse: (v) => set({ currentVideoResponse: v }),
       setError: (v) => set({ error: v }),
       setIsCreatingSession: (v) => set({ isCreatingSession: v }),
+      setSessionsLoadedFromBackend: (v) => set({ sessionsLoadedFromBackend: v }),
 
       // ── Live streaming turn ────────────────────────────────────────────────
       // Note: content is intentionally NOT reset here. Callers clear it

@@ -78,7 +78,7 @@ export function CourseSwitcher() {
 
           {courses.length === 0 ? (
             <p className="px-1 py-3 text-xs text-slate-500 dark:text-slate-400">
-              You are not enrolled on any course yet. Enter the invite code your lecturer gave
+              You are not enrolled on any course yet. Enter the invite code your instructor gave
               you.
             </p>
           ) : (

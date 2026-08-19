@@ -50,6 +50,11 @@ export const useUserStore = create<UserState>()(
 
       logout: () => {
         tokenStore.clear();
+        void import('@/store/chatStore').then(({ useChatStore }) => {
+          useChatStore.getState().setConversations([]);
+          useChatStore.getState().setCurrentSession(null);
+          useChatStore.getState().setSessionsLoadedFromBackend(false);
+        });
         set({ user: null, isAuthenticated: false, isAdmin: false });
       },
     }),

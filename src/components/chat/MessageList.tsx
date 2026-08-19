@@ -50,6 +50,8 @@ export function MessageList() {
 
   const { retryLastMessage } = useChat();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const latestAssistantRef = useRef<HTMLDivElement>(null);
+  const previousStreamingRef = useRef(false);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
   const currentMode    = currentSession?.currentMode ?? 'learn';
@@ -68,12 +70,20 @@ export function MessageList() {
 
   const streamingContent = useChatStore((s) => s.streamingContent);
   const streamingStepCount = useChatStore((s) => s.streamingSteps.length);
+  const lastMessage = messages[messages.length - 1];
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoadingMessage, isStreamingResponse, streamingContent, streamingStepCount]);
+    const answerJustFinished = previousStreamingRef.current && !isStreamingResponse;
 
-  const lastMessage = messages[messages.length - 1];
+    if (answerJustFinished && lastMessage?.role === 'assistant') {
+      latestAssistantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (isLoadingMessage || isStreamingResponse) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    previousStreamingRef.current = isStreamingResponse;
+  }, [lastMessage, isLoadingMessage, isStreamingResponse, streamingContent, streamingStepCount]);
+
   const showRetry =
     !!error &&
     !isLoadingMessage &&
@@ -103,8 +113,12 @@ export function MessageList() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
       <div className="mx-auto flex max-w-4xl flex-col gap-6 rounded-[32px] border border-white/60 bg-white/[0.44] px-4 py-6 shadow-sm shadow-blue-950/5 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/[0.18] sm:px-6">
-        {messages.map((message) => (
-          <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        {messages.map((message, index) => (
+          <div
+            key={message.id}
+            ref={message.role === 'assistant' && index === messages.length - 1 ? latestAssistantRef : undefined}
+            className="scroll-mt-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
+          >
             {message.role === 'user' ? (
               <UserMessage message={message} />
             ) : (

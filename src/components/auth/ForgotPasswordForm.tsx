@@ -21,7 +21,8 @@ export function ForgotPasswordForm() {
     setIsLoading(true);
     setError(null);
 
-    const res = await apiClient.forgotPassword(email.trim());
+    const redirectTo = `${window.location.origin}/auth/reset-password`;
+    const res = await apiClient.forgotPassword(email.trim(), redirectTo);
 
     if (res.success) {
       setSent(true);

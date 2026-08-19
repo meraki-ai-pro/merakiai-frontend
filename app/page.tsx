@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { MerakiLogo } from '@/components/common/MerakiLogo'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import {
   ArrowRight,
   BookOpenCheck,
@@ -84,6 +85,15 @@ const featureCards = [
 export default function Home() {
   const router = useRouter()
   const goToDashboard = () => router.push('/dashboard')
+
+  useEffect(() => {
+    const hash = window.location.hash
+    const recoveryParams = new URLSearchParams(hash.substring(1))
+
+    if (recoveryParams.get('type') === 'recovery') {
+      window.location.replace(`/auth/reset-password${hash}`)
+    }
+  }, [])
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#edf6fb] text-slate-950 dark:bg-slate-950 dark:text-white">

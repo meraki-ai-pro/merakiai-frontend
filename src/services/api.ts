@@ -21,8 +21,8 @@ import type {
   KnowledgeFile,
   KnowledgePatch,
   KnowledgeUploadOptions,
-  LecturerCourse,
-  LecturerCourseCreate,
+  InstructorCourse,
+  InstructorCourseCreate,
   RenderAsset,
   RenderRequestBody,
   TestQueryResponse,
@@ -41,6 +41,7 @@ import type {
   AvatarSelectRequest,
   AvatarSelectResponse,
   SessionSurveyRequest,
+  UserSessionsResponse,
   UserFeedbackRequest,
   FeedbackResponse,
   TaskStatusResponse,
@@ -185,12 +186,13 @@ class ApiClient {
     );
   }
 
-  async resetPassword(token: string, newPassword: string) {
+  async resetPassword(accessToken: string, newPassword: string) {
     return this.request<{ status: string; message: string }>(
       API_ENDPOINTS.AUTH_RESET_PASSWORD,
       {
         method: 'POST',
-        body: JSON.stringify({ token, password: newPassword }),
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ new_password: newPassword }),
         skipAuth: true,
       }
     );
@@ -201,6 +203,13 @@ class ApiClient {
   }
 
   // ─── Sessions ─────────────────────────────────────────────────────────────
+
+  /** GET /sessions/ — list the authenticated user's sessions. */
+  listUserSessions(limit = 50, offset = 0) {
+    return this.request<UserSessionsResponse>(
+      `${API_ENDPOINTS.SESSIONS_CREATE}?limit=${limit}&offset=${offset}`
+    );
+  }
 
   /**
    * GET /sessions/courses — list available courses.
@@ -285,23 +294,23 @@ class ApiClient {
     );
   }
 
-  listLecturerCourses() {
-    return this.request<{ courses: LecturerCourse[] }>('/lecturer/courses');
+  listInstructorCourses() {
+    return this.request<{ courses: InstructorCourse[] }>('/lecturer/courses');
   }
 
-  createLecturerCourse(body: LecturerCourseCreate) {
-    return this.request<{ course: LecturerCourse }>('/lecturer/courses', {
+  createInstructorCourse(body: InstructorCourseCreate) {
+    return this.request<{ course: InstructorCourse }>('/lecturer/courses', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
-  getLecturerCourse(courseId: string) {
-    return this.request<{ course: LecturerCourse }>(`/lecturer/courses/${courseId}`);
+  getInstructorCourse(courseId: string) {
+    return this.request<{ course: InstructorCourse }>(`/lecturer/courses/${courseId}`);
   }
 
-  updateLecturerCourse(courseId: string, body: Partial<LecturerCourseCreate>) {
-    return this.request<{ course: LecturerCourse }>(`/lecturer/courses/${courseId}`, {
+  updateInstructorCourse(courseId: string, body: Partial<InstructorCourseCreate>) {
+    return this.request<{ course: InstructorCourse }>(`/lecturer/courses/${courseId}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
@@ -458,6 +467,19 @@ class ApiClient {
   }
 
   // ─── Voice (REST, result arrives via WebSocket) ───────────────────────────
+
+  async transcribeVoice(audioBlob: Blob) {
+    const formData = new FormData();
+    const extension = audioBlob.type.includes('mp4') ? 'm4a'
+      : audioBlob.type.includes('ogg') ? 'ogg'
+      : audioBlob.type.includes('wav') ? 'wav'
+      : 'webm';
+    formData.append('file', audioBlob, `recording.${extension}`);
+    return this.request<{ transcript: string }>(
+      API_ENDPOINTS.RAG_TRANSCRIBE,
+      { method: 'POST', body: formData }
+    );
+  }
 
   /**
    * POST /rag/turn/voice — voice input for Learn mode.

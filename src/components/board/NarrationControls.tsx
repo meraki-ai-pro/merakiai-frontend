@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { pickVoice, speechAvailable, toSpokenText } from '@/lib/speech';
 import type { Slide } from '@/lib/board';
@@ -14,25 +14,18 @@ interface NarrationControlsProps {
 /**
  * Narrates the board aloud.
  *
- * Uses the browser's speech synthesis, so a slide starts speaking the moment
- * it is written — no render queue, no per-minute cost, and nothing to wait for.
- * The speaking interface is deliberately narrow (speak a string, stop) so a
- * higher-quality hosted voice can replace it without touching the board.
- *
- * Only finished slides are spoken: narrating a half-written sentence and then
- * repeating it when the rest arrives sounds broken.
+ * Uses the browser's speech synthesis and starts only after an explicit press
+ * of the Play button. The speaking interface is deliberately narrow (speak a
+ * string, stop) so a higher-quality hosted voice can replace it without
+ * touching the board.
  */
 export function NarrationControls({ slides, activeIndex, isStreaming }: NarrationControlsProps) {
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [muted, setMuted] = useState(false);
-  const spokenIds = useRef<Set<number>>(new Set());
-  const cancelled = useRef(false);
-
   useEffect(() => {
     setSupported(speechAvailable());
     return () => {
-      cancelled.current = true;
       if (speechAvailable()) window.speechSynthesis.cancel();
     };
   }, []);
@@ -55,23 +48,6 @@ export function NarrationControls({ slides, activeIndex, isStreaming }: Narratio
     setSpeaking(false);
   }, []);
 
-  // Speak each completed slide once, as it lands.
-  useEffect(() => {
-    if (!supported || muted || cancelled.current) return;
-    const slide = slides[activeIndex];
-    if (!slide || !slide.complete) return;
-    if (spokenIds.current.has(slide.id)) return;
-
-    spokenIds.current.add(slide.id);
-    const text = [slide.title, toSpokenText(slide.body)].filter(Boolean).join('. ');
-    if (text.trim()) speak(text);
-  }, [slides, activeIndex, muted, supported, speak]);
-
-  // A new answer clears the "already said this" record.
-  useEffect(() => {
-    if (slides.length === 0) spokenIds.current.clear();
-  }, [slides.length]);
-
   const toggleMute = () => {
     setMuted((wasMuted) => {
       if (!wasMuted) stop();
@@ -86,7 +62,6 @@ export function NarrationControls({ slides, activeIndex, isStreaming }: Narratio
     }
     const slide = slides[activeIndex];
     if (!slide) return;
-    spokenIds.current.add(slide.id);
     speak([slide.title, toSpokenText(slide.body)].filter(Boolean).join('. '));
   };
 

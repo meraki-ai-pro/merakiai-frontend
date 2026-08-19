@@ -35,7 +35,7 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   const workspaceLink = page.getByRole('link', { name: /teaching workspace/i });
   await expect(workspaceLink).toBeVisible({ timeout: 20_000 });
   await workspaceLink.click();
-  await page.waitForURL(/\/lecturer/, { timeout: 30_000 });
+  await page.waitForURL(/\/instructor/, { timeout: 30_000 });
   await expect(page.getByRole('heading', { name: /your courses/i })).toBeVisible();
   await caption(page, 'Lecturer workspace. No courses yet.');
 
@@ -56,7 +56,7 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
 
   // ── 4. Open the course workspace ──────────────────────────────────────────
   await page.getByRole('heading', { name: COURSE.name }).click();
-  await page.waitForURL(new RegExp(`/lecturer/${COURSE.id}`), { timeout: 30_000 });
+  await page.waitForURL(new RegExp(`/instructor/${COURSE.id}`), { timeout: 30_000 });
   await expect(page.getByRole('tab', { name: 'Knowledge' })).toBeVisible({ timeout: 30_000 });
   await caption(page, 'Course workspace: Overview, Knowledge, Students, Videos, Assessments.');
 

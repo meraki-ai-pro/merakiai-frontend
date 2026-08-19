@@ -1243,7 +1243,7 @@ export function useChat() {
 
         if (!resolvedCourseId) {
           throw new Error(
-            "You are not enrolled on any course yet. Enter the invite code your lecturer gave you.",
+            "You are not enrolled on any course yet. Enter the invite code your instructor gave you.",
           );
         }
 

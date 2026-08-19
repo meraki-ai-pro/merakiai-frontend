@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Knowledge tab: upload, tag by mode, test-query, publish.
+ * Instructor knowledge tab: upload, tag by mode, test-query, publish.
  *
  * The order on screen follows the order the work should happen in — upload
  * lands a file as a DRAFT, the test query shows what retrieval actually
@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, FlaskConical, Trash2, Upload } from 'lucide-react';
 import { apiClient } from '@/services/api';
-import type { KnowledgeFile, TestQueryResponse, TutorModeName } from '@/types/lecturer';
+import type { KnowledgeFile, TestQueryResponse, TutorModeName } from '@/types/instructor';
 
 const MODES: TutorModeName[] = ['learn', 'review', 'application'];
 
@@ -90,7 +90,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+      <section className="rounded-[28px] border border-white/70 bg-white/[0.68] p-6 shadow-lg shadow-blue-950/[0.05] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
         <h2 className="font-medium text-slate-900 dark:text-white">Upload teaching material</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           PDF or Word. Uploads start as drafts — students cannot see them until you publish.
@@ -105,7 +105,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
               <label
                 key={m}
                 title={MODE_HELP[m]}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-white/15"
+                className="flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/60 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/[0.04]"
               >
                 <input
                   type="checkbox"
@@ -141,7 +141,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="mt-4 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+          className="mt-4 flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:opacity-40 dark:bg-cyan-300 dark:text-slate-950"
         >
           <Upload className="h-4 w-4" /> {uploading ? 'Uploading…' : 'Choose file'}
         </button>
@@ -162,7 +162,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
             {files.map((f) => (
               <li
                 key={f.id}
-                className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5"
+                className="flex items-center justify-between gap-4 rounded-2xl border border-white/70 bg-white/[0.68] p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.05]"
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium text-slate-900 dark:text-white">{f.title}</p>
@@ -218,7 +218,7 @@ function StatusPill({ file }: { file: KnowledgeFile }) {
     return <span className="text-red-600 dark:text-red-400">Failed</span>;
   if (file.is_published === false)
     return <span className="text-amber-600 dark:text-amber-400">Draft</span>;
-  return <span className="text-emerald-600 dark:text-emerald-400">Live</span>;
+  return <span className="text-emerald-600 dark:text-emerald-400">Published</span>;
 }
 
 function TestQueryPanel({ courseId }: { courseId: string }) {
@@ -240,7 +240,7 @@ function TestQueryPanel({ courseId }: { courseId: string }) {
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+    <section className="rounded-[28px] border border-white/70 bg-white/[0.68] p-6 shadow-lg shadow-blue-950/[0.05] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
       <h2 className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
         <FlaskConical className="h-4 w-4" /> Test a student question
       </h2>

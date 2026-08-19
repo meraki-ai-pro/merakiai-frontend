@@ -118,7 +118,7 @@ export function AssessmentRunner() {
       <Shell title="Assessments">
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Choose a course first — use the course picker at the top of the screen, or enter the
-          invite code your lecturer gave you.
+          invite code your instructor gave you.
         </p>
       </Shell>
     );

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Assessments tab — the pilot's outcome measure.
+ * Instructor assessments tab — the pilot's outcome measure.
  *
  * A pre-test sat before the cohort uses Meraki and a matching post-test after
  * it is what turns "students used it a lot" into a learning-gain number. The
@@ -42,7 +42,7 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+      <section className="rounded-[28px] border border-white/70 bg-white/[0.68] p-6 shadow-lg shadow-blue-950/[0.05] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
@@ -218,7 +218,7 @@ function AssessmentRow({
   };
 
   return (
-    <li className="rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5">
+    <li className="overflow-hidden rounded-2xl border border-white/70 bg-white/[0.68] shadow-sm dark:border-white/10 dark:bg-white/[0.05]">
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <button type="button" onClick={onToggle} className="min-w-0 text-left">
           <p className="truncate font-medium text-slate-900 dark:text-white">

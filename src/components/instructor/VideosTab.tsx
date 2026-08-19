@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Videos tab: the review gate.
+ * Instructor videos tab: the review gate.
  *
  * Proposal §10 names notation errors as the risk that would damage the pilot,
  * and lecturer review of every video as the mitigation. Nothing here is
@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Check, Code2, Film, Loader2, Sparkles, X } from 'lucide-react';
 import { apiClient } from '@/services/api';
-import type { RenderAsset } from '@/types/lecturer';
+import type { RenderAsset } from '@/types/instructor';
 
 export function VideosTab({ courseId }: { courseId: string }) {
   const [assets, setAssets] = useState<RenderAsset[]>([]);
@@ -153,7 +153,7 @@ function RequestVideoPanel({
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+    <section className="rounded-[28px] border border-white/70 bg-white/[0.68] p-6 shadow-lg shadow-blue-950/[0.05] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
@@ -290,7 +290,7 @@ function AssetRow({
   };
 
   return (
-    <li className="rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5">
+    <li className="overflow-hidden rounded-2xl border border-white/70 bg-white/[0.68] shadow-sm dark:border-white/10 dark:bg-white/[0.05]">
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <button type="button" onClick={onToggle} className="flex min-w-0 items-center gap-3 text-left">
           <Film className="h-4 w-4 flex-shrink-0 text-slate-400" />

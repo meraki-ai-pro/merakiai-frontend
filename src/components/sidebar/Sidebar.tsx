@@ -29,8 +29,8 @@ export function Sidebar() {
         collapsed ? 'justify-center px-0 py-5' : 'gap-3 px-5 pb-4 pt-6'
       )}>
         <Link
-          href="/"
-          title="Back to home"
+          href="/dashboard"
+          title="Back to learning"
           className={cn(
             'flex h-10 w-10 items-center justify-center rounded-2xl flex-shrink-0',
             'border border-blue-200 bg-white/70 text-blue-700 shadow-lg shadow-blue-600/10',
@@ -38,7 +38,7 @@ export function Sidebar() {
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
             'transition-all duration-150'
           )}
-          aria-label="Go to Meraki home page"
+          aria-label="Go to learning dashboard"
         >
           <MerakiLogo variant="color" className="h-6 w-6" decorative />
         </Link>
