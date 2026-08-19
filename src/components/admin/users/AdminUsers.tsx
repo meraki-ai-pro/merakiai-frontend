@@ -9,10 +9,14 @@ import {
   RefreshCw,
   Loader2,
   Shield,
-  Video,
   UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+function fullName(u: AdminUser): string {
+  const name = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+  return name || '—';
+}
 
 export function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -21,9 +25,9 @@ export function AdminUsers() {
 
   const load = async () => {
     setLoading(true);
-    const res = await adminApiClient.getUsers();
-    if (res.success && Array.isArray(res.data)) {
-      setUsers(res.data);
+    const res = await adminApiClient.getUsers({ pageSize: 100 });
+    if (res.success && res.data) {
+      setUsers(res.data.items);
     } else {
       setUsers([]);
     }
@@ -32,9 +36,14 @@ export function AdminUsers() {
 
   useEffect(() => { load(); }, []);
 
-  const filtered = users.filter((u) =>
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter((u) => {
+    const q = search.toLowerCase();
+    return (
+      u.email.toLowerCase().includes(q) ||
+      fullName(u).toLowerCase().includes(q) ||
+      (u.university_name ?? '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="rounded-2xl border border-white/70 bg-white/[0.78] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] overflow-hidden">
@@ -82,7 +91,7 @@ export function AdminUsers() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200/70 dark:border-white/10">
-                {['User', 'Role', 'Avatar', 'Voice', 'Joined'].map((h) => (
+                {['User', 'Role', 'University', 'Country', 'Joined'].map((h) => (
                   <th key={h} className="text-left px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {h}
                   </th>
@@ -106,32 +115,25 @@ export function AdminUsers() {
                         </span>
                       </div>
                       <div>
-                        <p className="text-slate-900 dark:text-white font-medium">{user.email}</p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{user.id.slice(0, 8)}…</p>
+                        <p className="text-slate-900 dark:text-white font-medium">{fullName(user)}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{user.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-3">
-                    {user.role === 'admin' ? (
-                      <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-blue-600/[0.12] dark:bg-cyan-300/[0.1] text-blue-600 dark:text-cyan-200">
-                        <Shield className="h-2.5 w-2.5" /> ADMIN
+                    {user.role !== 'user' ? (
+                      <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-blue-600/[0.12] dark:bg-cyan-300/[0.1] text-blue-600 dark:text-cyan-200 uppercase">
+                        <Shield className="h-2.5 w-2.5" /> {user.role.replace('_', ' ')}
                       </span>
                     ) : (
                       <span className="text-xs text-slate-500 dark:text-slate-400">User</span>
                     )}
                   </td>
                   <td className="px-6 py-3">
-                    {user.avatar_id ? (
-                      <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium bg-blue-500/10 text-blue-400">
-                        <Video className="h-2.5 w-2.5" />
-                        {user.avatar_id} ({user.avatar_gender})
-                      </span>
-                    ) : (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
-                    )}
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{user.university_name ?? '—'}</span>
                   </td>
                   <td className="px-6 py-3">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">{user.voice_id ?? '—'}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{user.country ?? '—'}</span>
                   </td>
                   <td className="px-6 py-3">
                     <span className="text-xs text-slate-500 dark:text-slate-400">

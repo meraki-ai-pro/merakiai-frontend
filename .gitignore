@@ -7,6 +7,10 @@ node_modules/
 # Next.js build output
 .next/
 out/
+tsconfig.tsbuildinfo
+
+# npm lockfile (this project uses pnpm)
+package-lock.json
 
 # Local env files
 .env.*.local
@@ -35,3 +39,11 @@ pnpm-debug.log*
 # Misc
 dist/
 coverage/
+
+# Playwright walkthrough artefacts (videos, traces, run state)
+e2e-results/
+e2e-report/
+e2e-state/
+
+# Walkthrough account credentials — real Supabase logins, never committed
+e2e/.env.e2e

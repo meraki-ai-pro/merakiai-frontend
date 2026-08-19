@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useChatStore, newId } from "@/store/chatStore";
 import { useUserStore } from "@/store/userStore";
+import { useCourseStore } from "@/store/courseStore";
 import { apiClient, tokenStore } from "@/services/api";
 import { MerakiWebSocket } from "@/services/websocket";
 import { parseVTT, getVideoDurationFromSubtitles } from "@/lib/vtt-parser";
@@ -21,14 +22,59 @@ import type {
   ReviewEvaluation,
 } from "@/types";
 import type {
+  ConversationRow,
   DeliveryBlock,
   TaskStatusResponse,
   WsIncoming,
   WsLearnResponse,
+  WsStatusPush,
+  WsTextChunk,
+  WsSourcesPush,
+  WsResponseComplete,
   WsModeSessionStartPush,
   WsModeSessionEvaluationPush,
   WsModeSessionCompletedPush,
 } from "@/types/api";
+
+/**
+ * Expand one stored turn into the user message and the assistant message the
+ * UI renders. Stored as a single row server-side; two bubbles on screen.
+ */
+function toMessages(row: ConversationRow, sessionId: string): Message[] {
+  const timestamp = new Date(row.created_at);
+  const out: Message[] = [];
+
+  // "(system)" prefixes are internal turn scaffolding, never shown as if the
+  // student typed them — the session list already filters these out.
+  if (row.user_input && !row.user_input.startsWith("(system)")) {
+    out.push({
+      id: `${row.id}-u`,
+      sessionId,
+      role: "user",
+      content: row.user_input,
+      mode: row.mode,
+      timestamp,
+      attachments: row.attachments ?? undefined,
+    });
+  }
+
+  if (row.tutor_response) {
+    out.push({
+      id: `${row.id}-a`,
+      sessionId,
+      role: "assistant",
+      content: row.tutor_response,
+      mode: row.mode,
+      timestamp,
+      responseFormat: row.response_format,
+      videoUrl: row.video_url,
+      audioUrl: row.audio_url,
+      sources: row.sources ?? undefined,
+    });
+  }
+
+  return out;
+}
 
 // ─── Label lookups ────────────────────────────────────────────────────────────
 const PRACTICE_LABELS = Object.fromEntries(
@@ -165,6 +211,9 @@ export function useChat() {
 
   const pollingTasksRef = useRef<Set<string>>(new Set());
   const autoVideoEnabledRef = useRef<Set<string>>(new Set());
+  // Sessions whose transcript has already been fetched this mount, so
+  // switching away and back does not re-request it.
+  const hydratedSessionsRef = useRef<Set<string>>(new Set());
 
   const hasActivePollingTask = useCallback((kind: "learn" | "mode") => {
     for (const key of pollingTasksRef.current) {
@@ -386,6 +435,65 @@ export function useChat() {
   handlerRef.current = (msg: WsIncoming) => {
     debugBackend("ws:incoming", msg);
 
+    // ── Streaming Learn-mode events (progress panel + token stream) ──────────
+    // These carry a `type` discriminator. `response_complete` also has
+    // `mode: "learn"`, so it must be intercepted here before the generic
+    // learn-push branch below.
+    if ("type" in msg) {
+      const t = (msg as { type: string }).type;
+      if (t === "status") {
+        const m = msg as WsStatusPush;
+        useChatStore.getState().setStreamingStep(m.stage, m.label);
+        setIsLoadingMessage(false);
+        return;
+      }
+      if (t === "text_stream_start") {
+        useChatStore.getState().startStreamingResponse();
+        setIsLoadingMessage(false);
+        return;
+      }
+      if (t === "text_chunk") {
+        useChatStore.getState().appendStreamingChunk((msg as WsTextChunk).chunk);
+        setIsLoadingMessage(false);
+        return;
+      }
+      if (t === "sources") {
+        // Arrives before the first token, so the answer can show what it is
+        // being drawn from while it is still being written.
+        useChatStore
+          .getState()
+          .setStreamingSources((msg as WsSourcesPush).sources ?? []);
+        return;
+      }
+      if (t === "response_complete") {
+        void handleResponseComplete(msg as WsResponseComplete);
+        return;
+      }
+      // Practice/Review typewriter events. Unlike Learn, a single turn can
+      // include more than one of these back-to-back (e.g. evaluation
+      // feedback, then the next question) before the terminal mode push
+      // arrives with the structured evaluation/next-prompt/completed data —
+      // so, unlike text_stream_start, this does NOT reset the buffer; chunks
+      // from consecutive segments concatenate into one continuous reveal.
+      if (t === "mode_text_stream_start") {
+        useChatStore.getState().startStreamingResponse();
+        setIsLoadingMessage(false);
+        return;
+      }
+      if (t === "mode_text_chunk") {
+        useChatStore
+          .getState()
+          .appendStreamingChunk((msg as { chunk: string }).chunk);
+        setIsLoadingMessage(false);
+        return;
+      }
+      if (t === "mode_text_stream_end") {
+        // No-op — the terminal mode-session push (below) supplies the
+        // authoritative final text and structured data shortly after.
+        return;
+      }
+    }
+
     if (
       "status" in msg &&
       (msg as { status: string }).status === "processing"
@@ -410,7 +518,23 @@ export function useChat() {
         } as ActiveModeSession);
       }
       if (m.task_id) {
-        void pollTaskStatus(m.mode_session_id || activeModeSession ? "mode" : "learn", m.task_id);
+        // Read fresh from the store rather than the closure-captured
+        // `activeModeSession` — multiple WS messages can be processed in the
+        // same tick, before a re-render refreshes the closure.
+        const freshActive = useChatStore.getState().activeModeSession;
+        const kind = m.mode_session_id || freshActive ? "mode" : "learn";
+        const sid = useChatStore.getState().currentSessionId;
+        // Text-first: only poll for async video delivery when this turn
+        // actually prefers video (review is always text-only). Text turns —
+        // Learn or mode-session — are delivered entirely over the stream, so
+        // polling /status would just spin for 90s and wrongly flip the
+        // "generating video" indicator on.
+        const modeForVideoCheck =
+          freshActive?.mode ?? (m.mode_session_id ? "application" : "learn");
+        const wantsVideo = sid
+          ? shouldPreferVideo(sid, modeForVideoCheck)
+          : false;
+        if (wantsVideo) void pollTaskStatus(kind, m.task_id);
       }
       return;
     }
@@ -423,6 +547,7 @@ export function useChat() {
     if ("error" in msg && !("mode" in msg)) {
       setIsLoadingMessage(false);
       setIsStartingModeSession(false);
+      useChatStore.getState().clearStreamingResponse();
       const errMsg = (msg as { error: string }).error;
       setError(errMsg);
       toast.error(errMsg);
@@ -432,6 +557,7 @@ export function useChat() {
     if ("status" in msg && (msg as { status: string }).status === "failed") {
       setIsLoadingMessage(false);
       setIsStartingModeSession(false);
+      useChatStore.getState().clearStreamingResponse();
       const errMsg =
         ("error" in msg ? (msg as { error: string }).error : null) ??
         "Task failed";
@@ -458,6 +584,101 @@ export function useChat() {
   };
 
   // ── Push handlers — read fresh state from store directly ──────────────────
+
+  // Snapshot the progress steps captured during a turn (marking them done).
+  // Returned steps are attached to the finished message so the transcript
+  // keeps a "Completed in N steps" summary. Does NOT clear the streaming
+  // buffer — for mode-session turns the text may still be mid-reveal; the
+  // buffer is torn down later by commitPendingFinals() once it catches up.
+  function takeProgressSteps() {
+    const steps = useChatStore.getState().streamingSteps.map((s) => ({
+      ...s,
+      status: "done" as const,
+    }));
+    return steps.length ? steps : undefined;
+  }
+
+  // Terminal push for a Learn turn. Finalizes the streamed buffer into a
+  // persisted message, using msg.response as the authoritative full text and
+  // attaching the progress steps captured during generation.
+  async function handleResponseComplete(msg: WsResponseComplete) {
+    const store = useChatStore.getState();
+    const sid = store.currentSessionId;
+    if (!sid) {
+      store.clearStreamingResponse();
+      return;
+    }
+
+    const steps = store.streamingSteps.map((s) => ({
+      ...s,
+      status: "done" as const,
+    }));
+
+    const { response, response_format, video_url, audio_url, subtitles_url } =
+      msg;
+
+    // Real-time D-ID avatar path: the answer is being spoken live by the
+    // persistent AvatarStage over WebRTC, so there is no MP4 to attach. Render
+    // the message as normal text; the avatar is a separate, persistent surface.
+    const isRealtimeAvatar =
+      msg.streaming === true || msg.source === "did_agent";
+
+    const pendingVideo =
+      response_format !== "video" &&
+      !isRealtimeAvatar &&
+      shouldPreferVideo(sid, "learn") &&
+      hasActivePollingTask("learn");
+
+    const finalMessage = {
+      id: newId(),
+      sessionId: sid,
+      role: "assistant" as const,
+      content: response,
+      responseFormat: (isRealtimeAvatar ? "text" : response_format) as
+        | "text"
+        | "video",
+      videoUrl: isRealtimeAvatar ? null : video_url ?? null,
+      audioUrl: audio_url ?? null,
+      pendingVideo,
+      mode: "learn" as const,
+      progressSteps: steps.length ? steps : undefined,
+      // Prefer the terminal push (authoritative, and present even if the
+      // earlier `sources` event was missed by a mid-turn reconnect).
+      sources: msg.sources?.length ? msg.sources : store.streamingSources,
+      timestamp: new Date(),
+    };
+
+    // Text answer (including the real-time avatar case): hand the full text to
+    // the smoother as the reveal target and hold the final message until the
+    // animation catches up (StreamingResponse calls commitPendingFinals). This
+    // makes the stream→final swap seamless.
+    if (response_format !== "video" || isRealtimeAvatar) {
+      store.updateSession(sid, { previewMessage: response.slice(0, 60) });
+      store.setStreamingTarget(response);
+      store.setPendingFinals([finalMessage]);
+      if (!pendingVideo) store.setVideoResponse(null);
+      store.setIsLoadingMessage(false);
+      store.setIsGeneratingVideo(pendingVideo);
+      return;
+    }
+
+    // Video answer: no text stream to catch up on — finalize immediately.
+    store.addMessage(finalMessage);
+    store.updateSession(sid, { previewMessage: response.slice(0, 60) });
+    if (video_url) {
+      const { subtitles, duration } = await fetchSubtitles(subtitles_url);
+      store.setVideoResponse({
+        videoUrl: video_url,
+        audioUrl: audio_url ?? undefined,
+        subtitles,
+        duration,
+      });
+    }
+    store.clearStreamingResponse();
+    store.setIsLoadingMessage(false);
+    store.setIsGeneratingVideo(pendingVideo);
+  }
+
   async function handleLearnPush(msg: WsLearnResponse) {
     const { currentSessionId: sid } = useChatStore.getState();
     if (!sid) return;
@@ -515,8 +736,9 @@ export function useChat() {
       response_format !== "video" &&
       shouldPreferVideo(sid, msg.mode) &&
       hasActivePollingTask("mode");
+    const progressSteps = takeProgressSteps();
 
-    useChatStore.getState().addMessage({
+    const finalMessage: Message = {
       id: newId(),
       sessionId: sid,
       role: "assistant",
@@ -529,10 +751,12 @@ export function useChat() {
       messageType: "prompt",
       step: 1,
       totalSteps,
+      progressSteps,
       timestamp: new Date(),
-    });
+    };
 
     if (response_format === "video" && video_url) {
+      useChatStore.getState().addMessage(finalMessage);
       const { subtitles, duration } = await fetchSubtitles(subtitles_url);
       useChatStore
         .getState()
@@ -542,14 +766,27 @@ export function useChat() {
           subtitles,
           duration,
         });
-    } else if (!pendingVideo) {
-      useChatStore.getState().setVideoResponse(null);
+      useChatStore.getState().clearStreamingResponse();
+    } else {
+      // Text prompt: the typewriter chunks already streamed this exact text
+      // into the buffer, so just hand it to the smoother as the reveal target
+      // and hold the message until the reveal catches up (pop-free swap).
+      useChatStore.getState().setStreamingTarget(prompt);
+      useChatStore.getState().setPendingFinals([finalMessage]);
+      if (!pendingVideo) useChatStore.getState().setVideoResponse(null);
     }
 
     pendingModeStartRef.current = null;
     useChatStore.getState().setIsStartingModeSession(false);
   }
 
+  // Practice turn. A turn produces one message (evaluation) or two (evaluation
+  // + next question, or evaluation + completion summary). Each was already
+  // typed out live via mode_text_chunk before this terminal push arrived, so
+  // any text (non-video) part is deferred into pendingFinals — reusing the
+  // same streamed buffer as the reveal target — and committed once the smooth
+  // reveal catches up, exactly like Learn's response_complete. Video parts
+  // (rare — opt-in) have no text to catch up on, so they commit immediately.
   async function handleApplicationTurnPush(
     msg: WsModeSessionEvaluationPush | WsModeSessionCompletedPush,
   ) {
@@ -568,8 +805,9 @@ export function useChat() {
     const stepScore = Math.round((evalForMsg.score ?? 0) * 100);
     const updatedScores = [...(active.scores ?? []), stepScore];
     useChatStore.getState().updateActiveModeSession({ scores: updatedScores });
+    const progressSteps = takeProgressSteps();
 
-    useChatStore.getState().addMessage({
+    const evalMessage: Message = {
       id: newId(),
       sessionId: sid,
       role: "assistant",
@@ -583,23 +821,28 @@ export function useChat() {
       evaluation: evalForMsg,
       step: active.currentStep,
       totalSteps: active.totalSteps,
+      progressSteps,
       timestamp: new Date(),
-    });
+    };
+
+    const deferred: Message[] = [];
+    const streamParts: string[] = [];
 
     if (delivery?.response_format === "video" && delivery.video_url) {
+      useChatStore.getState().addMessage(evalMessage);
       const { subtitles, duration } = await fetchSubtitles(
         delivery.subtitles_url,
       );
-      useChatStore
-        .getState()
-        .setVideoResponse({
-          videoUrl: delivery.video_url,
-          audioUrl: delivery.audio_url ?? undefined,
-          subtitles,
-          duration,
-        });
-    } else if (!pendingEvaluationVideo) {
-      useChatStore.getState().setVideoResponse(null);
+      useChatStore.getState().setVideoResponse({
+        videoUrl: delivery.video_url,
+        audioUrl: delivery.audio_url ?? undefined,
+        subtitles,
+        duration,
+      });
+    } else {
+      deferred.push(evalMessage);
+      streamParts.push(evalForMsg.feedback);
+      if (!pendingEvaluationVideo) useChatStore.getState().setVideoResponse(null);
     }
 
     if (type === "completed") {
@@ -614,9 +857,11 @@ export function useChat() {
             )
           : 0;
 
-      // Per-step breakdown from evaluation messages already in the store
+      // Per-step breakdown from evaluation messages already in the store,
+      // plus this turn's evalMessage — which may still be deferred (not yet
+      // committed to the store) if it's a text response.
       const allMessages = useChatStore.getState().messages;
-      const scoreBreakdown = allMessages
+      const scoreBreakdown = [...allMessages, evalMessage]
         .filter(
           (m) =>
             m.messageType === "evaluation" &&
@@ -629,18 +874,21 @@ export function useChat() {
           verdict: m.evaluation!.verdict,
         }));
 
-      useChatStore.getState().addMessage({
+      const summaryText =
+        completedData.summary ??
+        "Great work! You have completed this practice scenario.";
+      const keyDelivery = completedData.key_delivery;
+
+      const completedMessage: Message = {
         id: newId(),
         sessionId: sid,
         role: "assistant",
-        content:
-          completedData.summary ??
-          "Great work! You have completed this practice scenario.",
-        responseFormat: completedData.key_delivery?.response_format ?? "text",
-        videoUrl: completedData.key_delivery?.video_url ?? null,
-        audioUrl: completedData.key_delivery?.audio_url ?? null,
+        content: summaryText,
+        responseFormat: keyDelivery?.response_format ?? "text",
+        videoUrl: keyDelivery?.video_url ?? null,
+        audioUrl: keyDelivery?.audio_url ?? null,
         pendingVideo:
-          !completedData.key_delivery?.video_url &&
+          !keyDelivery?.video_url &&
           shouldPreferVideo(sid, "application") &&
           hasActivePollingTask("mode"),
         mode: "application",
@@ -651,7 +899,23 @@ export function useChat() {
         step: active.totalSteps,
         totalSteps: active.totalSteps,
         timestamp: new Date(),
-      });
+      };
+
+      if (keyDelivery?.response_format === "video" && keyDelivery.video_url) {
+        useChatStore.getState().addMessage(completedMessage);
+        const { subtitles, duration } = await fetchSubtitles(
+          keyDelivery.subtitles_url,
+        );
+        useChatStore.getState().setVideoResponse({
+          videoUrl: keyDelivery.video_url,
+          audioUrl: keyDelivery.audio_url ?? undefined,
+          subtitles,
+          duration,
+        });
+      } else {
+        deferred.push(completedMessage);
+        streamParts.push(summaryText);
+      }
     } else {
       const evalPush = msg as WsModeSessionEvaluationPush;
       if (evalPush.next_prompt) {
@@ -664,7 +928,8 @@ export function useChat() {
         useChatStore
           .getState()
           .updateActiveModeSession({ currentStep: nextStep });
-        useChatStore.getState().addMessage({
+
+        const nextMessage: Message = {
           id: newId(),
           sessionId: sid,
           role: "assistant",
@@ -678,30 +943,44 @@ export function useChat() {
           step: nextStep,
           totalSteps: active.totalSteps,
           timestamp: new Date(),
-        });
+        };
+
         if (
           nextDelivery?.response_format === "video" &&
           nextDelivery.video_url
         ) {
+          useChatStore.getState().addMessage(nextMessage);
           const { subtitles, duration } = await fetchSubtitles(
             nextDelivery.subtitles_url,
           );
-          useChatStore
-            .getState()
-            .setVideoResponse({
-              videoUrl: nextDelivery.video_url,
-              audioUrl: nextDelivery.audio_url ?? undefined,
-              subtitles,
-              duration,
-            });
+          useChatStore.getState().setVideoResponse({
+            videoUrl: nextDelivery.video_url,
+            audioUrl: nextDelivery.audio_url ?? undefined,
+            subtitles,
+            duration,
+          });
+        } else {
+          deferred.push(nextMessage);
+          streamParts.push(evalPush.next_prompt);
         }
       }
+    }
+
+    if (deferred.length > 0) {
+      useChatStore.getState().setStreamingTarget(streamParts.join(" "));
+      useChatStore.getState().setPendingFinals(deferred);
+    } else {
+      useChatStore.getState().clearStreamingResponse();
     }
 
     useChatStore.getState().setIsLoadingMessage(false);
     useChatStore.getState().setIsGeneratingVideo(hasActivePollingTask("mode"));
   }
 
+  // Review turn — always text-only (no video path), so every part of the
+  // turn is deferred: the feedback (and, if present, the next question or
+  // completion summary) were already typed out live via mode_text_chunk, so
+  // we hand that same text to the smoother and commit once it catches up.
   function handleReviewTurnPush(
     msg: WsModeSessionEvaluationPush | WsModeSessionCompletedPush,
   ) {
@@ -716,8 +995,9 @@ export function useChat() {
     const stepScore = Math.round((evalForMsg.score ?? 0) * 100);
     const updatedScores = [...(active.scores ?? []), stepScore];
     useChatStore.getState().updateActiveModeSession({ scores: updatedScores });
+    const progressSteps = takeProgressSteps();
 
-    useChatStore.getState().addMessage({
+    const evalMessage: Message = {
       id: newId(),
       sessionId: sid,
       role: "assistant",
@@ -731,9 +1011,14 @@ export function useChat() {
       nextDifficulty,
       step: active.currentStep,
       totalSteps: active.totalSteps,
+      progressSteps,
       timestamp: new Date(),
-    });
+    };
+
     useChatStore.getState().setVideoResponse(null);
+
+    const deferred: Message[] = [evalMessage];
+    const streamParts: string[] = [evalForMsg.feedback];
 
     if (type === "completed") {
       useChatStore.getState().updateActiveModeSession({ completed: true });
@@ -745,8 +1030,10 @@ export function useChat() {
             )
           : 0;
 
+      // Include this turn's evalMessage manually — it's still deferred (not
+      // yet in the store) at this point.
       const allMessages = useChatStore.getState().messages;
-      const scoreBreakdown = allMessages
+      const scoreBreakdown = [...allMessages, evalMessage]
         .filter(
           (m) =>
             m.messageType === "evaluation" &&
@@ -759,7 +1046,7 @@ export function useChat() {
           verdict: m.evaluation!.verdict,
         }));
 
-      useChatStore.getState().addMessage({
+      deferred.push({
         id: newId(),
         sessionId: sid,
         role: "assistant",
@@ -775,6 +1062,7 @@ export function useChat() {
         totalSteps: active.totalSteps,
         timestamp: new Date(),
       });
+      // Completed summary card carries no text of its own to stream.
     } else {
       const evalPush = msg as WsModeSessionEvaluationPush;
       if (evalPush.next_prompt) {
@@ -783,7 +1071,7 @@ export function useChat() {
           currentStep: nextStep,
           ...(nextDifficulty ? { difficulty: nextDifficulty } : {}),
         });
-        useChatStore.getState().addMessage({
+        deferred.push({
           id: newId(),
           sessionId: sid,
           role: "assistant",
@@ -797,8 +1085,12 @@ export function useChat() {
           totalSteps: active.totalSteps,
           timestamp: new Date(),
         });
+        streamParts.push(evalPush.next_prompt);
       }
     }
+
+    useChatStore.getState().setStreamingTarget(streamParts.join(" "));
+    useChatStore.getState().setPendingFinals(deferred);
 
     useChatStore.getState().setIsLoadingMessage(false);
   }
@@ -818,6 +1110,48 @@ export function useChat() {
     });
 
 
+  }, [currentSessionId, isAuthenticated]);
+
+  // Rehydrate the transcript when a session is opened.
+  //
+  // The store persists `sessions` but not `messages`, and nothing called
+  // getConversations, so every reload dropped the whole conversation — not
+  // just its citations. Sources and attachments now come back with it.
+  useEffect(() => {
+    if (!currentSessionId || !isAuthenticated) return;
+    if (hydratedSessionsRef.current.has(currentSessionId)) return;
+
+    // Claim the id before awaiting so a fast re-render cannot double-fetch.
+    hydratedSessionsRef.current.add(currentSessionId);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await apiClient.getConversations(currentSessionId);
+        const rows = res?.data?.conversations ?? [];
+        if (cancelled || !rows.length) return;
+
+        // Never clobber a turn already on screen: the user may have sent a
+        // message while this was in flight, and a mid-flight answer is not in
+        // the database yet.
+        const store = useChatStore.getState();
+        if (store.currentSessionId !== currentSessionId) return;
+        if (store.messages.length) return;
+
+        store.setMessages(
+          rows.flatMap((row: ConversationRow) => toMessages(row, currentSessionId)),
+        );
+      } catch (err) {
+        // A missing transcript is a degraded view, not a broken session —
+        // the user can still ask their next question.
+        debugBackend("conversation hydration failed", err);
+        hydratedSessionsRef.current.delete(currentSessionId);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentSessionId, isAuthenticated]);
 
   const ensureWs = useCallback(async (sessionId: string) => {
@@ -852,22 +1186,13 @@ export function useChat() {
     }
   }, []);
 
+  // Text-first: never force video on. Video is opt-in via toggleVideoPreference.
+  // Kept as a no-op so existing call sites don't need to change.
   const ensureVideoPreference = useCallback(
-    async (sessionId: string, mode: TutorMode) => {
-      if (mode === "review") return;
-
-      const session = useChatStore
-        .getState()
-        .sessions.find((item) => item.id === sessionId);
-
-      if (session?.prefersVideo !== false) return;
-
-      const res = await apiClient.setVideoPreference(sessionId, true);
-      if (res.success) {
-        updateSession(sessionId, { prefersVideo: res.data?.prefers_video ?? true });
-      }
+    async (_sessionId: string, _mode: TutorMode) => {
+      return;
     },
-    [updateSession],
+    [],
   );
 
   useEffect(() => {
@@ -898,22 +1223,35 @@ export function useChat() {
       setError(null);
 
       try {
-        let resolvedCourseId = courseId ?? DEFAULT_COURSE_ID;
+        // Order matters: an explicit argument, then what the student picked in
+        // the course switcher, then their enrolments. DEFAULT_COURSE_ID is last
+        // and only covers a single-course deployment — reaching for it first
+        // started every session on 'froth-flotation' no matter what the student
+        // was enrolled on, which the backend then rejected as a 403.
+        let resolvedCourseId = courseId ?? useCourseStore.getState().selectedCourseId;
+
+        if (!resolvedCourseId) {
+          const enrolled = await useCourseStore.getState().loadCourses();
+          resolvedCourseId = enrolled[0]?.id ?? null;
+        }
+
         if (!resolvedCourseId) {
           const coursesRes = await apiClient.listCourses();
-          if (coursesRes.success && coursesRes.data?.courses.length) {
-            resolvedCourseId = coursesRes.data.courses[0].id;
-          } else {
-            throw new Error(
-              "No courses available. Please contact your administrator.",
-            );
-          }
+          resolvedCourseId =
+            coursesRes.data?.courses?.[0]?.id ?? DEFAULT_COURSE_ID ?? null;
+        }
+
+        if (!resolvedCourseId) {
+          throw new Error(
+            "You are not enrolled on any course yet. Enter the invite code your instructor gave you.",
+          );
         }
 
         const res = await apiClient.createSession({
           course_id: resolvedCourseId,
           mode: mode as "learn" | "application" | "review",
-          prefers_video: mode !== "review",
+          // Text-first: sessions start without video; users opt in via the toggle.
+          prefers_video: false,
         });
         if (!res.success || !res.data)
           throw new Error(res.error?.message ?? "Failed to create session");
@@ -972,6 +1310,7 @@ export function useChat() {
       setIsLoadingMessage(true);
       setIsGeneratingVideo(false);
       setError(null);
+      useChatStore.getState().clearStreamingResponse();
 
       await ensureWs(sessionId);
       MerakiWebSocket.getOrCreate({
@@ -1034,6 +1373,7 @@ export function useChat() {
           title: getModeSessionTitle(mode, sessionType),
         });
         clearMessages();
+        useChatStore.getState().clearStreamingResponse();
 
         const totalSteps = mode === "application" ? 3 : 10;
         pendingModeStartRef.current = {
@@ -1241,6 +1581,7 @@ export function useChat() {
       });
       setIsLoadingMessage(true);
       setError(null);
+      useChatStore.getState().clearStreamingResponse();
 
       await ensureWs(currentSessionId);
       MerakiWebSocket.getOrCreate({

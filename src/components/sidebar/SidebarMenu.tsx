@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { apiClient } from '@/services/api';
-import { CheckCircle2, ChevronDown, Loader2, LogOut, Settings } from 'lucide-react';
+import { CheckCircle2, ChevronDown, GraduationCap, Loader2, LogOut, Settings } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { MfaSettings } from '@/components/auth/MfaSettings';
 
 interface SidebarMenuProps {
   collapsed?: boolean;
@@ -19,6 +21,10 @@ export function SidebarMenu({ collapsed = false }: SidebarMenuProps) {
   const logout = useUserStore((s) => s.logout);
   const router = useRouter();
   const currentAvatarId = user?.avatar_id;
+  // Login sends everyone to /dashboard, so without this the teaching workspace
+  // is reachable only by typing the URL.
+  const isInstructor =
+    user?.role === 'lecturer' || user?.role === 'admin' || user?.role === 'super_admin';
 
   const handleLogout = () => {
     apiClient.logout();
@@ -80,6 +86,16 @@ export function SidebarMenu({ collapsed = false }: SidebarMenuProps) {
               </span>
             </div>
           )}
+          {isInstructor && (
+            <Link
+              href="/instructor"
+              className="flex w-full items-center justify-center rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-950/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              title="Instructor workspace"
+              aria-label="Instructor workspace"
+            >
+              <GraduationCap className="h-3.5 w-3.5" />
+            </Link>
+          )}
           <button
             onClick={handleOpenSettings}
             className="flex w-full items-center justify-center rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-950/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white"
@@ -115,6 +131,16 @@ export function SidebarMenu({ collapsed = false }: SidebarMenuProps) {
   return (
     <>
       <div className="flex flex-col gap-3">
+        {isInstructor && (
+          <Link
+            href="/instructor"
+            className="flex w-full items-center gap-2.5 rounded-2xl px-2 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-950/[0.04] dark:text-slate-200 dark:hover:bg-white/[0.08]"
+          >
+            <GraduationCap className="h-4 w-4 text-primary" />
+            Instructor workspace
+          </Link>
+        )}
+
         <button
           onClick={handleOpenSettings}
           className="flex w-full items-center justify-between rounded-2xl px-2 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-950/[0.04] dark:text-slate-200 dark:hover:bg-white/[0.08]"
@@ -220,6 +246,11 @@ function SettingsDropdown({
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-3 border-t border-slate-200/70 pt-3 dark:border-white/10">
+        <p className="mb-2 text-xs font-semibold text-slate-950 dark:text-white">Security</p>
+        <MfaSettings />
       </div>
     </div>
   );

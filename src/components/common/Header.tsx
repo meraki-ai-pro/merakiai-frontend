@@ -11,6 +11,8 @@ import { useUIStore } from '@/store/uiStore';
 import { useChatStore } from '@/store/chatStore';
 import { useChat } from '@/hooks/use-chat';
 import { ModeSelector } from '@/components/mode/ModeSelector';
+import { CourseSwitcher } from '@/components/course/CourseSwitcher';
+import { FeedbackButton } from '@/components/feedback/FeedbackDialog';
 import {
   Tooltip,
   TooltipContent,
@@ -19,6 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { TutorMode } from '@/types';
+import { useRouter } from 'next/navigation';
 
 // ─── Tooltip copy — concise since the welcome screen covers the full detail ──
 const MODE_TABS: {
@@ -56,6 +59,7 @@ const MODE_TABS: {
 ];
 
 export function Header() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isTogglingVideo, setIsTogglingVideo] = useState(false);
   const [modeSelectorTarget, setModeSelectorTarget] = useState<'application' | 'review' | null>(null);
@@ -77,12 +81,14 @@ export function Header() {
   useEffect(() => { setMounted(true); }, []);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
-  const prefersVideo = currentSession?.prefersVideo ?? true;
+  // Text-first: default to text when the preference is unknown.
+  const prefersVideo = currentSession?.prefersVideo ?? false;
   const currentMode = currentSession?.currentMode ?? 'learn';
   const isReviewMode = currentMode === 'review';
 
   // ── Mode switching ──────────────────────────────────────────────────────────
   const handleModeClick = async (mode: TutorMode) => {
+    router.push('/dashboard');
     if (!currentSessionId) return;
     if (currentMode === mode) return;
 
@@ -137,6 +143,7 @@ export function Header() {
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">Learn, Practice, Review</p>
             </div>
+            <CourseSwitcher />
           </div>
 
           {/* Center: mode tabs — only shown when a session is active */}
@@ -245,6 +252,8 @@ export function Header() {
                 {currentSession.messageCount || 0} msgs
               </span>
             )}
+
+            <FeedbackButton />
 
             {mounted && (
               <Button

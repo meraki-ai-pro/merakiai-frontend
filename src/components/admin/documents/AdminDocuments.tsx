@@ -66,9 +66,9 @@ export function AdminDocuments() {
 
   const load = async () => {
     setLoading(true);
-    const res = await adminApiClient.getAllDocuments();
-    if (res.success && Array.isArray(res.data)) {
-      setDocuments(res.data);
+    const res = await adminApiClient.getDocuments({ pageSize: 100 });
+    if (res.success && res.data) {
+      setDocuments(res.data.items);
     } else {
       setDocuments([]);
     }
@@ -270,7 +270,7 @@ export function AdminDocuments() {
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-2">
                         <FileText className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                        <span className="text-slate-900 dark:text-white font-medium max-w-[180px] truncate">{doc.filename}</span>
+                        <span className="text-slate-900 dark:text-white font-medium max-w-[180px] truncate" title={doc.source_filename}>{doc.source_filename}</span>
                       </div>
                     </td>
                     <td className="px-6 py-3">

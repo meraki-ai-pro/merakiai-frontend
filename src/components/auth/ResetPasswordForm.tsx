@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,20 +22,54 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+  const [recoveryAccessToken, setRecoveryAccessToken] = useState<string | null>(null);
 
-  // Extract recovery token from URL hash
   useEffect(() => {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get('access_token');
-    const type = params.get('type');
+    let active = true;
 
-    if (!accessToken || type !== 'recovery') {
-      setTokenValid(false);
-      setError('Invalid or missing reset token. Please request a new password reset link.');
-    } else {
-      setTokenValid(true);
-    }
+    const establishRecoverySession = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const queryParams = new URLSearchParams(window.location.search);
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      const code = queryParams.get('code');
+
+      try {
+        let session = null;
+
+        if (accessToken && refreshToken && type === 'recovery') {
+          const { data, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (sessionError) throw sessionError;
+          session = data.session;
+        } else if (code) {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
+          session = data.session;
+        }
+
+        if (!session?.access_token) {
+          throw new Error('Invalid or missing recovery session');
+        }
+
+        if (active) {
+          setRecoveryAccessToken(session.access_token);
+          setTokenValid(true);
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      } catch {
+        if (active) {
+          setTokenValid(false);
+          setError('Invalid or missing reset token. Please request a new password reset link.');
+        }
+      }
+    };
+
+    void establishRecoverySession();
+    return () => { active = false; };
   }, []);
 
   // Password validation helpers
@@ -44,29 +79,22 @@ export function ResetPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid || !recoveryAccessToken) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      // Supabase automatically detects recovery token from URL hash
-      // Just call updateUser with new password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (updateError) {
-        setError(updateError.message);
+      const result = await apiClient.resetPassword(recoveryAccessToken, newPassword);
+      if (!result.success) {
+        setError(result.error?.message ?? 'Failed to reset password. Please request a new reset link.');
         setIsLoading(false);
         return;
       }
 
+      await supabase.auth.signOut();
       setSuccess(true);
       toast.success('Password reset successfully!');
-
-      // Clear the hash from URL
-      window.history.replaceState({}, '', window.location.pathname);
 
       // Redirect to login after 2 seconds
       setTimeout(() => {

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { apiClient } from '@/services/api';
 import { useUserStore } from '@/store/userStore';
+import { MfaSettings } from '@/components/auth/MfaSettings';
 import toast from 'react-hot-toast';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -83,6 +84,12 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             <div className="text-xs text-muted-foreground">
               {user?.email}
             </div>
+          </div>
+
+          {/* Security Section */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Security</h3>
+            <MfaSettings />
           </div>
 
           {/* Avatar Section */}

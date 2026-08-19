@@ -1,3 +1,5 @@
+import type { TutorMode } from './chat';
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -85,6 +87,25 @@ export interface SessionDetailsResponse {
   prefers_video: boolean;
   started_at: string;
   ended_at?: string | null;
+}
+
+export interface UserSessionSummary {
+  id: string;
+  title: string;
+  mode: 'learn' | 'application' | 'review';
+  current_mode: 'learn' | 'application' | 'review';
+  prefers_video: boolean;
+  course_id: string | null;
+  message_count: number;
+  started_at: string;
+  ended_at: string | null;
+}
+
+export interface UserSessionsResponse {
+  sessions: UserSessionSummary[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface SessionModeUpdateRequest {
@@ -222,6 +243,114 @@ export interface WsEndedAck {
 
 // ─── WebSocket push payloads (result delivered asynchronously via WS) ─────────
 
+/** Progress update — drives the "what's happening" panel in Learn mode. */
+export interface WsStatusPush {
+  type: 'status';
+  stage: string;
+  label: string;
+}
+
+/** Signals the start of a token-streamed text answer. */
+export interface WsTextStreamStart {
+  type: 'text_stream_start';
+}
+
+/** One token/word delta of a streaming text answer. */
+export interface WsTextChunk {
+  type: 'text_chunk';
+  chunk: string;
+}
+
+/**
+ * One passage the answer was grounded in.
+ *
+ * `citation` is the number the tutor writes in the answer as `[n]`.
+ * `relevance` is a coarse band rather than a percentage — the underlying score
+ * is a rank-fusion value and does not mean anything as a figure.
+ */
+export interface RetrievedSource {
+  citation: number;
+  id: string;
+  text: string;
+  /** Human-readable label, e.g. "calculus.pdf, p. 7 — Limits". */
+  location: string;
+  document_id: string | null;
+  source_filename: string | null;
+  section_title: string | null;
+  heading_path: string[];
+  page: number | null;
+  page_end: number | null;
+  has_math: boolean;
+  score: number;
+  relevance: 'high' | 'medium' | 'low';
+}
+
+/** A lecturer-approved concept animation, with a short-lived playback URL. */
+export interface ConceptVideoAsset {
+  id: string;
+  concept_key: string;
+  /** Signed URL — rendered-media is a private bucket. */
+  url: string;
+  duration_seconds?: number | null;
+  renderer?: 'manim' | 'remotion';
+  archetype?: string | null;
+}
+
+/** A student-submitted photo, re-signed for display on reload. */
+export interface ConversationAttachment {
+  /** Short-lived signed URL — student-uploads is a private bucket. */
+  url: string;
+  media_type?: string | null;
+}
+
+/** One stored turn, as returned by GET /sessions/{id}/conversations. */
+export interface ConversationRow {
+  id: string;
+  mode: TutorMode;
+  user_input: string;
+  tutor_response: string;
+  response_format: 'text' | 'video';
+  video_url: string | null;
+  audio_url: string | null;
+  created_at: string;
+  /** Absent on turns recorded before sources were persisted. */
+  sources?: RetrievedSource[] | null;
+  attachments?: ConversationAttachment[] | null;
+}
+
+export interface ConversationsResponse {
+  session_id: string;
+  conversations: ConversationRow[];
+  limit: number;
+  offset: number;
+}
+
+/**
+ * The passages retrieval settled on, pushed *before* the first token so the
+ * client can show what the answer is being drawn from while it is written.
+ */
+export interface WsSourcesPush {
+  type: 'sources';
+  sources: RetrievedSource[];
+}
+
+/** Terminal push for a Learn turn — carries the authoritative full answer. */
+export interface WsResponseComplete {
+  type: 'response_complete';
+  mode: 'learn';
+  response: string;
+  response_format: 'text' | 'video';
+  video_url: string | null;
+  audio_url: string | null;
+  subtitles_url?: string | null;
+  /** Repeated here so a client that reconnected mid-turn still gets them. */
+  sources?: RetrievedSource[];
+  // Present when the answer is delivered via the real-time D-ID avatar stream
+  // (source "did_agent", streaming true) rather than a rendered MP4 clip.
+  source?: string;
+  streaming?: boolean;
+}
+
 export interface WsLearnResponse {
   mode: 'learn';
   response: string;
@@ -268,6 +397,11 @@ export interface WsModeSessionCompletedPush {
 export type WsIncoming =
   | WsProcessingAck
   | WsEndedAck
+  | WsStatusPush
+  | WsTextStreamStart
+  | WsTextChunk
+  | WsSourcesPush
+  | WsResponseComplete
   | WsLearnResponse
   | WsModeSessionStartPush
   | WsModeSessionEvaluationPush

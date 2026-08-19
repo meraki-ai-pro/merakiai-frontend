@@ -5,6 +5,7 @@ import { useChatStore } from '@/store/chatStore';
 import { UserMessage } from './UserMessage';
 import { AIResponse } from './AIResponse';
 import { LoadingState } from './LoadingState';
+import { StreamingResponse } from './StreamingResponse';
 import { useChat } from '@/hooks/use-chat';
 import { BookOpen, FlaskConical, ClipboardCheck, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,15 +40,18 @@ const EMPTY_STATE = {
 type EmptyStateKey = keyof typeof EMPTY_STATE;
 
 export function MessageList() {
-  const messages           = useChatStore((s) => s.messages);
-  const isLoadingMessage   = useChatStore((s) => s.isLoadingMessage);
-  const error              = useChatStore((s) => s.error);
+  const messages            = useChatStore((s) => s.messages);
+  const isLoadingMessage    = useChatStore((s) => s.isLoadingMessage);
+  const isStreamingResponse = useChatStore((s) => s.isStreamingResponse);
+  const error               = useChatStore((s) => s.error);
   const currentSessionId   = useChatStore((s) => s.currentSessionId);
   const sessions           = useChatStore((s) => s.sessions);
   const activeModeSession  = useChatStore((s) => s.activeModeSession);
 
   const { retryLastMessage } = useChat();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const latestAssistantRef = useRef<HTMLDivElement>(null);
+  const previousStreamingRef = useRef(false);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
   const currentMode    = currentSession?.currentMode ?? 'learn';
@@ -64,11 +68,22 @@ export function MessageList() {
   const emptyConfig = EMPTY_STATE[emptyMode];
   const EmptyIcon   = emptyConfig.icon;
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoadingMessage]);
-
+  const streamingContent = useChatStore((s) => s.streamingContent);
+  const streamingStepCount = useChatStore((s) => s.streamingSteps.length);
   const lastMessage = messages[messages.length - 1];
+
+  useEffect(() => {
+    const answerJustFinished = previousStreamingRef.current && !isStreamingResponse;
+
+    if (answerJustFinished && lastMessage?.role === 'assistant') {
+      latestAssistantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (isLoadingMessage || isStreamingResponse) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    previousStreamingRef.current = isStreamingResponse;
+  }, [lastMessage, isLoadingMessage, isStreamingResponse, streamingContent, streamingStepCount]);
+
   const showRetry =
     !!error &&
     !isLoadingMessage &&
@@ -76,7 +91,7 @@ export function MessageList() {
     lastMessage.role === 'user' &&
     currentMode === 'learn';
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && !isStreamingResponse) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="rounded-[28px] border border-white/70 bg-white/[0.78] px-8 py-7 shadow-xl shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
@@ -98,8 +113,12 @@ export function MessageList() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
       <div className="mx-auto flex max-w-4xl flex-col gap-6 rounded-[32px] border border-white/60 bg-white/[0.44] px-4 py-6 shadow-sm shadow-blue-950/5 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/[0.18] sm:px-6">
-        {messages.map((message) => (
-          <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        {messages.map((message, index) => (
+          <div
+            key={message.id}
+            ref={message.role === 'assistant' && index === messages.length - 1 ? latestAssistantRef : undefined}
+            className="scroll-mt-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
+          >
             {message.role === 'user' ? (
               <UserMessage message={message} />
             ) : (
@@ -108,11 +127,15 @@ export function MessageList() {
           </div>
         ))}
 
-        {isLoadingMessage && (
+        {isStreamingResponse ? (
+          <div className="animate-in fade-in duration-200">
+            <StreamingResponse />
+          </div>
+        ) : isLoadingMessage ? (
           <div className="animate-in fade-in duration-200">
             <LoadingState />
           </div>
-        )}
+        ) : null}
 
         {showRetry && (
           <div className="animate-in fade-in duration-200 flex flex-col items-start gap-2">

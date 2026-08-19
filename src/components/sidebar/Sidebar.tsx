@@ -7,7 +7,7 @@ import { NewChat } from './NewChat';
 import { SidebarMenu } from './SidebarMenu';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
+import { ClipboardList, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -29,8 +29,8 @@ export function Sidebar() {
         collapsed ? 'justify-center px-0 py-5' : 'gap-3 px-5 pb-4 pt-6'
       )}>
         <Link
-          href="/"
-          title="Back to home"
+          href="/dashboard"
+          title="Back to learning"
           className={cn(
             'flex h-10 w-10 items-center justify-center rounded-2xl flex-shrink-0',
             'border border-blue-200 bg-white/70 text-blue-700 shadow-lg shadow-blue-600/10',
@@ -38,7 +38,7 @@ export function Sidebar() {
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
             'transition-all duration-150'
           )}
-          aria-label="Go to Meraki home page"
+          aria-label="Go to learning dashboard"
         >
           <MerakiLogo variant="color" className="h-6 w-6" decorative />
         </Link>
@@ -46,7 +46,9 @@ export function Sidebar() {
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <p className="text-base font-semibold leading-none truncate">Meraki</p>
-            <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">AI Flotation Tutor</p>
+            {/* Was "AI Flotation Tutor" — a leftover from the single-course
+                deployment, and wrong on every other course. */}
+            <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">AI Study Tutor</p>
           </div>
         )}
 
@@ -80,8 +82,20 @@ export function Sidebar() {
       )}
 
       {/* ── Primary actions ─────────────────────────────────────────────── */}
-      <div className={cn('flex-shrink-0 pb-4', collapsed ? 'flex justify-center px-2 pt-2' : 'space-y-1 px-5')}>
+      <div className={cn('flex-shrink-0 pb-4', collapsed ? 'flex flex-col items-center gap-1 px-2 pt-2' : 'space-y-1 px-5')}>
         <NewChat iconOnly={collapsed} />
+        <Link
+          href="/dashboard/assessments"
+          data-testid="nav-assessments"
+          title="Assessments"
+          className={cn(
+            'flex items-center rounded-2xl text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-cyan-300/[0.08] dark:hover:text-cyan-100',
+            collapsed ? 'h-10 w-10 justify-center' : 'h-10 w-full gap-2 px-3',
+          )}
+        >
+          <ClipboardList className="h-3.5 w-3.5 flex-shrink-0" />
+          {!collapsed && 'Assessments'}
+        </Link>
       </div>
 
       {/* ── Section label — full mode only ──────────────────────────────── */}

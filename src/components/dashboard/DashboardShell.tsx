@@ -6,8 +6,10 @@ import { Header } from '@/components/common/Header';
 import { AvatarSelector } from '@/components/common/AvatarSelector';
 import { useUIStore } from '@/store/uiStore';
 import { useUserStore } from '@/store/userStore';
+import { useChatStore } from '@/store/chatStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { apiClient } from '@/services/api';
+import type { TutorMode } from '@/types';
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -48,8 +50,45 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const loadSessions = async () => {
+      const chatState = useChatStore.getState();
+      if (chatState.sessionsLoadedFromBackend) return;
+
+      try {
+        const response = await apiClient.listUserSessions(200);
+        if (!response.success || !response.data) return;
+
+        const currentSessions = useChatStore.getState().sessions;
+        const currentById = new Map(currentSessions.map((session) => [session.id, session]));
+        const backendSessions = response.data.sessions.map((session) => ({
+          id: session.id,
+          title: session.title && session.title !== 'Session'
+            ? session.title
+            : currentById.get(session.id)?.title || 'Session',
+          mode: session.mode as TutorMode,
+          currentMode: session.current_mode as TutorMode,
+          prefersVideo: session.prefers_video ?? false,
+          createdAt: new Date(session.started_at),
+          updatedAt: new Date(session.started_at),
+          messageCount: session.message_count ?? 0,
+          courseId: session.course_id ?? undefined,
+          startedAt: session.started_at,
+          endedAt: session.ended_at,
+        }));
+
+        const backendIds = new Set(backendSessions.map((session) => session.id));
+        const localOnly = currentSessions.filter((session) => !backendIds.has(session.id));
+        useChatStore.getState().setConversations([...backendSessions, ...localOnly]);
+      } catch {
+        // Session history is non-critical; users can still start a new session.
+      } finally {
+        useChatStore.getState().setSessionsLoadedFromBackend(true);
+      }
+    };
+
     if (mounted) {
-      checkAvatar();
+      void checkAvatar();
+      void loadSessions();
     }
   }, [mounted]);
 

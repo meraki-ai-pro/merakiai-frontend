@@ -1,7 +1,31 @@
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/constants';
 import { debugBackend } from '@/lib/debug';
 import type {
+  AcademicLevelOption,
   ApiResponse,
+  Assessment,
+  AssessmentKind,
+  AssessmentQuestion,
+  AvailableAssessment,
+  MasteryTopic,
+  QuestionCreate,
+  SubmissionItem,
+  SubmitAssessmentResponse,
+  TakeAssessmentResponse,
+  ConceptVideoAsset,
+  ConversationsResponse,
+  CourseAnalytics,
+  CourseStudent,
+  Enrolment,
+  InviteCode,
+  KnowledgeFile,
+  KnowledgePatch,
+  KnowledgeUploadOptions,
+  InstructorCourse,
+  InstructorCourseCreate,
+  RenderAsset,
+  RenderRequestBody,
+  TestQueryResponse,
   LoginResponse,
   SignupRequest,
   SignupResponse,
@@ -17,6 +41,7 @@ import type {
   AvatarSelectRequest,
   AvatarSelectResponse,
   SessionSurveyRequest,
+  UserSessionsResponse,
   UserFeedbackRequest,
   FeedbackResponse,
   TaskStatusResponse,
@@ -161,12 +186,13 @@ class ApiClient {
     );
   }
 
-  async resetPassword(token: string, newPassword: string) {
+  async resetPassword(accessToken: string, newPassword: string) {
     return this.request<{ status: string; message: string }>(
       API_ENDPOINTS.AUTH_RESET_PASSWORD,
       {
         method: 'POST',
-        body: JSON.stringify({ token, password: newPassword }),
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ new_password: newPassword }),
         skipAuth: true,
       }
     );
@@ -178,6 +204,13 @@ class ApiClient {
 
   // ─── Sessions ─────────────────────────────────────────────────────────────
 
+  /** GET /sessions/ — list the authenticated user's sessions. */
+  listUserSessions(limit = 50, offset = 0) {
+    return this.request<UserSessionsResponse>(
+      `${API_ENDPOINTS.SESSIONS_CREATE}?limit=${limit}&offset=${offset}`
+    );
+  }
+
   /**
    * GET /sessions/courses — list available courses.
    * Call this before createSession to get a valid course_id.
@@ -186,6 +219,27 @@ class ApiClient {
     return this.request<{ courses: { id: string; name: string; description: string }[] }>(
       API_ENDPOINTS.SESSIONS_COURSES
     );
+  }
+
+  // ─── Enrolment (student side) ─────────────────────────────────────────────
+
+  /**
+   * GET /enrolments — the courses this student is actually on.
+   *
+   * Distinct from listCourses(): that returns everything the catalogue offers,
+   * while session creation is gated on enrolment. Picking a course from the
+   * catalogue that the student is not enrolled on yields a 403.
+   */
+  listMyEnrolments() {
+    return this.request<{ enrolments: Enrolment[] }>('/enrolments');
+  }
+
+  /** POST /enrolments/join — redeem an invite code read out in class. */
+  joinCourseByCode(code: string) {
+    return this.request<{ status: string; enrolment: Enrolment }>('/enrolments/join', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
   }
 
   /**
@@ -228,8 +282,178 @@ class ApiClient {
     });
   }
 
+  // ─── Lecturer ────────────────────────────────────────────────────────────
+  // Every one of these is ownership-checked server-side; the UI showing a
+  // course is never what authorises access to it.
+
+  /** The level vocabulary, served so the dropdown cannot drift from the
+   *  CHECK constraint or the teaching prompts. */
+  listAcademicLevels() {
+    return this.request<{ levels: AcademicLevelOption[] }>(
+      '/lecturer/courses/academic-levels'
+    );
+  }
+
+  listInstructorCourses() {
+    return this.request<{ courses: InstructorCourse[] }>('/lecturer/courses');
+  }
+
+  createInstructorCourse(body: InstructorCourseCreate) {
+    return this.request<{ course: InstructorCourse }>('/lecturer/courses', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  getInstructorCourse(courseId: string) {
+    return this.request<{ course: InstructorCourse }>(`/lecturer/courses/${courseId}`);
+  }
+
+  updateInstructorCourse(courseId: string, body: Partial<InstructorCourseCreate>) {
+    return this.request<{ course: InstructorCourse }>(`/lecturer/courses/${courseId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
+  listKnowledge(courseId: string) {
+    return this.request<{ documents: KnowledgeFile[] }>(
+      `/lecturer/courses/${courseId}/knowledge`
+    );
+  }
+
+  /** Uploads land as DRAFT — publish only after a test query looks right. */
+  uploadKnowledge(courseId: string, file: File, opts: KnowledgeUploadOptions = {}) {
+    const params = new URLSearchParams({
+      doc_type: opts.docType ?? 'knowledge',
+      default_mode: opts.defaultMode ?? 'learn',
+      difficulty: opts.difficulty ?? 'beginner',
+      version: opts.version ?? '1',
+      is_published: String(opts.isPublished ?? false),
+    });
+    if (opts.targetModes?.length) params.set('target_modes', opts.targetModes.join(','));
+    if (opts.topic) params.set('topic', opts.topic);
+
+    const form = new FormData();
+    form.append('file', file);
+    return this.request<{ document_id: string; status: string }>(
+      `/lecturer/courses/${courseId}/knowledge?${params.toString()}`,
+      { method: 'POST', body: form }
+    );
+  }
+
+  updateKnowledge(courseId: string, documentId: string, body: KnowledgePatch) {
+    return this.request<{ document_id: string }>(
+      `/lecturer/courses/${courseId}/knowledge/${documentId}`,
+      { method: 'PATCH', body: JSON.stringify(body) }
+    );
+  }
+
+  deleteKnowledge(courseId: string, documentId: string) {
+    return this.request<{ document_id: string }>(
+      `/lecturer/courses/${courseId}/knowledge/${documentId}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  /** Retrieval only, no generated answer — a fluent answer over bad retrieval
+   *  is exactly what hides a problem before publishing. */
+  testKnowledgeQuery(courseId: string, question: string, mode = 'learn') {
+    return this.request<TestQueryResponse>(
+      `/lecturer/courses/${courseId}/knowledge/test-query`,
+      { method: 'POST', body: JSON.stringify({ question, mode }) }
+    );
+  }
+
+  listInviteCodes(courseId: string) {
+    return this.request<{ invite_codes: InviteCode[] }>(
+      `/lecturer/courses/${courseId}/invite-codes`
+    );
+  }
+
+  createInviteCode(courseId: string, maxUses?: number, expiresAt?: string) {
+    return this.request<{ invite_code: InviteCode }>(
+      `/lecturer/courses/${courseId}/invite-codes`,
+      { method: 'POST', body: JSON.stringify({ max_uses: maxUses ?? null, expires_at: expiresAt ?? null }) }
+    );
+  }
+
+  deactivateInviteCode(courseId: string, codeId: string) {
+    return this.request<{ code_id: string }>(
+      `/lecturer/courses/${courseId}/invite-codes/${codeId}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  listCourseStudents(courseId: string, status?: string) {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.request<{ students: CourseStudent[] }>(
+      `/lecturer/courses/${courseId}/students${q}`
+    );
+  }
+
+  addCourseStudent(courseId: string, email: string) {
+    return this.request<{ enrolment_id: string }>(
+      `/lecturer/courses/${courseId}/students`,
+      { method: 'POST', body: JSON.stringify({ email }) }
+    );
+  }
+
+  changeEnrolmentStatus(courseId: string, enrolmentId: string, status: string) {
+    return this.request<{ new_status: string }>(
+      `/lecturer/courses/${courseId}/students/${enrolmentId}`,
+      { method: 'PATCH', body: JSON.stringify({ status }) }
+    );
+  }
+
+  getCourseAnalytics(courseId: string) {
+    return this.request<CourseAnalytics>(`/lecturer/courses/${courseId}/analytics`);
+  }
+
+  /** GET /render/archetypes — visual styles, and which renderer each routes to. */
+  listRenderArchetypes() {
+    return this.request<{ archetypes: { name: string; renderer: string }[]; unsupported: string[] }>(
+      '/render/archetypes'
+    );
+  }
+
+  listRenderAssets(courseId: string) {
+    return this.request<{ assets: RenderAsset[] }>(`/render/course/${courseId}`);
+  }
+
+  getRenderAsset(assetId: string) {
+    return this.request<{ asset: RenderAsset; preview_url: string | null }>(
+      `/render/${assetId}`
+    );
+  }
+
+  reviewRenderAsset(assetId: string, approved: boolean, note?: string) {
+    return this.request<{ approved: boolean }>(`/render/${assetId}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ approved, note: note ?? null }),
+    });
+  }
+
+  requestRender(body: RenderRequestBody) {
+    return this.request<{ status: string; asset: RenderAsset }>('/render', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /**
+   * GET /render/concept/{course}/{key} — the approved animation for a concept.
+   * `asset` is null when nothing has been rendered and approved, which is the
+   * normal case, not an error.
+   */
+  getConceptVideo(courseId: string, conceptKey: string) {
+    return this.request<{ asset: ConceptVideoAsset | null }>(
+      `/render/concept/${encodeURIComponent(courseId)}/${encodeURIComponent(conceptKey)}`
+    );
+  }
+
   getConversations(sessionId: string, limit = 50, offset = 0) {
-    return this.request<{ conversations: object[] }>(
+    return this.request<ConversationsResponse>(
       `${API_ENDPOINTS.SESSIONS_CONVERSATIONS(sessionId)}?limit=${limit}&offset=${offset}`
     );
   }
@@ -243,6 +467,19 @@ class ApiClient {
   }
 
   // ─── Voice (REST, result arrives via WebSocket) ───────────────────────────
+
+  async transcribeVoice(audioBlob: Blob) {
+    const formData = new FormData();
+    const extension = audioBlob.type.includes('mp4') ? 'm4a'
+      : audioBlob.type.includes('ogg') ? 'ogg'
+      : audioBlob.type.includes('wav') ? 'wav'
+      : 'webm';
+    formData.append('file', audioBlob, `recording.${extension}`);
+    return this.request<{ transcript: string }>(
+      API_ENDPOINTS.RAG_TRANSCRIBE,
+      { method: 'POST', body: formData }
+    );
+  }
 
   /**
    * POST /rag/turn/voice — voice input for Learn mode.
@@ -288,6 +525,72 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ avatar_id: avatarId } as AvatarSelectRequest),
     });
+  }
+
+  // ─── Assessments ──────────────────────────────────────────────────────────
+
+  /** POST /assessments — lecturer creates a pre/post/retention paper. */
+  createAssessment(payload: {
+    course_id: string;
+    kind: AssessmentKind;
+    title: string;
+    instructions?: string | null;
+  }) {
+    return this.request<{ status: string; assessment: Assessment }>('/assessments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  listAssessments(courseId: string) {
+    return this.request<{ assessments: Assessment[] }>(`/assessments/course/${courseId}`);
+  }
+
+  addAssessmentQuestion(assessmentId: string, payload: QuestionCreate) {
+    return this.request<{ status: string; question: AssessmentQuestion | null }>(
+      `/assessments/${assessmentId}/questions`,
+      { method: 'POST', body: JSON.stringify(payload) }
+    );
+  }
+
+  publishAssessment(assessmentId: string) {
+    return this.request<{ status: string; assessment_id: string; questions: number }>(
+      `/assessments/${assessmentId}/publish`,
+      { method: 'PATCH' }
+    );
+  }
+
+  getAssessmentResults(assessmentId: string) {
+    return this.request<Record<string, unknown>>(`/assessments/${assessmentId}/results`);
+  }
+
+  getLearningGain(courseId: string) {
+    return this.request<Record<string, unknown>>(
+      `/assessments/course/${courseId}/learning-gain`
+    );
+  }
+
+  /** GET /assessments/available/{course} — what this student may sit. */
+  listAvailableAssessments(courseId: string) {
+    return this.request<{ assessments: AvailableAssessment[] }>(
+      `/assessments/available/${courseId}`
+    );
+  }
+
+  /** GET /assessments/{id}/take — questions with the answer key withheld. */
+  takeAssessment(assessmentId: string) {
+    return this.request<TakeAssessmentResponse>(`/assessments/${assessmentId}/take`);
+  }
+
+  submitAssessment(assessmentId: string, answers: SubmissionItem[]) {
+    return this.request<SubmitAssessmentResponse>(`/assessments/${assessmentId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  }
+
+  getMyMastery(courseId: string) {
+    return this.request<{ topics: MasteryTopic[] }>(`/assessments/mastery/${courseId}`);
   }
 
   // ─── Feedback ─────────────────────────────────────────────────────────────

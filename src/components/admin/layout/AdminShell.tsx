@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
-import { tokenStore } from '@/services/api';
 import { apiClient } from '@/services/api';
+import { useUserStore } from '@/store/userStore';
+import { WorkspaceLogoutButton } from '@/components/common/WorkspaceLogoutButton';
 import {
   LayoutDashboard,
   Users,
@@ -58,10 +59,12 @@ function AdminSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const logout = useUserStore((state) => state.logout);
 
   const handleLogout = () => {
-    tokenStore.clear();
-    router.push('/auth/login');
+    apiClient.logout();
+    logout();
+    router.replace('/auth/login');
   };
 
   return (
@@ -220,6 +223,8 @@ function AdminTopbar({ sidebarWidth }: { sidebarWidth: number }) {
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
         )}
+
+        <WorkspaceLogoutButton />
 
         {/* Admin badge */}
         <div className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/[0.62] px-3 py-2 shadow-sm dark:border-white/10 dark:bg-white/[0.06]">
