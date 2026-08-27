@@ -1,8 +1,8 @@
 import { AssessmentRunner } from '@/components/assessment/AssessmentRunner';
 
 export const metadata = {
-  title: 'Assessments | Meraki',
-  description: 'Pre and post assessments for your course.',
+  title: 'Pre/post tests | Meraki',
+  description: 'The pre-test and post-test set for your course.',
 };
 
 /**

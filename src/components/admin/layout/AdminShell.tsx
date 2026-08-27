@@ -22,6 +22,7 @@ import {
   Bell,
   Video,
   Shield,
+  UserRound,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
     items: [
       { href: '/admin/system', label: 'Video & Media', icon: Video },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
+      { href: '/admin/account', label: 'Your account', icon: UserRound },
     ],
   },
 ];

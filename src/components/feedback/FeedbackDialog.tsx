@@ -1,18 +1,25 @@
 'use client';
 
 /**
- * Student feedback capture.
+ * Feedback capture, for students and lecturers.
  *
- * Two things the pilot needs and the app could not previously collect:
+ * Two things the pilot needs:
  *
  *   - a per-session survey (clarity / helpfulness / confidence / overall),
  *     which is the research instrument the study reports on, and
  *   - free-text feedback, which is where "the derivative in step 3 is wrong"
  *     actually arrives.
  *
- * They share a dialog because a student has one mental action ("tell them
+ * They share a dialog because a person has one mental action ("tell them
  * something"), but they post to different endpoints and the survey requires a
  * session while free text does not.
+ *
+ * **Every submission carries a course.** Without one, feedback reaches the
+ * admin inbox as an orphaned sentence with nothing to act on. A student's
+ * comes from the course they are studying; a lecturer's is passed in by the
+ * surface that opened the dialog. The server prefers the session's own course
+ * when there is a session, so switching course in another tab cannot misfile a
+ * complaint about the lesson on screen.
  */
 
 import { useEffect, useState } from 'react';
@@ -21,6 +28,7 @@ import toast from 'react-hot-toast';
 import { Loader2, MessageSquarePlus, Star, X } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { useChatStore } from '@/store/chatStore';
+import { useCourseStore } from '@/store/courseStore';
 import { cn } from '@/lib/utils';
 import type { UserFeedbackRequest } from '@/types';
 
@@ -45,8 +53,27 @@ const FEEDBACK_TYPES: { value: UserFeedbackRequest['feedback_type']; label: stri
   { value: 'other', label: 'Other' },
 ];
 
-export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface FeedbackDialogProps {
+  open: boolean;
+  onClose: () => void;
+  /**
+   * Course to attribute this to. Students leave it unset and it comes from
+   * their selected course; a lecturer surface passes the course they are
+   * looking at, because a lecturer has no "selected course" of their own.
+   */
+  courseId?: string | null;
+  /** Lecturers have no study session, so the rating block is not offered. */
+  showSessionSurvey?: boolean;
+}
+
+export function FeedbackDialog({
+  open,
+  onClose,
+  courseId,
+  showSessionSurvey = true,
+}: FeedbackDialogProps) {
   const currentSessionId = useChatStore((s) => s.currentSessionId);
+  const selectedCourseId = useCourseStore((s) => s.selectedCourseId);
   const [ratings, setRatings] = useState<Record<RatingKey, number>>({
     clarity_rating: 0,
     helpfulness_rating: 0,
@@ -62,11 +89,16 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
 
   if (!open || !mounted) return null;
 
-  const allRated = RATINGS.every((r) => ratings[r.key] > 0);
+  const allRated = showSessionSurvey && RATINGS.every((r) => ratings[r.key] > 0);
+  const attributedCourseId = courseId ?? selectedCourseId ?? null;
 
   const submit = async () => {
     if (!allRated && !message.trim()) {
-      toast.error('Rate the session or write a comment before sending.');
+      toast.error(
+        showSessionSurvey
+          ? 'Rate the session or write a comment before sending.'
+          : 'Write a comment before sending.'
+      );
       return;
     }
     setBusy(true);
@@ -87,6 +119,7 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
     if (message.trim()) {
       const res = await apiClient.submitUserFeedback({
         session_id: currentSessionId ?? null,
+        course_id: attributedCourseId,
         feedback_type: type,
         message: message.trim(),
       });
@@ -133,12 +166,20 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              How was this session?
+              {showSessionSurvey ? 'How was this session?' : 'Send feedback'}
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Your answers go to your lecturer and the research team. They are not shown to other
-              students.
+              {showSessionSurvey
+                ? 'Your answers go to your lecturer and the research team. They are not shown to other students.'
+                : 'Your feedback goes to the Meraki team.'}
             </p>
+            {/* Shown, not hidden. People are more careful about what they write
+                when they can see what it will be filed against. */}
+            {attributedCourseId && (
+              <p className="mt-1 text-xs text-slate-400">
+                Filed against <span className="font-medium">{attributedCourseId}</span>
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -153,6 +194,7 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
         {/* Laid out as label-beside-stars rather than stacked: four stacked
             rating rows made the dialog taller than a 720px laptop viewport,
             pushing the last row off screen. */}
+        {showSessionSurvey && (
         <div className="mt-4 space-y-2">
           {RATINGS.map((r) => (
             <div
@@ -189,8 +231,9 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
             </div>
           ))}
         </div>
+        )}
 
-        {!currentSessionId && (
+        {showSessionSurvey && !currentSessionId && (
           <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
             Ratings attach to a study session. Open a session first if you want to rate one — you
             can still send a comment now.
@@ -255,7 +298,16 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
 }
 
 /** Header trigger for the dialog above. */
-export function FeedbackButton() {
+export function FeedbackButton({
+  courseId,
+  showSessionSurvey = true,
+  label,
+}: {
+  courseId?: string | null;
+  showSessionSurvey?: boolean;
+  /** Renders as a labelled button instead of an icon, for text-only headers. */
+  label?: string;
+} = {}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -265,11 +317,21 @@ export function FeedbackButton() {
         data-testid="open-feedback"
         title="Send feedback"
         aria-label="Send feedback"
-        className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-950/5 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+        className={
+          label
+            ? 'flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+            : 'flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-950/5 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
+        }
       >
         <MessageSquarePlus className="h-4 w-4" />
+        {label}
       </button>
-      <FeedbackDialog open={open} onClose={() => setOpen(false)} />
+      <FeedbackDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        courseId={courseId}
+        showSessionSurvey={showSessionSurvey}
+      />
     </>
   );
 }

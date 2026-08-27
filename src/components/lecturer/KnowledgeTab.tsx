@@ -12,7 +12,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, FlaskConical, Trash2, Upload } from 'lucide-react';
 import { apiClient } from '@/services/api';
-import type { KnowledgeFile, TestQueryResponse, TutorModeName } from '@/types/lecturer';
+import { DIFFICULTY_VALUES, MODE_LABELS, QUESTION_FORMATS } from '@/lib/constants';
+import type {
+  DifficultyValue,
+  KnowledgeFile,
+  QuestionFormat,
+  TestQueryResponse,
+  TutorModeName,
+} from '@/types/lecturer';
 
 const MODES: TutorModeName[] = ['learn', 'review', 'application'];
 
@@ -22,12 +29,40 @@ const MODE_HELP: Record<TutorModeName, string> = {
   application: 'Case studies, real-world scenarios, project briefs',
 };
 
+const DIFFICULTY_LABELS: Record<DifficultyValue, string> = {
+  basic: 'Basic',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
+
+/**
+ * What each mode's difficulty tag actually means.
+ *
+ * Worth spelling out on screen: "Advanced" on a Review file governs how hard
+ * the QUESTIONS are, while on an Assessment file it governs how hard the
+ * SCENARIO is. Same column, different unit, and a lecturer who reads it as one
+ * thing on both tabs will tag their material wrong.
+ */
+const DIFFICULTY_HELP: Record<'review' | 'application', string> = {
+  review: 'How demanding the questions generated from this file should be.',
+  application: 'How demanding the scenarios generated from this file should be.',
+};
+
 export function KnowledgeTab({ courseId }: { courseId: string }) {
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [modes, setModes] = useState<TutorModeName[]>(['learn']);
+  const [difficulty, setDifficulty] = useState<DifficultyValue>('basic');
+  const [formats, setFormats] = useState<QuestionFormat[]>([]);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const servesReview = modes.includes('review');
+  const servesAssessment = modes.includes('application');
+  // Learn-only material has nothing to grade, so there is no difficulty to
+  // set. Showing the control anyway would ask for an answer that changes
+  // nothing.
+  const showsDifficulty = servesReview || servesAssessment;
 
   const load = useCallback(async () => {
     const res = await apiClient.listKnowledge(courseId);
@@ -53,7 +88,14 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
       return;
     }
     setUploading(true);
-    const res = await apiClient.uploadKnowledge(courseId, file, { targetModes: modes });
+    const res = await apiClient.uploadKnowledge(courseId, file, {
+      targetModes: modes,
+      // Only sent when it means something. The API rejects question formats on
+      // a file not tagged for Review rather than storing a tag that can never
+      // apply, so sending them unconditionally would fail Learn-only uploads.
+      ...(showsDifficulty ? { difficulty } : {}),
+      ...(servesReview && formats.length ? { questionFormats: formats } : {}),
+    });
     setUploading(false);
 
     if (!res.success) {
@@ -93,7 +135,8 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
         <h2 className="font-medium text-slate-900 dark:text-white">Upload teaching material</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          PDF or Word. Uploads start as drafts — students cannot see them until you publish.
+          PDF, Word or PowerPoint. Speaker notes in a deck are ingested too. Uploads
+          start as drafts — students cannot see them until you publish.
         </p>
 
         <fieldset className="mt-4">
@@ -116,7 +159,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
                     )
                   }
                 />
-                <span className="capitalize">{m}</span>
+                <span>{MODE_LABELS[m]}</span>
               </label>
             ))}
           </div>
@@ -126,10 +169,76 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
           </p>
         </fieldset>
 
+        {/* Question formats — Review material only, because a scenario has no
+            question format to pick. */}
+        {servesReview && (
+          <fieldset className="mt-5">
+            <legend className="text-sm text-slate-600 dark:text-slate-300">
+              Which question formats can this file support?
+            </legend>
+            <div className="mt-2 flex flex-wrap gap-3">
+              {QUESTION_FORMATS.map((f) => (
+                <label
+                  key={f.value}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-white/15"
+                >
+                  <input
+                    type="checkbox"
+                    checked={formats.includes(f.value as QuestionFormat)}
+                    onChange={(e) =>
+                      setFormats((prev) =>
+                        e.target.checked
+                          ? [...prev, f.value as QuestionFormat]
+                          : prev.filter((x) => x !== f.value)
+                      )
+                    }
+                  />
+                  <span>{f.label}</span>
+                </label>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              Optional. Leave them all unticked to mean &ldquo;any format&rdquo; — retrieval
+              prefers files tagged for the format a student picked and falls back to everything
+              published when none match, so tagging one file never hides the rest.
+            </p>
+          </fieldset>
+        )}
+
+        {/* Difficulty — Review and Assessment only. */}
+        {showsDifficulty && (
+          <fieldset className="mt-5">
+            <legend className="text-sm text-slate-600 dark:text-slate-300">
+              {servesAssessment && !servesReview ? 'Scenario difficulty' : 'Difficulty'}
+            </legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {DIFFICULTY_VALUES.map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => setDifficulty(level)}
+                  className={
+                    difficulty === level
+                      ? 'rounded-lg border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 dark:border-cyan-300/50 dark:bg-cyan-300/10 dark:text-cyan-200'
+                      : 'rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:border-slate-300 dark:border-white/15 dark:text-slate-300'
+                  }
+                >
+                  {DIFFICULTY_LABELS[level]}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              {servesAssessment && !servesReview
+                ? DIFFICULTY_HELP.application
+                : DIFFICULTY_HELP.review}
+            </p>
+          </fieldset>
+        )}
+
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.docx,.doc"
+          accept=".pdf,.docx,.doc,.pptx"
           hidden
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -168,7 +277,24 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
                   <p className="truncate font-medium text-slate-900 dark:text-white">{f.title}</p>
                   <p className="mt-0.5 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
                     <StatusPill file={f} />
-                    <span>{(f.target_modes ?? [f.default_mode]).join(' · ')}</span>
+                    <span>
+                      {(f.target_modes ?? [f.default_mode])
+                        .map((m) => MODE_LABELS[m] ?? m)
+                        .join(' · ')}
+                    </span>
+                    {f.difficulty ? (
+                      <span className="capitalize">{f.difficulty}</span>
+                    ) : null}
+                    {f.question_formats?.length ? (
+                      <span>
+                        {f.question_formats
+                          .map(
+                            (q) =>
+                              QUESTION_FORMATS.find((x) => x.value === q)?.label ?? q
+                          )
+                          .join(', ')}
+                      </span>
+                    ) : null}
                     {f.total_chunks ? <span>{f.total_chunks} chunks</span> : null}
                   </p>
                 </div>
@@ -264,7 +390,7 @@ function TestQueryPanel({ courseId }: { courseId: string }) {
         >
           {MODES.map((m) => (
             <option key={m} value={m}>
-              {m}
+              {MODE_LABELS[m]}
             </option>
           ))}
         </select>
@@ -282,8 +408,9 @@ function TestQueryPanel({ courseId }: { courseId: string }) {
         <div className="mt-4 space-y-2">
           {result.count === 0 ? (
             <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-              Nothing was retrieved. Either no file is published for {result.mode} mode, or the
-              material does not cover this question.
+              Nothing was retrieved. Either no file is published for{' '}
+              {MODE_LABELS[result.mode as TutorModeName] ?? result.mode} mode, or the material
+              does not cover this question.
             </p>
           ) : (
             result.results.map((r, i) => (

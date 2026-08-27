@@ -17,7 +17,7 @@ import { SourcesBar } from '@/components/sources/SourcesBar';
  * panel plus the answer as it streams in. Socket chunks arrive in bursts, so
  * we reveal them through useSmoothText for a steady, Mike-style typing feel.
  *
- * Used for Learn (single text stream) and Practice/Review (one or more
+ * Used for Learn (single text stream) and Assessment/Review (one or more
  * typewriter segments — evaluation feedback, then the next question/summary —
  * concatenated into one continuous reveal). When the terminal push arrives,
  * the handler stashes the finished message(s) in `pendingFinals` and keeps

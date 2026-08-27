@@ -41,11 +41,12 @@ const MODE_TABS: {
   },
   {
     mode: 'application',
-    label: 'Practice',
+    // 'application' is the wire value; "Assessment" is what a student reads.
+    label: 'Assessment',
     icon: FlaskConical,
     color: 'text-muted-foreground',
     activeColor: 'text-emerald-400',
-    tooltip: 'Practice — work through a guided 3-step real-world scenario with scored feedback',
+    tooltip: 'Assessment — work through a guided 3-step real-world scenario with scored feedback',
   },
   {
     mode: 'review',
@@ -53,7 +54,7 @@ const MODE_TABS: {
     icon: ClipboardCheck,
     color: 'text-muted-foreground',
     activeColor: 'text-amber-400',
-    tooltip: 'Review — answer up to 10 adaptive quiz questions (MCQ, flashcard, short answer…)',
+    tooltip: 'Review — answer up to 10 adaptive quiz questions (multiple choice, fill in the blank, short answer)',
   },
 ];
 
@@ -138,7 +139,7 @@ export function Header() {
               <h2 className="max-w-[220px] truncate text-sm font-semibold text-slate-950 dark:text-white">
                 {currentSession?.title || 'Meraki'}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Learn, Practice, Review</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Learn, Review, Assessment</p>
             </div>
             <CourseSwitcher />
           </div>
@@ -146,7 +147,7 @@ export function Header() {
           {/* Center: mode tabs — only shown when a session is active */}
           {currentSessionId && (
             <div className="relative flex items-center gap-1 rounded-2xl border border-slate-200/70 bg-slate-950/[0.04] p-1 shadow-inner dark:border-white/10 dark:bg-white/[0.06]">
-              {/* Overlay while starting a practice/review session */}
+              {/* Overlay while starting an assessment/review session */}
               {isStartingModeSession && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center gap-1.5 rounded-2xl bg-white/[0.85] backdrop-blur-sm dark:bg-slate-950/[0.85]">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />

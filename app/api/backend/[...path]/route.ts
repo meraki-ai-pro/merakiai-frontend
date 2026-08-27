@@ -68,6 +68,13 @@ export async function POST(request: NextRequest, ctx: Ctx) {
 export async function PATCH(request: NextRequest, ctx: Ctx) {
   return forward(request, (await ctx.params).path);
 }
+// PUT is forwarded like the rest. forward() has always been method-agnostic —
+// only the exported handler was missing, so a PUT endpoint 405'd at the proxy
+// while working perfectly when called directly. That gap is invisible to any
+// test that talks to the backend port instead of going through the app.
+export async function PUT(request: NextRequest, ctx: Ctx) {
+  return forward(request, (await ctx.params).path);
+}
 export async function DELETE(request: NextRequest, ctx: Ctx) {
   return forward(request, (await ctx.params).path);
 }

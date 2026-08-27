@@ -20,12 +20,12 @@ const EMPTY_STATE = {
     title: 'Ready to learn',
     subtitle: 'Ask a question to get started.',
   },
-  // 'application' is the backend mode value (UI label: "Practice")
+  // 'application' is the backend mode value (UI label: "Assessment")
   application: {
     icon: FlaskConical,
     color: 'text-emerald-600 dark:text-emerald-200',
     bg: 'bg-emerald-100 ring-emerald-200 dark:bg-emerald-300/[0.12] dark:ring-emerald-300/[0.24]',
-    title: 'Practice session starting…',
+    title: 'Assessment starting…',
     subtitle: 'Your guided scenario will appear here in a moment.',
   },
   review: {

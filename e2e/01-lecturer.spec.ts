@@ -58,7 +58,7 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   await page.getByRole('heading', { name: COURSE.name }).click();
   await page.waitForURL(new RegExp(`/lecturer/${COURSE.id}`), { timeout: 30_000 });
   await expect(page.getByRole('tab', { name: 'Knowledge' })).toBeVisible({ timeout: 30_000 });
-  await caption(page, 'Course workspace: Overview, Knowledge, Students, Videos, Assessments.');
+  await caption(page, 'Course workspace: Overview, Knowledge, Students, Videos, Pre/post tests.');
 
   // ── 5. Upload teaching material ───────────────────────────────────────────
   await page.getByRole('tab', { name: 'Knowledge' }).click();
@@ -79,8 +79,9 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   // Review material — retag before uploading the tutorial sheet.
   const learnBox = page.locator('label', { hasText: /^learn$/i }).locator('input[type=checkbox]');
   const reviewBox = page.locator('label', { hasText: /^review$/i }).locator('input[type=checkbox]');
+  // Labelled "Assessment" on screen; the wire value is still 'application'.
   const appBox = page
-    .locator('label', { hasText: /^application$/i })
+    .locator('label', { hasText: /^assessment$/i })
     .locator('input[type=checkbox]');
 
   await learnBox.uncheck();
@@ -91,10 +92,10 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
     timeout: 60_000,
   });
 
-  // Application material.
+  // Assessment (scenario) material.
   await reviewBox.uncheck();
   await appBox.check();
-  await caption(page, 'Uploading case studies for Application mode.');
+  await caption(page, 'Uploading case studies for Assessment mode.');
   await fileInput.setInputFiles(path.join(MATERIALS_DIR, 'Calculus-I-Applications.docx'));
   await expect(page.getByText('Calculus-I-Applications').first()).toBeVisible({
     timeout: 60_000,
@@ -212,8 +213,10 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   await caption(page, 'Approved — students can now see this animation.');
 
   // ── 10. Assessment ────────────────────────────────────────────────────────
-  await page.getByRole('tab', { name: 'Assessments' }).click();
-  await caption(page, 'Assessments: the pre/post pair that measures learning gain.');
+  // "Pre/post tests", not "Assessments" — Assessment is now the name of a
+  // study mode, so the research instrument was renamed to keep the two apart.
+  await page.getByRole('tab', { name: 'Pre/post tests' }).click();
+  await caption(page, 'Pre/post tests: the pair that measures learning gain.');
   await page.getByTestId('new-assessment').click();
 
   await page.getByTestId('assessment-title').fill('Differentiation — pre-test');

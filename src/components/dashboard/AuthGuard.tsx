@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
 import { apiClient } from '@/services/api';
+import { isAdminRole } from '@/lib/constants';
 import { ChatContainer } from '@/components/chat/ChatContainer';
 
 /**
@@ -38,8 +39,10 @@ export function AuthGuard() {
     apiClient.getUserProfile().then((res) => {
       if (res.success && res.data) {
         setUser(res.data);
-        if (res.data.role === 'admin') {
-          // Admin visiting /dashboard — send them to the admin console
+        if (isAdminRole(res.data.role)) {
+          // Admin visiting /dashboard — send them to the admin console.
+          // Covers super_admin too; testing for equality left them on the
+          // student dashboard with no route into the console.
           router.replace('/admin');
           return;
         }

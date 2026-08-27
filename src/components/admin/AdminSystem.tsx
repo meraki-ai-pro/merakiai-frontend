@@ -237,7 +237,7 @@ export function AdminSystem() {
           <div className="space-y-0.5">
             <ServiceRow label="Provider" value="D-ID API" />
             <ServiceRow label="Fallback provider" value="Tavus" status="fallback" />
-            <ServiceRow label="Mode support" value="Learn + Practice only" />
+            <ServiceRow label="Mode support" value="Learn + Assessment only" />
             <ServiceRow label="Review mode" value="Text only (enforced)" status="inactive" />
             <ServiceRow label="Avatar — Amy" value="Female presenter" />
             <ServiceRow label="Avatar — Josh" value="Male presenter" />
@@ -277,9 +277,9 @@ export function AdminSystem() {
             <ServiceRow label="Embeddings" value="OpenAI text-embedding" />
             <ServiceRow label="Vector store" value="Pinecone (mode namespaces)" />
             <ServiceRow label="Learn mode" value="/rag/turn endpoint" />
-            <ServiceRow label="Practice mode" value="/mode-sessions (practice)" />
+            <ServiceRow label="Assessment mode" value="/mode-sessions (application)" />
             <ServiceRow label="Review mode" value="/mode-sessions (review)" />
-            <ServiceRow label="Review types" value="MCQ, Fill-blank, Flashcard, Short Answer" />
+            <ServiceRow label="Review types" value="MCQ, Fill-blank, Short Answer" />
           </div>
         </InfoCard>
 
@@ -290,7 +290,7 @@ export function AdminSystem() {
             <ServiceRow label="File storage" value="Supabase Storage" />
             <ServiceRow label="Backend" value="FastAPI (Python 3.12)" />
             <ServiceRow label="Document parsing" value="PDF + DOCX support" />
-            <ServiceRow label="Chunk strategies" value="learn / review / practice" />
+            <ServiceRow label="Chunk strategies" value="learn / review / application" />
           </div>
 
           <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 dark:border-cyan-300/[0.2] dark:bg-cyan-300/[0.08] px-4 py-3">

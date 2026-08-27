@@ -10,7 +10,8 @@ import { MerakiWebSocket } from "@/services/websocket";
 import { parseVTT, getVideoDurationFromSubtitles } from "@/lib/vtt-parser";
 import { debugBackend } from "@/lib/debug";
 import {
-  PRACTICE_SESSION_TYPES,
+  LEGACY_SCENARIO_TYPE_LABELS,
+  MODE_LABELS,
   REVIEW_SESSION_TYPES,
   DEFAULT_COURSE_ID,
 } from "@/lib/constants";
@@ -77,20 +78,29 @@ function toMessages(row: ConversationRow, sessionId: string): Message[] {
 }
 
 // ─── Label lookups ────────────────────────────────────────────────────────────
-const PRACTICE_LABELS = Object.fromEntries(
-  PRACTICE_SESSION_TYPES.map((t) => [t.value, t.label]),
-);
 const REVIEW_LABELS = Object.fromEntries(
   REVIEW_SESSION_TYPES.map((t) => [t.value, t.label]),
 );
 
+/**
+ * Conversation title for a mode session.
+ *
+ * Assessment sessions no longer carry a topic, so the title is just
+ * "Assessment". Sessions started before the picker was removed still have one
+ * and keep showing it — a conversation must not silently rename itself in the
+ * sidebar because we shipped.
+ */
 function getModeSessionTitle(
   mode: "application" | "review",
   sessionType: string,
 ): string {
-  return mode === "application"
-    ? `Practice — ${PRACTICE_LABELS[sessionType] ?? sessionType}`
-    : `Review — ${REVIEW_LABELS[sessionType] ?? sessionType}`;
+  if (mode === "review") {
+    return `${MODE_LABELS.review} — ${REVIEW_LABELS[sessionType] ?? sessionType}`;
+  }
+  const legacyTopic = LEGACY_SCENARIO_TYPE_LABELS[sessionType];
+  return legacyTopic && sessionType !== "general"
+    ? `${MODE_LABELS.application} — ${legacyTopic}`
+    : MODE_LABELS.application;
 }
 
 // ─── Subtitle helper ──────────────────────────────────────────────────────────
@@ -469,7 +479,7 @@ export function useChat() {
         void handleResponseComplete(msg as WsResponseComplete);
         return;
       }
-      // Practice/Review typewriter events. Unlike Learn, a single turn can
+      // Assessment/Review typewriter events. Unlike Learn, a single turn can
       // include more than one of these back-to-back (e.g. evaluation
       // feedback, then the next question) before the terminal mode push
       // arrives with the structured evaluation/next-prompt/completed data —
@@ -780,7 +790,7 @@ export function useChat() {
     useChatStore.getState().setIsStartingModeSession(false);
   }
 
-  // Practice turn. A turn produces one message (evaluation) or two (evaluation
+  // Assessment turn. A turn produces one message (evaluation) or two (evaluation
   // + next question, or evaluation + completion summary). Each was already
   // typed out live via mode_text_chunk before this terminal push arrived, so
   // any text (non-video) part is deferred into pendingFinals — reusing the
@@ -876,7 +886,7 @@ export function useChat() {
 
       const summaryText =
         completedData.summary ??
-        "Great work! You have completed this practice scenario.";
+        "Great work! You have completed this assessment scenario.";
       const keyDelivery = completedData.key_delivery;
 
       const completedMessage: Message = {
@@ -1488,9 +1498,8 @@ export function useChat() {
           total_items: mode === "application" ? 3 : totalSteps,
         });
 
-        const labels = mode === "application" ? PRACTICE_LABELS : REVIEW_LABELS;
         toast.success(
-          `Switched to ${labels[newSessionType] ?? newSessionType}`,
+          `Switched to ${REVIEW_LABELS[newSessionType] ?? newSessionType}`,
         );
       } catch (err) {
         const message =

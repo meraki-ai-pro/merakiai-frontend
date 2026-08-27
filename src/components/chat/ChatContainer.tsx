@@ -51,7 +51,8 @@ const MODE_CARDS = [
   {
     mode: 'application' as const,
     icon: FlaskConical,
-    label: 'Practice',
+    // 'application' is the wire value; "Assessment" is what a student reads.
+    label: 'Assessment',
     tagline: 'Guided 3-step real-world scenarios',
     color: 'text-emerald-600 dark:text-emerald-200',
     bg: 'hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-300/[0.08] dark:hover:border-emerald-300/[0.3]',
@@ -62,7 +63,7 @@ const MODE_CARDS = [
       { icon: ListChecks,   text: 'Answer 3 guided questions; get scored feedback after each' },
       { icon: BarChart2,    text: 'Finish with a personalised summary of key learning points' },
     ],
-    cta: 'Choose a topic',
+    cta: 'Choose a difficulty',
   },
   {
     mode: 'review' as const,
@@ -74,7 +75,7 @@ const MODE_CARDS = [
     activeBg: 'bg-amber-50 border-amber-300 dark:bg-amber-300/[0.08] dark:border-amber-300/[0.3]',
     iconBg: 'bg-amber-100 dark:bg-amber-300/[0.12]',
     bullets: [
-      { icon: ClipboardCheck, text: 'Choose MCQ, fill-in-the-blank, flashcard or short answer' },
+      { icon: ClipboardCheck, text: 'Choose multiple choice, fill-in-the-blank or short answer' },
       { icon: BarChart2,      text: 'Difficulty adapts after every answer based on your score' },
       { icon: ListChecks,     text: 'Text-only, fast-paced — ideal for exam prep' },
     ],
@@ -159,12 +160,12 @@ export function ChatContainer() {
                   <div className="rounded-2xl border border-slate-200 bg-white/82 p-4 dark:border-white/[0.12] dark:bg-slate-950/70">
                     <p className="text-sm font-semibold text-blue-950 dark:text-cyan-100">Suggested prompt</p>
                     <p className="mt-3 text-lg leading-7 text-slate-950 dark:text-white">
-                      Explain the lesson simply, then give me practice questions.
+                      Explain the lesson simply, then give me some questions to try.
                     </p>
                     <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-medium text-slate-600 dark:text-slate-200">
                       <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Voice ready</span>
                       <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Video optional</span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Practice scoring</span>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Assessment scoring</span>
                       <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Review drills</span>
                     </div>
                   </div>

@@ -2,13 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserPreferences } from '@/types';
 import { tokenStore } from '@/services/api';
+import { isAdminRole } from '@/lib/constants';
 
 export interface UserState {
   user: User | null;
   preferences: UserPreferences;
   isAuthenticated: boolean;
   isLoading: boolean;
-  /** Convenience getter — true when user.role === 'admin' */
+  /** True for BOTH admin and super_admin — see isAdminRole. */
   isAdmin: boolean;
 
   setUser: (user: User | null) => void;
@@ -34,11 +35,11 @@ export const useUserStore = create<UserState>()(
       isAdmin: false,
 
       setUser: (user) =>
-        set({ user, isAuthenticated: user !== null, isAdmin: user?.role === 'admin' }),
+        set({ user, isAuthenticated: user !== null, isAdmin: isAdminRole(user?.role) }),
 
       setAuth: (user, accessToken) => {
         tokenStore.set(accessToken);
-        set({ user, isAuthenticated: true, isAdmin: user?.role === 'admin' });
+        set({ user, isAuthenticated: true, isAdmin: isAdminRole(user?.role) });
       },
 
       setPreferences: (newPrefs) =>
@@ -63,7 +64,7 @@ export const useUserStore = create<UserState>()(
         if (!state) return;
         const token = tokenStore.get();
         state.isAuthenticated = !!(token && state.user);
-        state.isAdmin = state.user?.role === 'admin' && state.isAuthenticated;
+        state.isAdmin = isAdminRole(state.user?.role) && state.isAuthenticated;
         if (!token) {
           state.user = null;
           state.isAdmin = false;

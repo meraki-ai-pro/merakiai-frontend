@@ -17,7 +17,7 @@ import {
  */
 test.describe.configure({ mode: 'serial' });
 
-test('student: enrol, learn, review, practice, assessment, feedback', async ({ page }) => {
+test('student: enrol, learn, review, assessment, pre/post test, feedback', async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const state = loadState();
   const inviteCode = state.inviteCode as string | undefined;
@@ -43,7 +43,7 @@ test('student: enrol, learn, review, practice, assessment, feedback', async ({ p
   // ── 3. Learn mode ─────────────────────────────────────────────────────────
   // The welcome screen offers the three modes as cards; the chat input only
   // exists once a session has been created.
-  await caption(page, 'The welcome screen offers Learn, Practice and Review.');
+  await caption(page, 'The welcome screen offers Learn, Review and Assessment.');
   await page
     .getByRole('button', { name: /Ask anything, get expert answers/i })
     .first()
@@ -206,32 +206,34 @@ test('student: enrol, learn, review, practice, assessment, feedback', async ({ p
     await caption(page, 'NOTE: review session could not be started on this run.');
   }
 
-  // ── 6. Practice / Application mode ────────────────────────────────────────
-  await caption(page, 'Practice mode: a guided real-world scenario.');
-  await page.getByRole('button', { name: /^practice$/i }).first().click();
+  // ── 6. Assessment mode (wire value 'application') ─────────────────────────
+  // There is no scenario-topic step any more: the picker was removed, so the
+  // modal goes straight from "Start Assessment" to a difficulty and away.
+  await caption(page, 'Assessment mode: a guided real-world scenario.');
+  await page.getByRole('button', { name: /^assessment$/i }).first().click();
   await page.waitForTimeout(4000);
 
-  const startPractice = page.getByRole('button', { name: /start practice/i }).first();
-  if (await startPractice.count()) {
-    await startPractice.click();
+  const startAssessment = page.getByRole('button', { name: /start assessment/i }).first();
+  if (await startAssessment.count()) {
+    await startAssessment.click();
     await caption(page, 'Building the scenario from the case-study material.', 3000);
     await waitForAnswer(page, 200_000);
-    await page.screenshot({ path: 'e2e-results/shots/practice-scenario.png' });
+    await page.screenshot({ path: 'e2e-results/shots/assessment-scenario.png' });
     await caption(page, 'A scenario drawn from the Applications document.');
 
-    const practiceBox = page.getByPlaceholder(/type your answer/i).first();
-    if ((await practiceBox.count()) && (await practiceBox.isEnabled().catch(() => false))) {
-      await practiceBox.fill(
+    const assessmentBox = page.getByPlaceholder(/type your answer/i).first();
+    if ((await assessmentBox.count()) && (await assessmentBox.isEnabled().catch(() => false))) {
+      await assessmentBox.fill(
         'Differentiate the perimeter function and set it to zero to find the minimum.',
       );
-      await practiceBox.press('Enter');
+      await assessmentBox.press('Enter');
       await caption(page, 'Answer submitted for step-by-step scoring.', 3000);
       await waitForAnswer(page, 200_000);
-      await page.screenshot({ path: 'e2e-results/shots/practice-scored.png' });
+      await page.screenshot({ path: 'e2e-results/shots/assessment-scored.png' });
       await caption(page, 'Partial credit with reasoning, then the next step.');
     }
   } else {
-    await caption(page, 'NOTE: practice session could not be started on this run.');
+    await caption(page, 'NOTE: assessment session could not be started on this run.');
   }
 
   // ── 7. Feedback ───────────────────────────────────────────────────────────

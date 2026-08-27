@@ -19,7 +19,7 @@ export function useAvatarStream() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
 
   const session = sessions.find((s) => s.id === currentSessionId);
-  // Only Learn mode supports video; review/practice are text-only.
+  // Only Learn mode supports video; Review and Assessment are text-only.
   const mode = session?.currentMode ?? session?.mode ?? 'learn';
   const prefersVideo = !!session?.prefersVideo && mode === 'learn';
 

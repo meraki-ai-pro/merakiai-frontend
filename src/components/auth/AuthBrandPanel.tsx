@@ -20,8 +20,8 @@ const modeFeatures = [
   },
   {
     icon: FlaskConical,
-    title: 'Practice',
-    desc: 'Work through guided practice sessions with scored feedback.',
+    title: 'Assessment',
+    desc: 'Work through guided scenarios with scored feedback.',
   },
   {
     icon: BookOpenCheck,
@@ -32,7 +32,7 @@ const modeFeatures = [
 
 const signupFeatures = [
   'Learn-mode tutoring for focused explanations',
-  'Practice sessions for active recall and reasoning',
+  'Assessment scenarios for active recall and reasoning',
   'Review questions for exam readiness',
   'Avatar video responses with subtitles',
   'Saved learning history across sessions',
@@ -64,12 +64,12 @@ export function AuthBrandPanel({ variant }: AuthBrandPanelProps) {
           </span>
 
           <h1 className="mt-6 max-w-3xl text-balance text-5xl font-semibold leading-tight">
-            Learn, Practice, and Review with one AI workspace.
+            Learn, Review, and Assessment in one AI workspace.
           </h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-600 dark:text-slate-200">
             {variant === 'login'
-              ? 'Jump back into conversations, guided practice, avatar video explanations, and review sessions built around your learning flow.'
-              : 'Create an account to move from concept questions to guided practice and assessment review without switching tools.'}
+              ? 'Jump back into conversations, guided assessments, avatar video explanations, and review sessions built around your learning flow.'
+              : 'Create an account to move from concept questions to guided assessments and review without switching tools.'}
           </p>
 
           {variant === 'login' ? (

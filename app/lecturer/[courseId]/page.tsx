@@ -3,9 +3,14 @@
 /**
  * Course workspace — Lecturer doc §7.
  *
- * Tabs are Overview | Knowledge | Students | Videos | Settings. Topics is
- * deliberately absent: there is no topics table yet, and documents carry a
- * free-text topic field which is enough for the pilot.
+ * Tabs are Overview | Knowledge | Students | Videos | Pre/post tests |
+ * Settings. Topics is deliberately absent: there is no topics table yet, and
+ * documents carry a free-text topic field which is enough for the pilot.
+ *
+ * "Pre/post tests", not "Assessments". The three teaching modes are now Learn,
+ * Review and Assessment, so a tab called Assessments would read as the mode
+ * rather than as the research instrument it actually is — a labelled pre- and
+ * post-test pair used to measure learning gain.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -18,14 +23,15 @@ import { KnowledgeTab } from '@/components/lecturer/KnowledgeTab';
 import { StudentsTab } from '@/components/lecturer/StudentsTab';
 import { VideosTab } from '@/components/lecturer/VideosTab';
 import { AssessmentsTab } from '@/components/lecturer/AssessmentsTab';
-import type { CourseAnalytics, LecturerCourse } from '@/types/lecturer';
+import { CourseOverview } from '@/components/lecturer/CourseOverview';
+import type { LecturerCourse, LecturerVoice } from '@/types/lecturer';
 
 const TABS = [
   'Overview',
   'Knowledge',
   'Students',
   'Videos',
-  'Assessments',
+  'Pre/post tests',
   'Settings',
 ] as const;
 type Tab = (typeof TABS)[number];
@@ -92,11 +98,11 @@ export default function CourseWorkspace() {
         ))}
       </nav>
 
-      {tab === 'Overview' && <OverviewTab courseId={courseId} />}
+      {tab === 'Overview' && <CourseOverview courseId={courseId} />}
       {tab === 'Knowledge' && <KnowledgeTab courseId={courseId} />}
       {tab === 'Students' && <StudentsTab courseId={courseId} />}
       {tab === 'Videos' && <VideosTab courseId={courseId} />}
-      {tab === 'Assessments' && <AssessmentsTab courseId={courseId} />}
+      {tab === 'Pre/post tests' && <AssessmentsTab courseId={courseId} />}
       {tab === 'Settings' && course && (
         <SettingsTab course={course} onSaved={setCourse} />
       )}
@@ -104,81 +110,14 @@ export default function CourseWorkspace() {
   );
 }
 
-function OverviewTab({ courseId }: { courseId: string }) {
-  const [data, setData] = useState<CourseAnalytics | null>(null);
-
-  useEffect(() => {
-    void apiClient.getCourseAnalytics(courseId).then((r) => setData(r?.data ?? null));
-  }, [courseId]);
-
-  if (!data) return <p className="text-sm text-slate-500">Loading…</p>;
-
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Active students" value={data.students.active} />
-        <Stat label="Completed" value={data.students.completed} />
-        <Stat label="Published files" value={data.knowledge.published} />
-        <Stat
-          label="Videos awaiting review"
-          value={data.videos.awaiting_review}
-          highlight={data.videos.awaiting_review > 0}
-        />
-      </div>
-
-      {/* Surfaced because it is the number a pilot most needs and the one an
-          enrolment count hides. */}
-      {data.students.enrolled_but_never_started > 0 && (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-          {data.students.enrolled_but_never_started} enrolled student
-          {data.students.enrolled_but_never_started === 1 ? ' has' : 's have'} never opened a
-          session.
-        </p>
-      )}
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Learn sessions" value={data.sessions.by_mode.learn} />
-        <Stat label="Review sessions" value={data.sessions.by_mode.review} />
-        <Stat label="Application sessions" value={data.sessions.by_mode.application} />
-      </div>
-
-      {/* Named as not-yet-measured rather than shown as zero, which a lecturer
-          would reasonably read as "no learning happened". */}
-      {data.unavailable?.length > 0 && (
-        <div className="rounded-lg border border-slate-200 p-4 text-sm dark:border-white/10">
-          <p className="font-medium text-slate-900 dark:text-white">Not yet measured</p>
-          <p className="mt-1 text-slate-500 dark:text-slate-400">
-            {data.unavailable.map((m) => m.replace(/_/g, ' ')).join(', ')} — these need the
-            analytics and mastery instrumentation, which is not built yet.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: number;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={
-        highlight
-          ? 'rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10'
-          : 'rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5'
-      }
-    >
-      <p className="text-2xl font-semibold text-slate-900 dark:text-white">{value}</p>
-      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{label}</p>
-    </div>
-  );
-}
+// Suggestions, not an enum. The server matches this loosely against its
+// renderer defaults and accepts anything, so a department teaching something
+// not on this list can still type it in.
+const SUBJECT_SUGGESTIONS = [
+  'Mathematics', 'Statistics', 'Physics', 'Engineering', 'Computer Science',
+  'Chemistry', 'Biology', 'Anatomy', 'Nursing', 'Pharmacy', 'Agriculture',
+  'Geology', 'Economics', 'Accounting', 'Business', 'Law', 'Sociology',
+];
 
 function SettingsTab({
   course,
@@ -188,14 +127,46 @@ function SettingsTab({
   onSaved: (c: LecturerCourse) => void;
 }) {
   const [name, setName] = useState(course.name);
-  const [practice, setPractice] = useState(course.practice_mode_enabled ?? true);
+  const [subject, setSubject] = useState(course.subject ?? '');
+  const [assessment, setAssessment] = useState(course.practice_mode_enabled ?? true);
   const [busy, setBusy] = useState(false);
+
+  // The voice is saved on change rather than with the rest of the form: it has
+  // its own endpoint (two ownership checks — the course AND the voice), and
+  // batching it into the course PATCH would mean one of those checks living in
+  // the wrong place.
+  const [voices, setVoices] = useState<LecturerVoice[]>([]);
+  const [voiceId, setVoiceId] = useState<string | null>(course.lecturer_voice_id ?? null);
+  const [savingVoice, setSavingVoice] = useState(false);
+
+  useEffect(() => {
+    void apiClient.listLecturerVoices().then((res) => {
+      setVoices((res?.data?.voices ?? []).filter((v) => v.status === 'ready'));
+    });
+  }, []);
+
+  const chooseVoice = async (next: string | null) => {
+    setSavingVoice(true);
+    const res = await apiClient.setCourseVoice(course.id, next);
+    setSavingVoice(false);
+    if (!res.success) {
+      toast.error(res.error?.message ?? 'Could not set the voice');
+      return;
+    }
+    setVoiceId(next);
+    toast.success(
+      next
+        ? 'Students on this course will hear that voice'
+        : 'Using the default narrator',
+    );
+  };
 
   const save = useCallback(async () => {
     setBusy(true);
     const res = await apiClient.updateLecturerCourse(course.id, {
       name,
-      practice_mode_enabled: practice,
+      subject: subject.trim() || null,
+      practice_mode_enabled: assessment,
     });
     setBusy(false);
     if (!res.success || !res.data) {
@@ -204,7 +175,7 @@ function SettingsTab({
     }
     toast.success('Saved');
     onSaved(res.data.course);
-  }, [course.id, name, practice, onSaved]);
+  }, [course.id, name, subject, assessment, onSaved]);
 
   return (
     <div className="max-w-xl space-y-5 rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
@@ -217,18 +188,81 @@ function SettingsTab({
         />
       </label>
 
+      <label className="block text-sm">
+        <span className="text-slate-600 dark:text-slate-300">Subject</span>
+        <input
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          list="course-subjects"
+          placeholder="Biology"
+          data-testid="course-subject"
+          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-white/15 dark:bg-slate-900"
+        />
+        <datalist id="course-subjects">
+          {SUBJECT_SUGGESTIONS.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
+        {/* Worth explaining, because the effect is invisible until a video
+            comes out wrong: a Biology course left blank was animated by the
+            maths engine. */}
+        <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+          Decides how concept videos are animated when you do not choose a visual style —
+          equation-style animation for mathematical subjects, composed diagrams and charts for the
+          rest.
+        </span>
+      </label>
+
+      <label className="block text-sm">
+        <span className="text-slate-600 dark:text-slate-300">Narration voice</span>
+        <select
+          value={voiceId ?? ''}
+          onChange={(e) => void chooseVoice(e.target.value || null)}
+          disabled={savingVoice}
+          data-testid="course-voice"
+          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-white/15 dark:bg-slate-900"
+        >
+          <option value="">Default narrator</option>
+          {voices.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.name}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+          Used for this course&rsquo;s concept videos and its Learn-mode lesson board.{' '}
+          {voices.length === 0 ? (
+            <>
+              You have not recorded a voice yet —{' '}
+              <Link href="/lecturer/voice" className="text-blue-600 hover:underline dark:text-cyan-300">
+                record one
+              </Link>
+              .
+            </>
+          ) : (
+            <>
+              Manage your voices on the{' '}
+              <Link href="/lecturer/voice" className="text-blue-600 hover:underline dark:text-cyan-300">
+                voice page
+              </Link>
+              .
+            </>
+          )}
+        </span>
+      </label>
+
       <label className="flex items-start gap-3 text-sm">
         <input
           type="checkbox"
-          checked={practice}
-          onChange={(e) => setPractice(e.target.checked)}
+          checked={assessment}
+          onChange={(e) => setAssessment(e.target.checked)}
           className="mt-1"
         />
         <span>
-          <span className="text-slate-900 dark:text-white">Enable Application mode</span>
+          <span className="text-slate-900 dark:text-white">Enable Assessment mode</span>
           <span className="block text-xs text-slate-500 dark:text-slate-400">
-            Real-world application questions. Turn off if this course should only use Learn and
-            Review.
+            Guided real-world scenarios with scored feedback. Turn off if this course should only
+            use Learn and Review.
           </span>
         </span>
       </label>

@@ -12,6 +12,7 @@ import {
 import { apiClient } from '@/services/api';
 import { useUserStore } from '@/store/userStore';
 import { MfaSettings } from '@/components/auth/MfaSettings';
+import { AccountSettings } from '@/components/account/AccountSettings';
 import toast from 'react-hot-toast';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -69,7 +70,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
@@ -78,13 +79,9 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Account Section */}
-          <div>
-            <h3 className="text-sm font-semibold mb-2">Account</h3>
-            <div className="text-xs text-muted-foreground">
-              {user?.email}
-            </div>
-          </div>
+          {/* Profile + password. Shared with the lecturer and admin surfaces —
+              see components/account/AccountSettings. */}
+          <AccountSettings />
 
           {/* Security Section */}
           <div>

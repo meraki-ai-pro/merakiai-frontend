@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
             <h1 className="mt-24 text-balance text-5xl font-semibold leading-tight">
-              Get back to your Learn, Practice, and Review flow.
+              Get back to your Learn, Review, and Assessment flow.
             </h1>
             <p className="mt-5 text-base leading-7 text-slate-600 dark:text-slate-300">
               Request a secure reset link, then return to your saved conversations and study sessions.

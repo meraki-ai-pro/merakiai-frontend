@@ -30,21 +30,21 @@ const modeCards = [
   },
   {
     icon: FlaskConical,
-    label: 'Practice',
+    label: 'Assessment',
     accent: 'text-emerald-200',
     bg: 'bg-emerald-400/[0.15]',
-    title: 'Turn lessons into guided practice',
-    copy: 'Practice mode turns notes, documents, and course content into active exercises. Meraki asks, checks, and coaches you through the ideas until they start to stick.',
-    bullets: ['Guided practice sessions', 'Step-by-step scored feedback', 'Topic-aware questions'],
+    title: 'Turn lessons into guided assessments',
+    copy: 'Assessment mode turns notes, documents, and course content into active exercises. Meraki asks, checks, and coaches you through the ideas until they start to stick.',
+    bullets: ['Guided assessment scenarios', 'Step-by-step scored feedback', 'Course-aware questions'],
   },
   {
     icon: BookOpenCheck,
     label: 'Review',
     accent: 'text-amber-200',
     bg: 'bg-amber-400/[0.15]',
-    title: 'Check readiness before assessments',
+    title: 'Check what you actually know',
     copy: 'Review mode helps you test understanding with focused questions. It is built for revision, quick recall, and finding weak areas before quizzes, labs, or exams.',
-    bullets: ['Adaptive review questions', 'Progress-focused assessment', 'Text-first exam preparation'],
+    bullets: ['Adaptive review questions', 'Progress tracked per topic', 'Text-first exam preparation'],
   },
 ]
 
@@ -72,12 +72,12 @@ const featureCards = [
   {
     icon: GraduationCap,
     title: 'Learning history',
-    copy: 'Conversations are kept together so students can return to earlier explanations and practice sessions.',
+    copy: 'Conversations are kept together so students can return to earlier explanations and assessments.',
   },
   {
     icon: Zap,
     title: 'Fast mode switching',
-    copy: 'Move from explanation to practice to review without leaving the dashboard workflow.',
+    copy: 'Move from explanation to review to assessment without leaving the dashboard workflow.',
   },
 ]
 
@@ -131,14 +131,14 @@ export default function Home() {
               {/* <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-sm font-semibold text-blue-950 shadow-lg shadow-blue-950/[0.08] backdrop-blur dark:border-cyan-200/[0.3] dark:bg-cyan-100/10 dark:text-cyan-50 dark:shadow-cyan-950/[0.2]">
                 <MerakiLogo variant="color" className="h-5 w-5 dark:hidden" decorative />
                 <MerakiLogo variant="white" className="hidden h-5 w-5 dark:block" decorative />
-                AI tutor for Learn, Practice, and Review
+                AI tutor for Learn, Review, and Assessment
               </div> */}
 
               <h1 className="mt-7 max-w-4xl text-balance text-5xl font-semibold leading-[1.03] text-slate-950 dark:text-white sm:text-6xl lg:text-7xl">
                 Meet Meraki AI: your adaptive tutor for focused learning.
               </h1>
               <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-700 dark:text-slate-100">
-                Meraki brings clear explanations, guided practice, review questions, voice conversations, and avatar video lessons into one focused study workspace.
+                Meraki brings clear explanations, review questions, guided assessments, voice conversations, and avatar video lessons into one focused study workspace.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -255,7 +255,7 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-2">
               {[
                 { icon: MessageSquare, label: 'Learn', value: 'Explain concepts and answer follow-ups' },
-                { icon: FlaskConical, label: 'Practice', value: 'Work through guided exercises' },
+                { icon: FlaskConical, label: 'Assessment', value: 'Work through guided exercises' },
                 { icon: BookOpenCheck, label: 'Review', value: 'Test recall and exam readiness' },
                 { icon: Video, label: 'Video', value: 'Use avatar answers when visual delivery helps' },
               ].map((item) => (

@@ -55,6 +55,18 @@ export interface LecturerCourse {
   name: string;
   description?: string | null;
   persona?: string | null;
+  /**
+   * Free text, used ONLY as a fallback when a video request names no
+   * archetype. Before this existed the UI sent a hard-coded "mathematics" on
+   * every render request, so an untyped Biology or Chemistry video was routed
+   * to Manim - an engine for continuous mathematics.
+   */
+  subject?: string | null;
+  /**
+   * Which recorded voice narrates this course — concept videos AND the
+   * Learn-mode lesson board. Null means the default narrator.
+   */
+  lecturer_voice_id?: string | null;
   domain_topics?: string[];
   academic_level?: AcademicLevel | null;
   practice_mode_enabled?: boolean;
@@ -71,10 +83,16 @@ export interface LecturerCourseCreate {
   name: string;
   description?: string | null;
   persona?: string | null;
+  subject?: string | null;
   domain_topics?: string[];
   academic_level?: AcademicLevel | null;
   practice_mode_enabled?: boolean;
 }
+
+/** The three formats a Review file can be turned into. Flashcard is gone. */
+export type QuestionFormat = 'mcq' | 'fill_blank' | 'short_answer';
+
+export type DifficultyValue = 'basic' | 'intermediate' | 'advanced';
 
 export interface KnowledgeFile {
   id: string;
@@ -85,7 +103,15 @@ export interface KnowledgeFile {
   target_modes?: TutorModeName[] | null;
   is_published?: boolean;
   topic?: string | null;
-  difficulty?: string;
+  /**
+   * For Review material this is the question difficulty; for Assessment
+   * material it is the scenario difficulty. One column, because the meaning is
+   * the same - how hard should what comes out of this file be - and two
+   * columns would drift.
+   */
+  difficulty?: DifficultyValue | string;
+  /** Review material only. Null means "any format" - the pre-tagging default. */
+  question_formats?: QuestionFormat[] | null;
   status: 'processing' | 'ready' | 'failed' | 'no_content';
   total_chunks?: number;
   version?: string;
@@ -96,10 +122,12 @@ export interface KnowledgeFile {
 export interface KnowledgeUploadOptions {
   docType?: string;
   defaultMode?: TutorModeName;
-  difficulty?: string;
+  difficulty?: DifficultyValue;
   version?: string;
   targetModes?: TutorModeName[];
   topic?: string;
+  /** Review material only; rejected by the API on a file not serving Review. */
+  questionFormats?: QuestionFormat[];
   /** Defaults to false — the lecturer flow is upload, test, then publish. */
   isPublished?: boolean;
 }
@@ -108,6 +136,57 @@ export interface KnowledgePatch {
   is_published?: boolean;
   topic?: string;
   title?: string;
+  difficulty?: DifficultyValue;
+  question_formats?: QuestionFormat[];
+}
+
+/**
+ * What POST .../students/import reports back.
+ *
+ * `invited` is separate from `enrolled` on purpose: those addresses have no
+ * account yet and are NOT on the course until the student signs up. Folding
+ * them into one number would tell a lecturer their class was enrolled when it
+ * was not.
+ */
+/**
+ * A voice the lecturer recorded, cloned at ElevenLabs.
+ *
+ * The provider's voice id is deliberately NOT here. The server resolves a
+ * course's voice and returns audio; handing the id to a browser would be
+ * handing out something anyone with our API key could speak as.
+ */
+export interface LecturerVoice {
+  id: string;
+  name: string;
+  provider: string;
+  status: 'pending' | 'ready' | 'failed';
+  error?: string | null;
+  sample_seconds?: number | null;
+  created_at?: string;
+  /** Courses this voice currently speaks for. */
+  courses?: { id: string; name: string }[];
+}
+
+export interface RosterImportResult {
+  status: string;
+  filename?: string | null;
+  rows_read: number;
+  enrolled: number;
+  reactivated: number;
+  already_enrolled: number;
+  invited: number;
+  invited_emails: string[];
+  failed: { row?: number; email?: string; reason: string }[];
+}
+
+export interface EnrolmentInvitation {
+  id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  status: 'pending' | 'accepted' | 'cancelled';
+  created_at?: string;
+  accepted_at?: string | null;
 }
 
 export interface TestQueryResult {
@@ -152,6 +231,41 @@ export interface CourseStudent {
   } | null;
 }
 
+export type MasteryBand = 'secure' | 'developing' | 'struggling';
+
+export interface MasterySummary {
+  measured: boolean;
+  reason?: string;
+  students_tracked?: number;
+  topics_tracked?: number;
+  bands?: Record<MasteryBand, number>;
+  weakest_topics?: { topic: string; mean: number; students: number }[];
+  strongest_topics?: { topic: string; mean: number; students: number }[];
+}
+
+export interface EngagementSummary {
+  measured: boolean;
+  reason?: string;
+  turns?: number;
+  citations_clicked?: number;
+  sources_opened?: number;
+  videos_completed?: number;
+  narration_played?: number;
+  /** How often retrieval came back empty - what to upload next. */
+  empty_retrievals?: number;
+}
+
+export interface TimeOnTask {
+  measured: boolean;
+  reason?: string;
+  completed_sessions?: number;
+  open_sessions?: number;
+  total_minutes?: number;
+  mean_minutes?: number;
+  /** Reported next to the mean because the distribution is badly skewed. */
+  median_minutes?: number;
+}
+
 export interface CourseAnalytics {
   course_id: string;
   students: {
@@ -161,6 +275,7 @@ export interface CourseAnalytics {
     withdrawn: number;
     ever_opened_a_session: number;
     enrolled_but_never_started: number;
+    non_student_session_users?: number;
   };
   sessions: {
     total: number;
@@ -168,9 +283,41 @@ export interface CourseAnalytics {
   };
   knowledge: { total: number; published: number; draft: number; failed: number };
   videos: { total: number; awaiting_review: number; approved: number; failed: number };
-  /** Metrics that need tasks #20/#21 — shown as "not yet measured", never 0. */
+  mastery: MasterySummary;
+  engagement: EngagementSummary;
+  time_on_task: TimeOnTask;
+  /** Metrics not yet instrumented - shown as "not yet measured", never 0. */
   unavailable: string[];
 }
+
+export interface CourseMastery {
+  measured: boolean;
+  reason?: string;
+  topics: {
+    topic: string;
+    students: number;
+    mean: number;
+    attempts: number;
+    bands: Record<MasteryBand, number>;
+  }[];
+  students: {
+    student_id: string;
+    name?: string | null;
+    email?: string | null;
+    topics_tracked: number;
+    mean: number;
+    band: MasteryBand;
+    struggling_topics: string[];
+    last_practised_at?: string | null;
+  }[];
+}
+
+export type NarrationStatus =
+  | 'pending'
+  | 'narrating'
+  | 'ready'
+  | 'failed'
+  | 'skipped';
 
 export interface RenderAsset {
   id: string;
@@ -187,6 +334,28 @@ export interface RenderAsset {
   scene_code?: string | null;
   source_script?: string | null;
   created_at?: string;
+  /**
+   * Narration is a SECOND job on a different worker - the render container
+   * carries no TTS client on purpose - so a video is briefly `ready` with no
+   * audio. That is a real state, and the review queue shows it rather than
+   * pretending the video is finished.
+   */
+  has_audio?: boolean;
+  narration_status?: NarrationStatus;
+  narration_script?: string | null;
+  /** Revision chain: which asset this one supersedes, and why. */
+  revision?: number;
+  parent_asset_id?: string | null;
+  revision_note?: string | null;
+}
+
+export interface RenderRegenerateBody {
+  source_script: string;
+  archetype?: string | null;
+  topic?: string | null;
+  subject?: string | null;
+  /** What the lecturer changed. Kept on the record with the revision. */
+  note?: string | null;
 }
 
 export interface RenderRequestBody {

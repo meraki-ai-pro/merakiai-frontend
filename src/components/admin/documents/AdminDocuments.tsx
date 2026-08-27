@@ -23,7 +23,7 @@ const DOC_TYPES = [
 
 const DEFAULT_MODES = [
   { value: 'learn', label: 'Learn' },
-  { value: 'practice', label: 'Practice' },
+  { value: 'practice', label: 'Assessment' },
   { value: 'review', label: 'Review' },
 ] as const;
 
@@ -180,7 +180,7 @@ export function AdminDocuments() {
           <input
             ref={fileRef}
             type="file"
-            accept=".pdf,.docx,.txt"
+            accept=".pdf,.docx,.doc,.pptx"
             className="hidden"
             onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
           />
