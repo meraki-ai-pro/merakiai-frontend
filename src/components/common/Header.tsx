@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { TutorMode } from '@/types';
+import { useRouter } from 'next/navigation';
 
 // ─── Tooltip copy — concise since the welcome screen covers the full detail ──
 const MODE_TABS: {
@@ -59,6 +60,7 @@ const MODE_TABS: {
 ];
 
 export function Header() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isTogglingVideo, setIsTogglingVideo] = useState(false);
   const [modeSelectorTarget, setModeSelectorTarget] = useState<'application' | 'review' | null>(null);
@@ -87,6 +89,7 @@ export function Header() {
 
   // ── Mode switching ──────────────────────────────────────────────────────────
   const handleModeClick = async (mode: TutorMode) => {
+    router.push('/dashboard');
     if (!currentSessionId) return;
     if (currentMode === mode) return;
 

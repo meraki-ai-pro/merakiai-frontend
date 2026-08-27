@@ -34,14 +34,27 @@ export function BoardStage({ content, isStreaming = false, courseId }: BoardStag
   const [index, setIndex] = useState(0);
   const [pinned, setPinned] = useState(false);
   const lastCount = useRef(0);
+  const wasStreaming = useRef(isStreaming);
 
   // Follow the live edge unless the student has taken control.
   useEffect(() => {
     if (slides.length !== lastCount.current) {
       lastCount.current = slides.length;
-      if (!pinned && slides.length > 0) setIndex(slides.length - 1);
+      if (isStreaming && !pinned && slides.length > 0) {
+        setIndex(slides.length - 1);
+      }
     }
-  }, [slides.length, pinned]);
+  }, [slides.length, pinned, isStreaming]);
+
+  // Once generation finishes, present the lesson from the beginning rather
+  // than leaving the student on the final slide followed during streaming.
+  useEffect(() => {
+    if (wasStreaming.current && !isStreaming && slides.length > 0) {
+      setIndex(0);
+      setPinned(false);
+    }
+    wasStreaming.current = isStreaming;
+  }, [isStreaming, slides.length]);
 
   // A new answer resets the deck.
   useEffect(() => {

@@ -20,6 +20,7 @@ const PUBLIC_PATHS = [
  *  - /dashboard/* → requires meraki_token cookie
  *  - /admin/*     → requires meraki_token cookie (role check done client-side
  *                   by AdminAuthGuard + server-side by backend admin_guard)
+ *  - /lecturer/*  → requires meraki_token cookie (role check by LecturerAuthGuard)
  *  - /auth/*      → redirect to /dashboard if already authenticated
  *  - /            → redirect to /dashboard if already authenticated
  */
@@ -59,6 +60,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith('/lecturer')) {
+    if (!token) {
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('from', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
   // ── Redirect authenticated users away from / and /auth/* ─────────────────
   if ((pathname === '/' || pathname.startsWith('/auth/')) && token) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -71,6 +81,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/admin/:path*',
+    '/lecturer/:path*',
     '/auth/:path*',
     '/',
   ],

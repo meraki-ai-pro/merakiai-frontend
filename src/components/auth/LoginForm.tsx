@@ -36,10 +36,17 @@ export function LoginForm() {
     if (profileRes.success && profileRes.data) {
       setUser(profileRes.data);
       toast.success('Welcome back!');
-      router.push(profileRes.data.role === 'admin' ? '/admin' : '/dashboard');
+      const role = profileRes.data.role;
+      if (role === 'admin' || role === 'super_admin') {
+        router.replace('/admin');
+      } else if (role === 'lecturer') {
+        router.replace('/lecturer');
+      } else {
+        router.replace('/dashboard');
+      }
     } else {
       toast.success('Welcome back!');
-      router.push('/dashboard');
+      router.replace('/dashboard');
     }
   };
 

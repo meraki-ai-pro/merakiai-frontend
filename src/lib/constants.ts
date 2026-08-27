@@ -56,6 +56,7 @@ export const API_ENDPOINTS = {
   // RAG/Chat (Learn mode voice input only — text goes via WebSocket)
   RAG_TURN: '/rag/turn',
   RAG_STATUS: (taskId: string) => `/rag/status/${taskId}`,
+  RAG_TRANSCRIBE: '/rag/transcribe',
   RAG_TURN_VOICE: '/rag/turn/voice',
 
   // Sessions

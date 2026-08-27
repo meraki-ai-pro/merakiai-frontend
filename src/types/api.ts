@@ -89,6 +89,25 @@ export interface SessionDetailsResponse {
   ended_at?: string | null;
 }
 
+export interface UserSessionSummary {
+  id: string;
+  title: string;
+  mode: 'learn' | 'application' | 'review';
+  current_mode: 'learn' | 'application' | 'review';
+  prefers_video: boolean;
+  course_id: string | null;
+  message_count: number;
+  started_at: string;
+  ended_at: string | null;
+}
+
+export interface UserSessionsResponse {
+  sessions: UserSessionSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface SessionModeUpdateRequest {
   // Backend accepts: 'learn' | 'application' | 'review'
   current_mode: 'learn' | 'application' | 'review';

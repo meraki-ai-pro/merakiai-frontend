@@ -154,9 +154,15 @@ export function InputArea() {
     el.style.height = Math.min(el.scrollHeight, 160) + 'px';
   };
 
-  const handleVoiceTranscript = (transcript: string) => {
-    setMessage((prev) => (prev ? `${prev} ${transcript}` : transcript).trim());
-    textareaRef.current?.focus();
+  const handleVoiceTranscript = async (transcript: string) => {
+    const text = transcript.trim();
+    if (!text || isLoadingMessage || isSwitching) return;
+    setMessage('');
+    if (inModeSession) {
+      await sendModeMessage(text);
+    } else {
+      await sendMessage(text, 'learn');
+    }
   };
 
   const handleSwitchType = async (newType: string) => {
@@ -352,7 +358,10 @@ export function InputArea() {
         {/* Normal text input — hidden for MCQ */}
         {!(isMcqReview && mcqOptions.length > 0) && (
         <div className="flex items-end gap-2 rounded-[24px] border border-white/70 bg-white/[0.86] px-3 py-3 shadow-xl shadow-blue-950/10 transition-all focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200/70 dark:border-white/10 dark:bg-white/[0.08] dark:focus-within:border-cyan-300/[0.5] dark:focus-within:ring-cyan-300/[0.16]">
-          <VoiceInput onRecordingComplete={handleVoiceTranscript} />
+          <VoiceInput
+            onRecordingComplete={handleVoiceTranscript}
+            disabled={isLoadingMessage || isSwitching || activeModeSession?.completed}
+          />
 
           <textarea
             ref={textareaRef}

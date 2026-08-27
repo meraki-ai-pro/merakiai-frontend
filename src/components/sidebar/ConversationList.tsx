@@ -1,10 +1,14 @@
 'use client';
 
-import { useChatStore } from '@/store/chatStore';
+import { useRef } from 'react';
+import { useChatStore, newId } from '@/store/chatStore';
 import { Trash2, MessageSquare, BookOpen, FlaskConical, ClipboardCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/services/api';
+import type { ConversationRow } from '@/types/api';
+import { useRouter } from 'next/navigation';
 
 const modeIcon = {
   learn:       BookOpen,
@@ -19,17 +23,57 @@ interface ConversationListProps {
 }
 
 export function ConversationList({ searchQuery = '' }: ConversationListProps) {
+  const router             = useRouter();
   const sessions          = useChatStore((s) => s.sessions);
+  const sessionsLoaded    = useChatStore((s) => s.sessionsLoadedFromBackend);
   const currentSessionId  = useChatStore((s) => s.currentSessionId);
   const setCurrentSession = useChatStore((s) => s.setCurrentSession);
   const deleteSession     = useChatStore((s) => s.deleteSession);
+  const setMessages       = useChatStore((s) => s.setMessages);
+  const loadedSessionsRef = useRef<Set<string>>(new Set());
 
-  const handleSelect = (id: string) => {
-    if (id !== currentSessionId) setCurrentSession(id);
+  const handleSelect = async (id: string) => {
+    router.push('/dashboard');
+    if (id === currentSessionId) return;
+    setCurrentSession(id);
+
+    if (loadedSessionsRef.current.has(id)) return;
+    loadedSessionsRef.current.add(id);
+
+    const response = await apiClient.getConversations(id, 200);
+    if (!response.success || !response.data) {
+      loadedSessionsRef.current.delete(id);
+      return;
+    }
+
+    const messages = response.data.conversations.flatMap((conversation: ConversationRow) => {
+      const mode = conversation.mode || 'learn';
+      const timestamp = new Date(conversation.created_at);
+      const userContent = conversation.user_input || '';
+      const tutorContent = conversation.tutor_response || '';
+
+      return [
+        {
+          id: newId(), sessionId: id, role: 'user' as const, content: userContent,
+          responseFormat: 'text' as const, mode, timestamp,
+          attachments: conversation.attachments ?? undefined,
+        },
+        {
+          id: newId(), sessionId: id, role: 'assistant' as const, content: tutorContent,
+          responseFormat: conversation.response_format || 'text', mode, timestamp,
+          videoUrl: conversation.video_url, audioUrl: conversation.audio_url,
+          sources: conversation.sources ?? undefined,
+        },
+      ].filter((message) => message.content && !message.content.startsWith('(system)'));
+    });
+
+    if (useChatStore.getState().currentSessionId === id) setMessages(messages);
   };
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    void apiClient.endSession(id);
+    loadedSessionsRef.current.delete(id);
     deleteSession(id);
     toast.success('Session deleted');
   };
@@ -38,6 +82,16 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const filteredSessions = normalizedQuery
     ? sessions.filter((session) => session.title.toLowerCase().includes(normalizedQuery))
     : sessions;
+
+  if (!sessionsLoaded && sessions.length === 0) {
+    return (
+      <div className="flex flex-col gap-2 px-1 py-2" aria-label="Loading sessions">
+        {[0, 1, 2].map((item) => (
+          <div key={item} className="h-12 animate-pulse rounded-2xl bg-slate-200/60 dark:bg-white/[0.06]" />
+        ))}
+      </div>
+    );
+  }
 
   if (sessions.length === 0) {
     return (
@@ -67,8 +121,8 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
             key={session.id}
             role="button"
             tabIndex={0}
-            onClick={() => handleSelect(session.id)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSelect(session.id)}
+            onClick={() => void handleSelect(session.id)}
+            onKeyDown={(e) => e.key === 'Enter' && void handleSelect(session.id)}
             className={cn(
               // `w-full` + `overflow-hidden` on the row itself is the key fix —
               // without this the row can grow wider than the sidebar and text
