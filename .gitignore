@@ -8,9 +8,11 @@ node_modules/
 .next/
 out/
 tsconfig.tsbuildinfo
+next-env.d.ts
 
 # npm lockfile (this project uses pnpm)
 package-lock.json
+yarn.lock
 
 # Local env files
 .env.*.local
