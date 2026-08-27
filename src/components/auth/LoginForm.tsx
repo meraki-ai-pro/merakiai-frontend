@@ -29,12 +29,18 @@ export function LoginForm() {
   const [mfaCode, setMfaCode] = useState('');
   const [mfaError, setMfaError] = useState<string | null>(null);
   const [verifyingMfa, setVerifyingMfa] = useState(false);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   // Fetch role + route once authentication (and any MFA step-up) is complete.
-  const finishLogin = async () => {
+  const finishLogin = async (forcePasswordChange = false) => {
     const profileRes = await apiClient.getUserProfile();
     if (profileRes.success && profileRes.data) {
       setUser(profileRes.data);
+      if (forcePasswordChange) {
+        toast('Set a new password to finish securing your account.');
+        router.replace('/lecturer/account?forcePasswordChange=1');
+        return;
+      }
       toast.success('Welcome back!');
       const role = profileRes.data.role;
       if (role === 'admin' || role === 'super_admin') {
@@ -71,6 +77,8 @@ export function LoginForm() {
       { id: res.data.user.id, email: res.data.user.email },
       res.data.access_token
     );
+    const forcePasswordChange = Boolean(res.data.must_change_password);
+    setMustChangePassword(forcePasswordChange);
 
     // Step 2 — hydrate the supabase-js session so we can check/step-up MFA.
     await hydrateSupabaseSession(res.data.access_token, res.data.refresh_token);
@@ -83,7 +91,7 @@ export function LoginForm() {
     }
 
     // Step 3 — no MFA required: finish login.
-    await finishLogin();
+    await finishLogin(forcePasswordChange);
   };
 
   const handleMfaSubmit = async (e: React.FormEvent) => {
@@ -93,7 +101,7 @@ export function LoginForm() {
     setMfaError(null);
     try {
       await verifyLoginChallenge(mfaCode);
-      await finishLogin();
+      await finishLogin(mustChangePassword);
     } catch (err) {
       setMfaError(err instanceof Error ? err.message : 'Verification failed. Try again.');
       setMfaCode('');

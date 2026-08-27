@@ -51,6 +51,9 @@ export const useUserStore = create<UserState>()(
 
       logout: () => {
         tokenStore.clear();
+        void import('@/lib/supabase').then(({ supabase }) => {
+          void supabase.auth.signOut({ scope: 'local' });
+        });
         void import('@/store/chatStore').then(({ useChatStore }) => {
           useChatStore.getState().setConversations([]);
           useChatStore.getState().setCurrentSession(null);

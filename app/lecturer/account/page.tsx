@@ -9,11 +9,20 @@
  * requirement.
  */
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { AccountSettings } from '@/components/account/AccountSettings';
 
 export default function LecturerAccountPage() {
+  const [forcePasswordChange, setForcePasswordChange] = useState(false);
+
+  useEffect(() => {
+    setForcePasswordChange(
+      new URLSearchParams(window.location.search).get('forcePasswordChange') === '1'
+    );
+  }, []);
+
   return (
     <div className="max-w-3xl space-y-6">
       <div>
@@ -31,7 +40,20 @@ export default function LecturerAccountPage() {
         </p>
       </div>
 
-      <AccountSettings />
+      {forcePasswordChange && (
+        <div className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
+          <AlertTriangle className="mt-0.5 h-5 w-5 flex-none" />
+          <div>
+            <p className="text-sm font-semibold">Password change required</p>
+            <p className="mt-1 text-xs">
+              This account was issued with a temporary password. Change it below before using
+              the lecturer workspace. You will sign in again with the new password.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <AccountSettings forcePasswordChange={forcePasswordChange} />
     </div>
   );
 }

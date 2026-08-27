@@ -41,8 +41,9 @@ async function forward(request: NextRequest, path: string[]): Promise<NextRespon
       }
     }
   } catch (err) {
+    console.error('[backend-proxy] upstream request failed', err);
     return NextResponse.json(
-      { detail: `Upstream request failed: ${err instanceof Error ? err.message : 'unknown'}` },
+      { detail: 'The backend service is temporarily unavailable.' },
       { status: 502 },
     );
   }

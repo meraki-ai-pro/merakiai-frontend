@@ -20,6 +20,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { KeyRound, Loader2, UserRound } from 'lucide-react';
 import { apiClient } from '@/services/api';
@@ -50,11 +51,11 @@ const inputClass =
   'disabled:opacity-50 dark:border-white/15 dark:bg-slate-900 dark:text-white ' +
   'dark:focus:ring-cyan-300/30';
 
-export function AccountSettings() {
+export function AccountSettings({ forcePasswordChange = false }: { forcePasswordChange?: boolean }) {
   return (
     <div className="space-y-6">
       <ProfileSection />
-      <PasswordSection />
+      <PasswordSection forcePasswordChange={forcePasswordChange} />
     </div>
   );
 }
@@ -192,7 +193,9 @@ function ProfileSection() {
   );
 }
 
-function PasswordSection() {
+function PasswordSection({ forcePasswordChange }: { forcePasswordChange: boolean }) {
+  const router = useRouter();
+  const logout = useUserStore((s) => s.logout);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -216,10 +219,10 @@ function PasswordSection() {
       return;
     }
 
-    setCurrent('');
-    setNext('');
-    setConfirm('');
-    toast.success('Password changed.');
+    apiClient.logout();
+    logout();
+    toast.success('Password changed. Sign in again with your new password.');
+    router.replace('/auth/login');
   };
 
   return (
@@ -228,7 +231,9 @@ function PasswordSection() {
         <KeyRound className="h-4 w-4" /> Password
       </h3>
       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-        You need your current password to set a new one.
+        {forcePasswordChange
+          ? 'Replace the temporary password before continuing.'
+          : 'You need your current password to set a new one.'}
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">

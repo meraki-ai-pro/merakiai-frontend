@@ -19,6 +19,7 @@ export interface LoginResponse {
   refresh_token?: string;
   expires_in?: number;
   token_type: string;
+  must_change_password?: boolean;
 }
 
 export interface SignupResponse {
