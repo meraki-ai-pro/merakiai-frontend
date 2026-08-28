@@ -27,32 +27,39 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
 
   // ── 1. Sign in ────────────────────────────────────────────────────────────
   await loginAs(page, 'lecturer');
-  await caption(page, 'Signed in as a lecturer. Login lands on the student dashboard.');
+  await caption(page, 'Signed in as a lecturer.');
   await expectNoAppCrash(page);
 
   // ── 2. Reach the teaching workspace ───────────────────────────────────────
-  await caption(page, 'Opening the teaching workspace from the sidebar.');
-  const workspaceLink = page.getByRole('link', { name: /teaching workspace/i });
-  await expect(workspaceLink).toBeVisible({ timeout: 20_000 });
-  await workspaceLink.click();
-  await page.waitForURL(/\/lecturer/, { timeout: 30_000 });
+  // Current role routing lands lecturers here directly. Keep the navigation
+  // branch for deployments that still land every account on /dashboard.
+  if (!/\/lecturer(?:\/|$)/.test(page.url())) {
+    await caption(page, 'Opening the teaching workspace from the sidebar.');
+    const workspaceLink = page.getByRole('link', { name: /teaching workspace/i });
+    await expect(workspaceLink).toBeVisible({ timeout: 20_000 });
+    await workspaceLink.click();
+    await page.waitForURL(/\/lecturer/, { timeout: 30_000 });
+  }
   await expect(page.getByRole('heading', { name: /your courses/i })).toBeVisible();
-  await caption(page, 'Lecturer workspace. No courses yet.');
+  await caption(page, 'Lecturer workspace.');
 
   // ── 3. Create the course ──────────────────────────────────────────────────
-  await page.getByRole('button', { name: /new course|create your first course/i }).first().click();
-  await caption(page, 'Creating a course: Calculus I, Level 100.');
+  const courseHeading = page.getByRole('heading', { name: COURSE.name });
+  if ((await courseHeading.count()) === 0) {
+    await page.getByRole('button', { name: /new course|create your first course/i }).first().click();
+    await caption(page, 'Creating a course: Calculus I, Level 100.');
 
-  await page.getByPlaceholder('Calculus I').fill(COURSE.name);
-  const idField = page.getByPlaceholder('calculus-101');
-  await idField.fill(COURSE.id);
-  await page.locator('select').first().selectOption('level_100');
-  await page.getByRole('button', { name: /^create course$/i }).click();
+    await page.getByPlaceholder('Calculus I').fill(COURSE.name);
+    const idField = page.getByPlaceholder('calculus-101');
+    await idField.fill(COURSE.id);
+    await page.locator('select').first().selectOption('level_100');
+    await page.getByRole('button', { name: /^create course$/i }).click();
 
-  await expect(page.getByRole('heading', { name: COURSE.name })).toBeVisible({
-    timeout: 30_000,
-  });
-  await caption(page, 'Course created. The id is used for storage and search.');
+    await expect(courseHeading).toBeVisible({ timeout: 30_000 });
+    await caption(page, 'Course created. The id is used for storage and search.');
+  } else {
+    await caption(page, 'Reusing the isolated E2E course from an interrupted run.');
+  }
 
   // ── 4. Open the course workspace ──────────────────────────────────────────
   await page.getByRole('heading', { name: COURSE.name }).click();

@@ -47,3 +47,47 @@ jobs:
 
       - name: Build production bundle
         run: pnpm run build
+
+  browser-smoke:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_SKIP_RESET: '1'
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
+      NEXT_PUBLIC_API_BASE: /api/backend
+      NEXT_PUBLIC_WS_URL: ws://127.0.0.1:8000
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-public-anon-key
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run build
+      - name: Start production server
+        run: |
+          pnpm exec next start --hostname 127.0.0.1 --port 3000 > /tmp/meraki-next.log 2>&1 &
+          for attempt in {1..30}; do
+            curl --fail --silent http://127.0.0.1:3000/auth/login >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/meraki-next.log
+          exit 1
+      - run: pnpm run test:smoke
+      - if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: frontend-smoke-evidence
+          path: |
+            e2e-report
+            e2e-results
+          retention-days: 14

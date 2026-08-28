@@ -2,6 +2,19 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Playwright and containerised development servers may reach the local app
+  // through either loopback hostname. Next.js 16 otherwise rejects its own
+  // development chunks as cross-origin requests.
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
+  async redirects() {
+    return [
+      {
+        source: '/instructor/:path*',
+        destination: '/lecturer/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {

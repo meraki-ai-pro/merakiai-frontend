@@ -1,0 +1,45 @@
+name: Production E2E walkthrough
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Deployed frontend URL to validate
+        required: true
+        default: https://merakiai.online
+
+permissions:
+  contents: read
+
+jobs:
+  walkthrough:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production-e2e
+    env:
+      E2E_SKIP_RESET: '1'
+      PLAYWRIGHT_BASE_URL: ${{ inputs.base_url }}
+      E2E_LECTURER_PASSWORD: ${{ secrets.E2E_LECTURER_PASSWORD }}
+      E2E_STUDENT1_PASSWORD: ${{ secrets.E2E_STUDENT1_PASSWORD }}
+      E2E_STUDENT2_PASSWORD: ${{ secrets.E2E_STUDENT2_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run test:e2e
+      - if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: production-e2e-evidence
+          path: |
+            e2e-report
+            e2e-results
+          retention-days: 14
