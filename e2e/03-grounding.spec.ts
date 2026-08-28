@@ -43,7 +43,17 @@ test('grounding: the tutor cites the lecturer’s material, and says so when it 
   await page.getByRole('tab', { name: 'Knowledge' }).click();
   await caption(page, 'To prove the tutor uses your notes, first take them away.');
 
-  const notesRow = page.locator('li').filter({ hasText: NOTES });
+  // Repeated or interrupted production runs can leave duplicate E2E uploads.
+  // Select one actionable row and ignore failed historical attempts.
+  const notesRow = page
+    .locator('li')
+    .filter({ hasText: NOTES })
+    .filter({
+      has: page.locator(
+        'button[title="Hide from students"], button[title="Publish to students"]',
+      ),
+    })
+    .first();
   await expect(notesRow).toBeVisible({ timeout: 30_000 });
 
   // Establish the starting state rather than assuming it. This segment toggles
@@ -113,7 +123,11 @@ test('grounding: the tutor cites the lecturer’s material, and says so when it 
   await page.getByRole('tab', { name: 'Knowledge' }).click();
   await caption(page, 'The lecturer publishes the notes. Nothing else changes.');
 
-  const notesRowAgain = page.locator('li').filter({ hasText: NOTES });
+  const notesRowAgain = page
+    .locator('li')
+    .filter({ hasText: NOTES })
+    .filter({ has: page.locator('button[title="Publish to students"]') })
+    .first();
   await notesRowAgain.locator('button[title="Publish to students"]').click();
   await expect(notesRowAgain.getByText('Live', { exact: true })).toBeVisible({ timeout: 30_000 });
   await caption(page, 'Live again.');

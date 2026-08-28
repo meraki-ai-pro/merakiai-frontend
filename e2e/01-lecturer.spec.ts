@@ -204,8 +204,15 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   // The tab polls every 8s while a render is in flight. Claude writes the
   // Manim scene, the sandbox checks it and manim draws it — about 90s.
   await caption(page, 'Writing the animation scene, then drawing it.', 500);
-  const needsReview = page.getByText('Needs review').first();
-  await expect(needsReview).toBeVisible({ timeout: 480_000 });
+  const renderRow = page.locator('li').filter({ hasText: 'chain-rule' }).first();
+  const needsReview = renderRow.getByText('Needs review', { exact: true });
+  const failed = renderRow.getByText('Failed', { exact: true });
+  await expect(needsReview.or(failed)).toBeVisible({ timeout: 480_000 });
+  if (await failed.isVisible()) {
+    await renderRow.getByRole('button', { name: /chain-rule/i }).click();
+    const detail = (await renderRow.locator('pre').textContent().catch(() => null))?.trim();
+    throw new Error(`Concept video failed${detail ? `: ${detail}` : ''}`);
+  }
   await caption(page, 'Rendered, and waiting for the lecturer to check the maths.');
 
   // Watch it before approving — this is the review gate the proposal calls for.
