@@ -36,7 +36,7 @@ export default function SignupPage() {
               Start learning with Meraki
             </h1>
             <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Build your AI study space for Learn, Practice, and Review.
+              Build your AI study space for Learn, Review, and Assessment.
             </p>
           </div>
 

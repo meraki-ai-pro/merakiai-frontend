@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 
 const MODE_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   learn:             { label: 'Learn',             icon: BookOpen,       color: 'text-blue-400' },
-  application:       { label: 'Practice',          icon: FlaskConical,   color: 'text-emerald-400' },
+  application:       { label: 'Assessment',        icon: FlaskConical,   color: 'text-emerald-400' },
   review:            { label: 'Review',            icon: ClipboardCheck, color: 'text-amber-400' },
   review_generation: { label: 'Review Generation', icon: Sparkles,       color: 'text-fuchsia-400' },
 };

@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminApiClient } from '@/services/adminApi';
-import type { AdminUser } from '@/services/adminApi';
+import toast from 'react-hot-toast';
+import { adminApiClient, ASSIGNABLE_ROLES, ROLE_LABELS } from '@/services/adminApi';
+import type { AdminRole, AdminUser } from '@/services/adminApi';
+import { apiClient } from '@/services/api';
 import {
   Users,
   Search,
@@ -13,6 +15,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const ROLE_ORDER: AdminRole[] = ['user', 'lecturer', 'admin', 'super_admin'];
+
 function fullName(u: AdminUser): string {
   const name = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
   return name || '—';
@@ -22,6 +26,8 @@ export function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [me, setMe] = useState<{ id: string; role: string } | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -35,6 +41,46 @@ export function AdminUsers() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // The caller's own role decides which roles they may hand out, and it is not
+  // in the users list response.
+  useEffect(() => {
+    void apiClient.getUserProfile().then((res) => {
+      if (res.success && res.data) setMe({ id: res.data.id, role: res.data.role });
+    });
+  }, []);
+
+  const isSuperAdmin = me?.role === 'super_admin';
+  const assignable = ASSIGNABLE_ROLES[me?.role ?? ''] ?? [];
+
+  const changeRole = async (user: AdminUser, role: AdminRole) => {
+    if (role === user.role) return;
+
+    // Spelled out rather than left to a generic confirm. Making somebody an
+    // admin is the single most consequential control on this page, and
+    // "Are you sure?" does not say what is about to change.
+    const confirmed = window.confirm(
+      `Change ${user.email} from ${ROLE_LABELS[user.role as AdminRole] ?? user.role} to ` +
+        `${ROLE_LABELS[role]}?` +
+        (role === 'admin' || role === 'super_admin'
+          ? '\n\nThis grants access to every course, every student record and the whole admin console.'
+          : '')
+    );
+    if (!confirmed) return;
+
+    setSaving(user.id);
+    const res = await adminApiClient.updateUserRole(user.id, role);
+    setSaving(null);
+
+    if (!res.success) {
+      // The API explains exactly why — "only a super admin may grant or revoke
+      // admin roles", "cannot change your own role" — so show it verbatim.
+      toast.error(res.error?.message ?? 'Could not change that role');
+      return;
+    }
+    toast.success(`${user.email} is now ${ROLE_LABELS[role]}`);
+    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role } : u)));
+  };
 
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
@@ -91,7 +137,7 @@ export function AdminUsers() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200/70 dark:border-white/10">
-                {['User', 'Role', 'University', 'Country', 'Joined'].map((h) => (
+                {['User', 'Role', 'Change role', 'University', 'Country', 'Joined'].map((h) => (
                   <th key={h} className="text-left px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {h}
                   </th>
@@ -126,8 +172,18 @@ export function AdminUsers() {
                         <Shield className="h-2.5 w-2.5" /> {user.role.replace('_', ' ')}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">User</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Student</span>
                     )}
+                  </td>
+                  <td className="px-6 py-3">
+                    <RoleSelect
+                      user={user}
+                      assignable={assignable}
+                      isSelf={me?.id === user.id}
+                      isSuperAdmin={isSuperAdmin}
+                      saving={saving === user.id}
+                      onChange={(role) => void changeRole(user, role)}
+                    />
                   </td>
                   <td className="px-6 py-3">
                     <span className="text-xs text-slate-500 dark:text-slate-400">{user.university_name ?? '—'}</span>
@@ -146,6 +202,81 @@ export function AdminUsers() {
           </table>
         </div>
       )}
+
+      {/* Stated once, at the bottom, rather than as a tooltip on every greyed
+          control. An admin who cannot promote somebody needs to know why. */}
+      {me && !isSuperAdmin && (
+        <p className="border-t border-slate-200/70 px-6 py-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
+          You can move people between Student and Lecturer. Granting or revoking Admin is
+          restricted to super admins — in both directions, so that removing someone&rsquo;s admin
+          rights cannot be used as a way around it.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The role control for one row.
+ *
+ * Disabled states are explained on the control itself, because the three
+ * reasons a change is refused are genuinely different and a single greyed
+ * dropdown teaches nothing:
+ *
+ *   - it is you (self-demotion would lock the console);
+ *   - the target is or would become an admin and you are not a super admin;
+ *   - your role assigns nothing at all.
+ */
+function RoleSelect({
+  user,
+  assignable,
+  isSelf,
+  isSuperAdmin,
+  saving,
+  onChange,
+}: {
+  user: AdminUser;
+  assignable: readonly AdminRole[];
+  isSelf: boolean;
+  isSuperAdmin: boolean;
+  saving: boolean;
+  onChange: (role: AdminRole) => void;
+}) {
+  const targetIsPrivileged = user.role === 'admin' || user.role === 'super_admin';
+  const blockedByPrivilege = targetIsPrivileged && !isSuperAdmin;
+  const disabled = saving || isSelf || blockedByPrivilege || assignable.length === 0;
+
+  const reason = isSelf
+    ? 'You cannot change your own role'
+    : blockedByPrivilege
+      ? 'Only a super admin can change an admin role'
+      : assignable.length === 0
+        ? 'Your role cannot assign roles'
+        : undefined;
+
+  if (disabled) {
+    return <span className="text-xs text-slate-400" title={reason}>{reason ?? '—'}</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <select
+        value={user.role}
+        onChange={(e) => onChange(e.target.value as AdminRole)}
+        data-testid={`role-select-${user.id}`}
+        className="rounded-lg border border-slate-200/80 bg-white/70 px-2 py-1 text-xs text-slate-900 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+      >
+        {ROLE_ORDER.map((role) => (
+          <option
+            key={role}
+            value={role}
+            disabled={role !== user.role && !assignable.includes(role)}
+          >
+            {ROLE_LABELS[role]}
+          </option>
+        ))}
+      </select>
+      {saving && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
     </div>
   );
 }

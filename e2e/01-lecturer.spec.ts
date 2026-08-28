@@ -27,38 +27,45 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
 
   // ── 1. Sign in ────────────────────────────────────────────────────────────
   await loginAs(page, 'lecturer');
-  await caption(page, 'Signed in as a lecturer. Login lands on the student dashboard.');
+  await caption(page, 'Signed in as a lecturer.');
   await expectNoAppCrash(page);
 
   // ── 2. Reach the teaching workspace ───────────────────────────────────────
-  await caption(page, 'Opening the teaching workspace from the sidebar.');
-  const workspaceLink = page.getByRole('link', { name: /teaching workspace/i });
-  await expect(workspaceLink).toBeVisible({ timeout: 20_000 });
-  await workspaceLink.click();
-  await page.waitForURL(/\/instructor/, { timeout: 30_000 });
+  // Current role routing lands lecturers here directly. Keep the navigation
+  // branch for deployments that still land every account on /dashboard.
+  if (!/\/lecturer(?:\/|$)/.test(page.url())) {
+    await caption(page, 'Opening the teaching workspace from the sidebar.');
+    const workspaceLink = page.getByRole('link', { name: /teaching workspace/i });
+    await expect(workspaceLink).toBeVisible({ timeout: 20_000 });
+    await workspaceLink.click();
+    await page.waitForURL(/\/lecturer/, { timeout: 30_000 });
+  }
   await expect(page.getByRole('heading', { name: /your courses/i })).toBeVisible();
-  await caption(page, 'Lecturer workspace. No courses yet.');
+  await caption(page, 'Lecturer workspace.');
 
   // ── 3. Create the course ──────────────────────────────────────────────────
-  await page.getByRole('button', { name: /new course|create your first course/i }).first().click();
-  await caption(page, 'Creating a course: Calculus I, Level 100.');
+  const courseHeading = page.getByRole('heading', { name: COURSE.name });
+  if ((await courseHeading.count()) === 0) {
+    await page.getByRole('button', { name: /new course|create your first course/i }).first().click();
+    await caption(page, 'Creating a course: Calculus I, Level 100.');
 
-  await page.getByPlaceholder('Calculus I').fill(COURSE.name);
-  const idField = page.getByPlaceholder('calculus-101');
-  await idField.fill(COURSE.id);
-  await page.locator('select').first().selectOption('level_100');
-  await page.getByRole('button', { name: /^create course$/i }).click();
+    await page.getByPlaceholder('Calculus I').fill(COURSE.name);
+    const idField = page.getByPlaceholder('calculus-101');
+    await idField.fill(COURSE.id);
+    await page.locator('select').first().selectOption('level_100');
+    await page.getByRole('button', { name: /^create course$/i }).click();
 
-  await expect(page.getByRole('heading', { name: COURSE.name })).toBeVisible({
-    timeout: 30_000,
-  });
-  await caption(page, 'Course created. The id is used for storage and search.');
+    await expect(courseHeading).toBeVisible({ timeout: 30_000 });
+    await caption(page, 'Course created. The id is used for storage and search.');
+  } else {
+    await caption(page, 'Reusing the isolated E2E course from an interrupted run.');
+  }
 
   // ── 4. Open the course workspace ──────────────────────────────────────────
   await page.getByRole('heading', { name: COURSE.name }).click();
-  await page.waitForURL(new RegExp(`/instructor/${COURSE.id}`), { timeout: 30_000 });
+  await page.waitForURL(new RegExp(`/lecturer/${COURSE.id}`), { timeout: 30_000 });
   await expect(page.getByRole('tab', { name: 'Knowledge' })).toBeVisible({ timeout: 30_000 });
-  await caption(page, 'Course workspace: Overview, Knowledge, Students, Videos, Assessments.');
+  await caption(page, 'Course workspace: Overview, Knowledge, Students, Videos, Pre/post tests.');
 
   // ── 5. Upload teaching material ───────────────────────────────────────────
   await page.getByRole('tab', { name: 'Knowledge' }).click();
@@ -79,8 +86,9 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   // Review material — retag before uploading the tutorial sheet.
   const learnBox = page.locator('label', { hasText: /^learn$/i }).locator('input[type=checkbox]');
   const reviewBox = page.locator('label', { hasText: /^review$/i }).locator('input[type=checkbox]');
+  // Labelled "Assessment" on screen; the wire value is still 'application'.
   const appBox = page
-    .locator('label', { hasText: /^application$/i })
+    .locator('label', { hasText: /^assessment$/i })
     .locator('input[type=checkbox]');
 
   await learnBox.uncheck();
@@ -91,10 +99,10 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
     timeout: 60_000,
   });
 
-  // Application material.
+  // Assessment (scenario) material.
   await reviewBox.uncheck();
   await appBox.check();
-  await caption(page, 'Uploading case studies for Application mode.');
+  await caption(page, 'Uploading case studies for Assessment mode.');
   await fileInput.setInputFiles(path.join(MATERIALS_DIR, 'Calculus-I-Applications.docx'));
   await expect(page.getByText('Calculus-I-Applications').first()).toBeVisible({
     timeout: 60_000,
@@ -212,8 +220,10 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   await caption(page, 'Approved — students can now see this animation.');
 
   // ── 10. Assessment ────────────────────────────────────────────────────────
-  await page.getByRole('tab', { name: 'Assessments' }).click();
-  await caption(page, 'Assessments: the pre/post pair that measures learning gain.');
+  // "Pre/post tests", not "Assessments" — Assessment is now the name of a
+  // study mode, so the research instrument was renamed to keep the two apart.
+  await page.getByRole('tab', { name: 'Pre/post tests' }).click();
+  await caption(page, 'Pre/post tests: the pair that measures learning gain.');
   await page.getByTestId('new-assessment').click();
 
   await page.getByTestId('assessment-title').fill('Differentiation — pre-test');

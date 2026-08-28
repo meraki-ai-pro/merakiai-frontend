@@ -1,0 +1,44 @@
+name: Verify Vercel production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-production-verification
+  cancel-in-progress: false
+
+jobs:
+  verify-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://www.merakiai.online
+    steps:
+      - name: Wait for Vercel Git deployment of this exact commit
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          for attempt in {1..36}; do
+            body="$(curl --fail --show-error --silent --max-time 15 \
+              https://www.merakiai.online/api/version || true)"
+            if grep --fixed-strings --quiet "\"commit\":\"${EXPECTED_SHA}\"" <<<"$body"; then
+              echo "Verified production commit ${EXPECTED_SHA}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Vercel did not publish commit ${EXPECTED_SHA} within six minutes" >&2
+          exit 1
+
+      - name: Verify public frontend and backend
+        run: |
+          curl --fail --show-error --silent --retry 6 --retry-delay 5 \
+            https://www.merakiai.online/auth/login >/dev/null
+          curl --fail --show-error --silent --retry 6 --retry-delay 5 \
+            https://api.merakiai.online/health >/dev/null

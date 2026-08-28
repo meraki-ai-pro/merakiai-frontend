@@ -87,14 +87,17 @@ export function Sidebar() {
         <Link
           href="/dashboard/assessments"
           data-testid="nav-assessments"
-          title="Assessments"
+          title="Pre/post tests"
           className={cn(
             'flex items-center rounded-2xl text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-cyan-300/[0.08] dark:hover:text-cyan-100',
             collapsed ? 'h-10 w-10 justify-center' : 'h-10 w-full gap-2 px-3',
           )}
         >
           <ClipboardList className="h-3.5 w-3.5 flex-shrink-0" />
-          {!collapsed && 'Assessments'}
+          {/* "Pre/post tests", not "Assessments" — Assessment is now the
+              name of a study mode, and two things called the same thing in one
+              sidebar is exactly the inconsistency this rename removed. */}
+          {!collapsed && 'Pre/post tests'}
         </Link>
       </div>
 

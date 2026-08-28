@@ -5,7 +5,6 @@ import { adminApiClient } from '@/services/adminApi';
 import type { AdminFeedbackAnalytics } from '@/services/adminApi';
 import {
   MessageSquareHeart,
-  RefreshCw,
   Loader2,
   Star,
   Bug,
@@ -15,6 +14,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FeedbackInbox } from './FeedbackInbox';
 
 function RatingBar({ label, value }: { label: string; value: number }) {
   return (
@@ -65,7 +65,6 @@ export function AdminFeedback() {
   const hasSurveys = !!surveys && surveys.count > 0;
   const userFeedback = data?.user_feedback;
   const byType = userFeedback?.by_type ?? {};
-  const recent = userFeedback?.recent ?? [];
   const totalFeedback = userFeedback?.total ?? 0;
 
   return (
@@ -124,40 +123,10 @@ export function AdminFeedback() {
         </div>
       </div>
 
-      {/* Recent user feedback */}
-      <div className="rounded-2xl border border-white/70 bg-white/[0.78] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/70 dark:border-white/10">
-          <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Recent User Feedback</h2>
-          <button onClick={load} className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-slate-500 dark:text-slate-400" />
-          </div>
-        ) : recent.length === 0 ? (
-          <div className="flex flex-col items-center py-12">
-            <MessageSquareHeart className="h-10 w-10 text-slate-500 dark:text-slate-400 mb-3" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">No feedback submitted yet</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-200/60 dark:divide-white/[0.06]">
-            {recent.map((fb) => (
-              <div key={fb.id} className="px-6 py-4 hover:bg-slate-950/[0.03] dark:hover:bg-white/[0.04] transition-colors">
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <FeedbackTypeIcon type={fb.feedback_type} />
-                  <span className="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">
-                    {new Date(fb.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-950 dark:text-white leading-relaxed">{fb.message}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* The submissions themselves. Replaces the old "Recent User Feedback"
+          list, which showed twenty messages with no author, no role and no
+          course, and read only two of the three feedback tables. */}
+      <FeedbackInbox />
     </div>
   );
 }

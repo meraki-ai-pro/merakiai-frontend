@@ -49,6 +49,9 @@ export const API_ENDPOINTS = {
   AUTH_SIGNUP: '/auth/signup',
   AUTH_FORGOT_PASSWORD: '/auth/forgot-password',
   AUTH_RESET_PASSWORD: '/auth/reset-password',
+  // Signed-in password change. Distinct from reset: this one requires the
+  // current password, so a stolen token alone cannot take an account over.
+  AUTH_UPDATE_PASSWORD: '/auth/update-password',
 
   // RAG/Chat (Learn mode voice input only — text goes via WebSocket)
   RAG_TURN: '/rag/turn',
@@ -96,25 +99,71 @@ export const AUDIO_CONSTRAINTS = {
   },
 } as const;
 
-// ─── Application (Practice) session types ────────────────────────────────────
-// These are sent as session_type to the backend. The backend mode is
-// 'application'; the UI labels them as "Practice" for student-facing copy.
+// ─── Roles ───────────────────────────────────────────────────────────────────
+// Mirrors ADMIN_ROLES in app/core/auth.py. A `super_admin` IS an admin and
+// then some; writing `role === 'admin'` locks them out of the very console
+// they have the most authority over — which is exactly what happened, and it
+// made the super-admin-only role management unreachable by super admins.
 //
-// The values must stay domain-neutral. They are not opaque ids: the backend
-// puts session_type into the retrieval seed and states it in the prompt
-// (modes_sessions/service.py), so the froth-flotation values these once had —
-// flotation_basics, reagents, surface_chemistry — were steering retrieval on
-// every other course. A Calculus student picking "Core Concepts" was asking
-// for flotation basics.
-export const PRACTICE_SESSION_TYPES = [
-  { value: 'core_concepts',     label: 'Core Concepts' },
-  { value: 'key_terms',         label: 'Key Terms' },
-  { value: 'applied_concepts',  label: 'Applied Concepts' },
-  { value: 'problem_solving',   label: 'Problem Solving' },
-  { value: 'advanced_concepts', label: 'Advanced Concepts' },
-] as const;
+// A lecturer is deliberately absent: lecturer authority is scoped to owned
+// courses, never platform-wide.
+export const ADMIN_ROLES = ['admin', 'super_admin'] as const;
 
-// ─── Review session types ─────────────────────────────────────────────────────
+export function isAdminRole(role: string | null | undefined): boolean {
+  return ADMIN_ROLES.includes((role ?? '') as (typeof ADMIN_ROLES)[number]);
+}
+
+// ─── Mode vocabulary ─────────────────────────────────────────────────────────
+// The product says Learn / Review / Assessment. The WIRE VALUE for the third
+// is still 'application' — renaming it would touch sessions, mode_sessions,
+// document_chunks, every stored conversation and the Pinecone namespaces, for
+// no user-visible benefit. So: 'application' on the wire, "Assessment" in
+// anything a person reads. Use MODE_LABELS rather than writing either word by
+// hand, which is how "Practice" ended up in nine components and this file.
+export type TutorMode = 'learn' | 'review' | 'application';
+
+export const MODE_LABELS: Record<TutorMode, string> = {
+  learn: 'Learn',
+  review: 'Review',
+  application: 'Assessment',
+};
+
+export const MODE_LABELS_PLURAL: Record<TutorMode, string> = {
+  learn: 'Learn',
+  review: 'Review',
+  application: 'Assessments',
+};
+
+/** Label for a mode value from anywhere, including legacy 'practice' rows. */
+export function modeLabel(mode: string | null | undefined): string {
+  const key = (mode ?? '').toLowerCase();
+  if (key === 'practice') return MODE_LABELS.application; // pre-rename rows
+  return MODE_LABELS[key as TutorMode] ?? 'Learn';
+}
+
+// ─── Assessment (application) scenario types ─────────────────────────────────
+// The picker these fed is GONE — removed at the client's request. The five
+// options were generic labels a student had no basis to choose between, and
+// picking one narrowed the retrieval seed to a slice of the course for no
+// pedagogical reason. New sessions send no session_type and the server fills
+// in a neutral placeholder.
+//
+// Kept only to LABEL sessions started before the change: mode_sessions rows
+// carry these values, and an old session that rendered as "Assessment —
+// problem_solving" must not start rendering as "Assessment — undefined".
+export const LEGACY_SCENARIO_TYPE_LABELS: Record<string, string> = {
+  core_concepts: 'Core Concepts',
+  key_terms: 'Key Terms',
+  applied_concepts: 'Applied Concepts',
+  problem_solving: 'Problem Solving',
+  advanced_concepts: 'Advanced Concepts',
+  general: 'General',
+};
+
+// ─── Review question formats ─────────────────────────────────────────────────
+// Flashcard was removed at the client's request. The backend still ACCEPTS it
+// on the wire, because a student half-way through a flashcard set when this
+// shipped must be able to finish it — it is simply no longer offered.
 export const REVIEW_SESSION_TYPES = [
   {
     value: 'mcq',
@@ -127,18 +176,22 @@ export const REVIEW_SESSION_TYPES = [
     desc: 'Complete the sentence with the missing term',
   },
   {
-    value: 'flashcard',
-    label: 'Flashcard',
-    desc: 'Explain a concept shown on the front',
-  },
-  {
     value: 'short_answer',
     label: 'Short Answer',
     desc: 'Write a concise answer to an exam-style question',
   },
 ] as const;
 
+/** The same three formats as the lecturer tags uploaded Review material with. */
+export const QUESTION_FORMATS = REVIEW_SESSION_TYPES.map((t) => ({
+  value: t.value,
+  label: t.label,
+})) as ReadonlyArray<{ value: string; label: string }>;
+
 export const DIFFICULTY_LEVELS = ['Basic', 'Intermediate', 'Advanced'] as const;
+
+/** What the API stores: lowercase, matching documents_difficulty_check. */
+export const DIFFICULTY_VALUES = ['basic', 'intermediate', 'advanced'] as const;
 
 // ─── Last-resort course id ────────────────────────────────────────────────────
 // Empty on purpose. A session's course now comes from the student's own

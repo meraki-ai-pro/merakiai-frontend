@@ -79,11 +79,25 @@ export class MerakiWebSocket {
     };
 
     this.ws.onmessage = (event) => {
+      // Parsing and handling are guarded SEPARATELY on purpose.
+      //
+      // One try/catch around both swallows every exception the application's
+      // handler throws and reports it as "malformed socket message" — so a
+      // rendering bug looks exactly like a protocol problem: frames arrive,
+      // nothing appears on screen, and the console stays clean. That cost an
+      // afternoon once; a handler that throws must be loud.
+      let msg: WsIncoming;
       try {
-        const msg: WsIncoming = JSON.parse(event.data);
-        this.onMessage(msg);
+        msg = JSON.parse(event.data);
       } catch {
-        /* ignore malformed socket messages */
+        console.warn('[ws] ignoring malformed frame', String(event.data).slice(0, 200));
+        return;
+      }
+
+      try {
+        this.onMessage(msg);
+      } catch (err) {
+        console.error('[ws] handler threw while applying a frame', msg, err);
       }
     };
 

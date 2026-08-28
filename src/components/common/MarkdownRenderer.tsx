@@ -13,7 +13,7 @@ import { CitationBadge } from '@/components/sources/CitationBadge';
 interface MarkdownRendererProps {
   content: string;
   /** Larger display maths and looser spacing, for the presentation board. */
-  variant?: 'chat' | 'board';
+  variant?: 'chat' | 'board' | 'question';
 }
 
 /**
@@ -68,7 +68,15 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   );
 
   return (
-    <div className={variant === 'board' ? 'meraki-markdown meraki-board-markdown' : 'meraki-markdown'}>
+    <div
+      className={
+        variant === 'board'
+          ? 'meraki-markdown meraki-board-markdown'
+          : variant === 'question'
+            ? 'meraki-markdown meraki-question-markdown'
+            : 'meraki-markdown'
+      }
+    >
       <ReactMarkdown
         remarkPlugins={[remarkMath]}
         rehypePlugins={[

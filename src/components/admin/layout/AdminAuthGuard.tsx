@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { apiClient } from '@/services/api';
 import { tokenStore } from '@/services/api';
 import { useUserStore } from '@/store/userStore';
+import { isAdminRole } from '@/lib/constants';
 
 /**
  * AdminAuthGuard — client-side protection for /admin/* routes.
@@ -30,7 +31,9 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
       // If the store already has a fully-hydrated user with role, use it
       if (storeUser?.role) {
-        if (storeUser.role === 'admin') {
+        // isAdminRole, not === 'admin': a super_admin outranks an admin, and
+        // testing for equality bounced them to /dashboard.
+        if (isAdminRole(storeUser.role)) {
           setAuthorized(true);
         } else {
           router.replace('/dashboard');
@@ -49,7 +52,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
       // Hydrate store with full profile
       setUser(res.data);
 
-      if (res.data.role !== 'admin') {
+      if (!isAdminRole(res.data.role)) {
         router.replace('/dashboard');
         return;
       }

@@ -19,6 +19,7 @@ export interface LoginResponse {
   refresh_token?: string;
   expires_in?: number;
   token_type: string;
+  must_change_password?: boolean;
 }
 
 export interface SignupResponse {
@@ -139,6 +140,13 @@ export interface UserProfileResponse {
   id: string;
   email: string;
   role: string;
+  /** Null until the account fills them in — a Google sign-up has none. */
+  first_name?: string | null;
+  last_name?: string | null;
+  university_name?: string | null;
+  region?: string | null;
+  country?: string | null;
+  profile_picture_url?: string | null;
   avatar_id: string;
   avatar_provider: string;
   avatar_gender: 'male' | 'female';
@@ -146,6 +154,28 @@ export interface UserProfileResponse {
   voice_id: string;
   voice_gender: 'male' | 'female';
   created_at: string;
+}
+
+/**
+ * PATCH /users/me. Every field optional and only the changed ones are sent —
+ * the API uses exclude_unset, so posting the whole form would not blank
+ * anything, but sending less is still less to get wrong.
+ *
+ * `email` and `role` are deliberately absent: email is an auth identity that
+ * needs Supabase's verification round trip, and a self-service role field
+ * would be a privilege escalation.
+ */
+export interface UpdateProfileRequest {
+  first_name?: string;
+  last_name?: string;
+  university_name?: string;
+  region?: string;
+  country?: string;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
 }
 
 export interface AvatarSelectRequest {
@@ -170,6 +200,15 @@ export interface SessionSurveyRequest {
 
 export interface UserFeedbackRequest {
   session_id?: string | null;
+  /**
+   * What the person was studying or teaching.
+   *
+   * Without it, "the derivative in step 3 is wrong" arrives in the admin inbox
+   * as an orphaned sentence. The server prefers the session's own course when
+   * there is a session, so this only decides the attribution for feedback sent
+   * outside one — which is most of it, and all of a lecturer's.
+   */
+  course_id?: string | null;
   feedback_type: 'bug' | 'suggestion' | 'content' | 'ux' | 'other';
   message: string;
 }
@@ -181,12 +220,12 @@ export interface FeedbackResponse {
 
 // ─── Mode Sessions (Application / Review) ────────────────────────────────────
 //
-// NOTE: The backend uses 'application' for what the UI labels "Practice".
+// NOTE: The backend uses 'application' for what the UI labels "Assessment".
 //       All API types use 'application'; the UI layer translates for display.
 
 export interface ModeSessionStartRequest {
   session_id: string;
-  // 'application' = what UI calls "Practice"
+  // 'application' = what UI calls "Assessment"
   mode: 'application' | 'review';
   session_type: string;
   difficulty?: 'Basic' | 'Intermediate' | 'Advanced';

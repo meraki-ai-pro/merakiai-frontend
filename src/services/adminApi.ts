@@ -20,6 +20,60 @@ export interface AdminUser {
   created_at: string;
 }
 
+/**
+ * Who may hand out which role. Mirrors _ASSIGNABLE_BY in
+ * app/api/v1/admin/users.py.
+ *
+ * Duplicated here ONLY to grey out controls the caller cannot use. The server
+ * enforces it independently — a client-side check is a courtesy, never the
+ * boundary, and hiding a button is not authorisation.
+ */
+export const ASSIGNABLE_ROLES: Record<string, readonly AdminRole[]> = {
+  admin: ['user', 'lecturer'],
+  super_admin: ['user', 'lecturer', 'admin', 'super_admin'],
+};
+
+export type AdminRole = 'user' | 'lecturer' | 'admin' | 'super_admin';
+
+export const ROLE_LABELS: Record<AdminRole, string> = {
+  user: 'Student',
+  lecturer: 'Lecturer',
+  admin: 'Admin',
+  super_admin: 'Super admin',
+};
+
+/** One piece of feedback, with its author, from GET /admin/feedback. */
+export interface AdminFeedbackItem {
+  id: string;
+  source: 'user_feedback' | 'session_survey' | 'feedback_suite';
+  kind: string | null;
+  message: string | null;
+  ratings: Record<string, number | string | null> | null;
+  structured_answers?: Record<string, unknown>;
+  course_id: string | null;
+  session_id: string | null;
+  created_at: string;
+  author: {
+    name: string | null;
+    email: string | null;
+    /** Role AT SUBMISSION where it was recorded, not the account's role now. */
+    role: string;
+    current_role?: string | null;
+    deleted: boolean;
+  };
+}
+
+export interface AdminFeedbackPage {
+  items: AdminFeedbackItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  days: number;
+  by_role: Record<string, number>;
+  by_source: Record<string, number>;
+  by_kind: Record<string, number>;
+}
+
 export interface AdminDocument {
   id: string;
   title: string;
@@ -252,6 +306,20 @@ class AdminApiClient {
     return this.request<AdminUser>(`/admin/users/${userId}`);
   }
 
+  /**
+   * PATCH /admin/users/{id}/role.
+   *
+   * Granting or revoking admin is super-admin territory in BOTH directions —
+   * letting an ordinary admin demote a super admin would be an escalation by
+   * removal. The server decides; this just calls it.
+   */
+  updateUserRole(userId: string, role: AdminRole) {
+    return this.request<{ status: string; user_id: string; new_role: string }>(
+      `/admin/users/${userId}/role`,
+      { method: 'PATCH', body: JSON.stringify({ role }) }
+    );
+  }
+
   // ─── Sessions (aggregate analytics — no per-session admin list exists) ─────
   getSessionAnalytics(days = 30) {
     return this.request<AdminSessionAnalytics>(`/admin/analytics/sessions?days=${days}`);
@@ -285,9 +353,37 @@ class AdminApiClient {
     );
   }
 
-  // ─── Feedback (aggregate analytics) ────────────────────────────────────────
+  // ─── Feedback ──────────────────────────────────────────────────────────────
+
+  /** Averages and counts. Answers "how are we doing", not "who said this". */
   getFeedbackAnalytics(days = 90) {
     return this.request<AdminFeedbackAnalytics>(`/admin/analytics/feedback?days=${days}`);
+  }
+
+  /**
+   * The submissions themselves, with their authors, across all three feedback
+   * tables — including feedback_responses, which nothing on the admin side
+   * used to read at all, so every NPS and mode survey was invisible.
+   */
+  getFeedbackInbox(
+    opts: {
+      days?: number;
+      role?: string;
+      source?: string;
+      courseId?: string;
+      page?: number;
+      pageSize?: number;
+    } = {}
+  ) {
+    const q = new URLSearchParams({
+      days: String(opts.days ?? 90),
+      page: String(opts.page ?? 1),
+      page_size: String(Math.min(opts.pageSize ?? 50, 200)),
+    });
+    if (opts.role) q.set('role', opts.role);
+    if (opts.source) q.set('source', opts.source);
+    if (opts.courseId) q.set('course_id', opts.courseId);
+    return this.request<AdminFeedbackPage>(`/admin/feedback?${q.toString()}`);
   }
 
   // ─── LLM configuration (Settings page) ─────────────────────────────────────

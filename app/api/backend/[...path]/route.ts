@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // free-tier browser interstitial. The skip header is added here for good
 // measure. Point NEXT_PUBLIC_API_BASE at "/api/backend" to route through this.
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const UPSTREAM_TIMEOUT_MS = 10_000;
 
 async function forward(request: NextRequest, path: string[]): Promise<NextResponse> {
   const backendPath = path.join('/');
@@ -25,24 +26,34 @@ async function forward(request: NextRequest, path: string[]): Promise<NextRespon
 
   const hasBody = method !== 'GET' && method !== 'HEAD';
   const body = hasBody ? await request.arrayBuffer() : undefined;
+  const requestUpstream = (url: URL) =>
+    fetch(url, {
+      method,
+      headers,
+      body,
+      cache: 'no-store',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
 
   let response: Response;
   try {
     // redirect: 'manual' so we can re-resolve FastAPI's trailing-slash 307
     // against the backend origin. Auto-follow fails here because the redirect
     // Location can carry an http/host that isn't re-fetchable behind ngrok.
-    response = await fetch(target, { method, headers, body, cache: 'no-store', redirect: 'manual' });
+    response = await requestUpstream(target);
     if ([301, 302, 307, 308].includes(response.status)) {
       const location = response.headers.get('location');
       if (location) {
         const resolved = new URL(location, target);
         const fixed = new URL(resolved.pathname + resolved.search, BACKEND_URL);
-        response = await fetch(fixed, { method, headers, body, cache: 'no-store' });
+        response = await requestUpstream(fixed);
       }
     }
   } catch (err) {
+    console.error('[backend-proxy] upstream request failed', err);
     return NextResponse.json(
-      { detail: `Upstream request failed: ${err instanceof Error ? err.message : 'unknown'}` },
+      { detail: 'The backend service is temporarily unavailable.' },
       { status: 502 },
     );
   }
@@ -66,6 +77,13 @@ export async function POST(request: NextRequest, ctx: Ctx) {
   return forward(request, (await ctx.params).path);
 }
 export async function PATCH(request: NextRequest, ctx: Ctx) {
+  return forward(request, (await ctx.params).path);
+}
+// PUT is forwarded like the rest. forward() has always been method-agnostic —
+// only the exported handler was missing, so a PUT endpoint 405'd at the proxy
+// while working perfectly when called directly. That gap is invisible to any
+// test that talks to the backend port instead of going through the app.
+export async function PUT(request: NextRequest, ctx: Ctx) {
   return forward(request, (await ctx.params).path);
 }
 export async function DELETE(request: NextRequest, ctx: Ctx) {

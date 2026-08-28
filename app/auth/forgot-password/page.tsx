@@ -1,7 +1,7 @@
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
-import { ArrowLeft, BookOpenCheck, FlaskConical, MessageSquare } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata = {
@@ -20,34 +20,23 @@ export default function ForgotPasswordPage() {
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl items-center justify-center">
         <div className="grid w-full overflow-hidden rounded-[32px] border border-white/[0.7] bg-white/[0.08]0 shadow-2xl shadow-blue-950/[0.1] backdrop-blur-xl dark:border-white/[0.1] dark:bg-white/[0.06] lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="hidden items-center justify-center bg-[#edf6fb] p-10 dark:bg-slate-950 lg:flex">
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-4">
-                <span className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-blue-200/80 bg-white/75 shadow-xl shadow-blue-900/[0.1] backdrop-blur-md dark:border-cyan-100/[0.25] dark:bg-white/[0.1] dark:shadow-cyan-500/[0.12]">
-                  <MerakiLogo variant="color" className="h-9 w-9 dark:hidden" decorative />
-                  <MerakiLogo variant="white" className="hidden h-9 w-9 dark:block" decorative />
-                </span>
-                <span className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">Meraki</span>
-              </div>
-              <p className="mt-10 text-center text-2xl font-semibold text-slate-900 dark:text-white">
-                Your space to learn better.
-              </p>
-              <div className="mt-8 flex items-center gap-4">
-                {[
-                  { icon: MessageSquare, label: 'Learn' },
-                  { icon: FlaskConical, label: 'Practice' },
-                  { icon: BookOpenCheck, label: 'Review' },
-                ].map(({ icon: Icon, label }) => (
-                  <span
-                    key={label}
-                    className="flex min-w-24 flex-col items-center gap-3 rounded-2xl border border-blue-200/80 bg-white/65 px-5 py-4 text-blue-700 shadow-sm backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:text-cyan-100"
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                  </span>
-                ))}
+          <div className="hidden bg-[#edf6fb] p-10 text-slate-950 dark:bg-slate-950 dark:text-white lg:block">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-blue-200 bg-white/80 shadow-lg shadow-blue-600/[0.12] dark:border-cyan-200/[0.5] dark:bg-white/[0.12] dark:shadow-none">
+                <MerakiLogo variant="color" className="h-7 w-7 dark:hidden" decorative />
+                <MerakiLogo variant="white" className="hidden h-7 w-7 dark:block" decorative />
+              </span>
+              <div>
+                <p className="text-xl font-semibold">Meraki</p>
+                <p className="text-xs text-blue-700 dark:text-cyan-100/[0.8]">AI learning workspace</p>
               </div>
             </div>
+            <h1 className="mt-24 text-balance text-5xl font-semibold leading-tight">
+              Get back to your Learn, Review, and Assessment flow.
+            </h1>
+            <p className="mt-5 text-base leading-7 text-slate-600 dark:text-slate-300">
+              Request a secure reset link, then return to your saved conversations and study sessions.
+            </p>
           </div>
 
           <div className="p-6 sm:p-8 lg:p-12">
