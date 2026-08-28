@@ -36,7 +36,7 @@ export default function LoginPage() {
               Sign in to Meraki
             </h1>
             <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Continue learning, practicing, and reviewing with Meraki.
+              Continue learning, reviewing, and working through assessments with Meraki.
             </p>
           </div>
 

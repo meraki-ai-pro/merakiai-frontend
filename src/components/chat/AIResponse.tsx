@@ -14,25 +14,10 @@ import { SourcesProvider } from '@/components/sources/SourcesContext';
 import { SourcesBar } from '@/components/sources/SourcesBar';
 import { PracticeEvalCard, PracticeCompletedCard } from '@/components/mode/PracticeModeUI';
 import { ReviewEvalCard, ReviewCompletedCard } from '@/components/mode/ReviewModeUI';
+import { ModePromptCard } from '@/components/mode/ModePromptCard';
 
 interface AIResponseProps {
   message: Message;
-}
-
-/**
- * Strip MCQ options (lines matching "A. …", "B) …", "**C.** …") from a
- * question string and return only the question text.
- *
- * MCQ options are rendered interactively as radio buttons in InputArea, so
- * they should NOT also appear inline in the question bubble.
- */
-function stripMcqOptions(content: string): string {
-  const optionRegex = /^\*{0,2}[A-D][.)]\*{0,2}\s+.+/i;
-  return content
-    .split('\n')
-    .filter((line) => !optionRegex.test(line.trim()))
-    .join('\n')
-    .trim();
 }
 
 // Course of the open session, needed to resolve `::: video` slides. Read from
@@ -160,24 +145,7 @@ export function AIResponse({ message }: AIResponseProps) {
             )}
 
             {isModePrompt && (() => {
-              if (message.mode === 'review') {
-                // Strip MCQ options — they are rendered as interactive radio
-                // buttons in InputArea. Showing them here too would duplicate them.
-                const questionOnly = stripMcqOptions(message.content);
-
-                return (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 shadow-sm dark:border-amber-300/[0.2] dark:bg-amber-300/[0.06]">
-                    <MarkdownRenderer content={questionOnly} />
-                  </div>
-                );
-              }
-
-              // Practice prompt
-              return (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 shadow-sm dark:border-emerald-300/[0.2] dark:bg-emerald-300/[0.06]">
-                  <MarkdownRenderer content={message.content} />
-                </div>
-              );
+              return <ModePromptCard content={message.content} mode={message.mode as 'application' | 'review'} />;
             })()}
           </>
 

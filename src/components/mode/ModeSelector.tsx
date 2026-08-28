@@ -3,11 +3,16 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FlaskConical, ClipboardCheck, X, ChevronRight, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
-import { PRACTICE_SESSION_TYPES, REVIEW_SESSION_TYPES, DIFFICULTY_LEVELS } from '@/lib/constants';
+import { REVIEW_SESSION_TYPES, DIFFICULTY_LEVELS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 interface ModeSelectorProps {
   mode: 'application' | 'review';
+  /**
+   * `sessionType` is the question format for Review and is EMPTY for
+   * Assessment — that mode no longer has a topic to pick, so the server fills
+   * in a neutral placeholder rather than the client inventing one.
+   */
   onStart: (
     mode: 'application' | 'review',
     sessionType: string,
@@ -20,10 +25,12 @@ interface ModeSelectorProps {
 }
 
 // ─── Keyed by the actual backend mode value ('application' | 'review') ────────
+// 'application' is the wire value; "Assessment" is what a student reads. See
+// MODE_LABELS in lib/constants.
 const MODE_META = {
   application: {
     icon: FlaskConical,
-    label: 'Practice',
+    label: 'Assessment',
     color: 'text-emerald-400',
     bg: 'bg-emerald-500/10',
     ring: 'ring-emerald-500/20',
@@ -33,12 +40,13 @@ const MODE_META = {
     description: 'Apply your knowledge to a real-world scenario with guided steps and AI feedback.',
     // How-it-works steps shown below the header
     howItWorks: [
-      'You receive a realistic scenario or exercise to solve.',
+      'You receive a realistic scenario or exercise drawn from your course material.',
       'Answer each of 3 guided sub-questions in your own words.',
       'After each answer the AI evaluates your response, highlights what you got right and what you missed, then presents the next step.',
       'At the end you receive a summary of key learning points.',
     ],
-    topicLabel: 'Scenario Topic',
+    // No topic picker: Assessment scenarios are drawn from the whole course.
+    topicLabel: null,
     loadingLabel: 'scenario',
   },
   review: {
@@ -51,7 +59,7 @@ const MODE_META = {
     loadingColor: 'text-amber-400',
     description: 'Test your understanding with adaptive quiz questions that adjust to your performance.',
     howItWorks: [
-      'Choose a question format: Multiple Choice, Fill in the Blank, Flashcard, or Short Answer.',
+      'Choose a question format: Multiple Choice, Fill in the Blank, or Short Answer.',
       'Answer up to 10 questions one at a time.',
       'After each answer the AI grades your response and explains the correct reasoning.',
       'Difficulty adjusts automatically — harder questions when you score well, easier ones when you need more practice.',
@@ -75,12 +83,15 @@ export function ModeSelector({
   defaultSessionType,
   defaultDifficulty,
 }: ModeSelectorProps) {
-  const sessionTypes = mode === 'application' ? PRACTICE_SESSION_TYPES : REVIEW_SESSION_TYPES;
   const meta = MODE_META[mode]; // always defined — keyed on 'application' | 'review'
   const Icon = meta.icon;
 
+  // Review picks a question format; Assessment has nothing to pick.
+  const sessionTypes: ReadonlyArray<{ value: string; label: string; desc?: string }> =
+    mode === 'review' ? REVIEW_SESSION_TYPES : [];
+
   const [sessionType, setSessionType] = useState<string>(
-    defaultSessionType ?? sessionTypes[0].value
+    defaultSessionType ?? sessionTypes[0]?.value ?? ''
   );
   const [difficulty, setDifficulty] = useState<'Basic' | 'Intermediate' | 'Advanced'>(
     defaultDifficulty ?? 'Basic'
@@ -152,7 +163,9 @@ export function ModeSelector({
         {/* ── Body (scrollable) ─────────────────────────────────────────────── */}
         <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
 
-          {/* Topic / Question type */}
+          {/* Question format — Review only. Assessment scenarios are drawn
+              from the whole course, so there is nothing here to choose. */}
+          {meta.topicLabel && sessionTypes.length > 0 && (
           <div>
             <label className="mb-2.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {meta.topicLabel}
@@ -191,6 +204,7 @@ export function ModeSelector({
               })}
             </div>
           </div>
+          )}
 
           {/* Difficulty */}
           <div>

@@ -1,0 +1,61 @@
+name: Deploy frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Pull protected Vercel configuration
+        run: pnpm dlx vercel@59.9.1 pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build with Vercel's production environment
+        run: pnpm dlx vercel@59.9.1 build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy the prebuilt production bundle
+        id: deploy
+        shell: bash
+        run: |
+          url="$(pnpm dlx vercel@59.9.1 deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $url" >> "$GITHUB_STEP_SUMMARY"
+
+  verify-production:
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify public frontend and backend
+        env:
+          FRONTEND_URL: ${{ needs.deploy-production.outputs.url }}
+        run: |
+          curl --fail --show-error --silent --retry 6 --retry-delay 5 "$FRONTEND_URL/auth/login" >/dev/null
+          curl --fail --show-error --silent --retry 6 --retry-delay 5 https://api.merakiai.online/health

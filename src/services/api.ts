@@ -21,10 +21,15 @@ import type {
   KnowledgeFile,
   KnowledgePatch,
   KnowledgeUploadOptions,
-  InstructorCourse,
-  InstructorCourseCreate,
+  LecturerCourse,
+  LecturerCourseCreate,
   RenderAsset,
   RenderRequestBody,
+  LecturerVoice,
+  RenderRegenerateBody,
+  RosterImportResult,
+  EnrolmentInvitation,
+  CourseMastery,
   TestQueryResponse,
   LoginResponse,
   SignupRequest,
@@ -38,6 +43,8 @@ import type {
   VideoToggleResponse,
   EndSessionResponse,
   UserProfileResponse,
+  UpdateProfileRequest,
+  ChangePasswordRequest,
   AvatarSelectRequest,
   AvatarSelectResponse,
   SessionSurveyRequest,
@@ -294,23 +301,23 @@ class ApiClient {
     );
   }
 
-  listInstructorCourses() {
-    return this.request<{ courses: InstructorCourse[] }>('/lecturer/courses');
+  listLecturerCourses() {
+    return this.request<{ courses: LecturerCourse[] }>('/lecturer/courses');
   }
 
-  createInstructorCourse(body: InstructorCourseCreate) {
-    return this.request<{ course: InstructorCourse }>('/lecturer/courses', {
+  createLecturerCourse(body: LecturerCourseCreate) {
+    return this.request<{ course: LecturerCourse }>('/lecturer/courses', {
       method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
-  getInstructorCourse(courseId: string) {
-    return this.request<{ course: InstructorCourse }>(`/lecturer/courses/${courseId}`);
+  getLecturerCourse(courseId: string) {
+    return this.request<{ course: LecturerCourse }>(`/lecturer/courses/${courseId}`);
   }
 
-  updateInstructorCourse(courseId: string, body: Partial<InstructorCourseCreate>) {
-    return this.request<{ course: InstructorCourse }>(`/lecturer/courses/${courseId}`, {
+  updateLecturerCourse(courseId: string, body: Partial<LecturerCourseCreate>) {
+    return this.request<{ course: LecturerCourse }>(`/lecturer/courses/${courseId}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
@@ -327,12 +334,19 @@ class ApiClient {
     const params = new URLSearchParams({
       doc_type: opts.docType ?? 'knowledge',
       default_mode: opts.defaultMode ?? 'learn',
-      difficulty: opts.difficulty ?? 'beginner',
+      // 'basic', not 'beginner' — documents_difficulty_check allows exactly
+      // basic|intermediate|advanced, and 'beginner' 500'd every upload that
+      // did not name a difficulty until the server started translating it.
+      difficulty: opts.difficulty ?? 'basic',
       version: opts.version ?? '1',
       is_published: String(opts.isPublished ?? false),
     });
     if (opts.targetModes?.length) params.set('target_modes', opts.targetModes.join(','));
     if (opts.topic) params.set('topic', opts.topic);
+    // Review material only. The API rejects formats on a file not tagged for
+    // Review rather than storing a tag that can never apply.
+    if (opts.questionFormats?.length)
+      params.set('question_formats', opts.questionFormats.join(','));
 
     const form = new FormData();
     form.append('file', file);
@@ -399,6 +413,36 @@ class ApiClient {
     );
   }
 
+  /**
+   * POST .../students/import — enrol a whole class from a spreadsheet.
+   *
+   * Rows whose address has no account yet come back under `invited`, NOT
+   * `enrolled`: they become enrolments when that person signs up. Surfacing
+   * the two separately is the difference between an import that looks like it
+   * did nothing and one the lecturer can trust.
+   */
+  importCourseStudents(courseId: string, file: File) {
+    const form = new FormData();
+    form.append('file', file);
+    return this.request<RosterImportResult>(
+      `/lecturer/courses/${courseId}/students/import`,
+      { method: 'POST', body: form }
+    );
+  }
+
+  listEnrolmentInvitations(courseId: string) {
+    return this.request<{ invitations: EnrolmentInvitation[]; available?: boolean }>(
+      `/lecturer/courses/${courseId}/students/invitations`
+    );
+  }
+
+  cancelEnrolmentInvitation(courseId: string, invitationId: string) {
+    return this.request<{ invitation_id: string }>(
+      `/lecturer/courses/${courseId}/students/invitations/${invitationId}`,
+      { method: 'DELETE' }
+    );
+  }
+
   changeEnrolmentStatus(courseId: string, enrolmentId: string, status: string) {
     return this.request<{ new_status: string }>(
       `/lecturer/courses/${courseId}/students/${enrolmentId}`,
@@ -406,8 +450,87 @@ class ApiClient {
     );
   }
 
+  // ─── Lecturer voices ──────────────────────────────────────────────────
+  //
+  // A voice belongs to the LECTURER and is attached to any of their courses,
+  // so recording once serves every course they teach.
+
+  listLecturerVoices() {
+    return this.request<{ voices: LecturerVoice[]; available?: boolean }>(
+      '/lecturer/voices'
+    );
+  }
+
+  /** Clone a voice from a browser recording. `seconds` is what the client
+   *  measured — the server uses it to refuse samples too short to clone well. */
+  createLecturerVoice(recording: Blob, name: string, seconds: number) {
+    const form = new FormData();
+    // Named so the server sees a sensible filename; MediaRecorder blobs have none.
+    form.append('sample', recording, 'recording.webm');
+    form.append('name', name);
+    form.append('seconds', String(Math.round(seconds)));
+    return this.request<{ voice: LecturerVoice }>('/lecturer/voices', {
+      method: 'POST',
+      body: form,
+    });
+  }
+
+  /** Returns an object URL for the preview audio, or null. Caller revokes it. */
+  async previewLecturerVoice(voiceId: string): Promise<string | null> {
+    try {
+      const res = await fetch(`${this.baseUrl}/lecturer/voices/${voiceId}/preview`, {
+        method: 'POST',
+        headers: this.authHeaders(),
+      });
+      if (!res.ok) return null;
+      return URL.createObjectURL(await res.blob());
+    } catch {
+      return null;
+    }
+  }
+
+  renameLecturerVoice(voiceId: string, name: string) {
+    return this.request<{ voice_id: string }>(`/lecturer/voices/${voiceId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  deleteLecturerVoice(voiceId: string) {
+    return this.request<{ voice_id: string }>(`/lecturer/voices/${voiceId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /** Attach a voice to one course, or pass null to use the default narrator. */
+  setCourseVoice(courseId: string, voiceId: string | null) {
+    return this.request<{ course_id: string; voice_id: string | null }>(
+      `/lecturer/courses/${courseId}/voice`,
+      { method: 'PUT', body: JSON.stringify({ voice_id: voiceId }) }
+    );
+  }
+
+  /**
+   * POST /narration/board — audio for one lesson-board slide, in the course's
+   * voice. Cached server-side by voice + text, so a cohort synthesises each
+   * slide once.
+   */
+  narrateBoardSlide(courseId: string, text: string) {
+    return this.request<{ url?: string; cached?: boolean }>('/narration/board', {
+      method: 'POST',
+      body: JSON.stringify({ course_id: courseId, text }),
+    });
+  }
+
   getCourseAnalytics(courseId: string) {
     return this.request<CourseAnalytics>(`/lecturer/courses/${courseId}/analytics`);
+  }
+
+  /** Per-topic and per-student mastery — who needs help with what. */
+  getCourseMastery(courseId: string) {
+    return this.request<CourseMastery>(
+      `/lecturer/courses/${courseId}/analytics/mastery`
+    );
   }
 
   /** GET /render/archetypes — visual styles, and which renderer each routes to. */
@@ -432,6 +555,20 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ approved, note: note ?? null }),
     });
+  }
+
+  /**
+   * POST /render/{id}/regenerate — re-render a concept from an edited prompt.
+   *
+   * Creates a NEW asset. The video students currently see keeps serving until
+   * the revision is approved, so a bad regeneration never leaves the course
+   * with nothing for the minutes a re-render takes.
+   */
+  regenerateRenderAsset(assetId: string, body: RenderRegenerateBody) {
+    return this.request<{ status: string; asset: RenderAsset; replaces: string }>(
+      `/render/${assetId}/regenerate`,
+      { method: 'POST', body: JSON.stringify(body) }
+    );
   }
 
   requestRender(body: RenderRequestBody) {
@@ -511,6 +648,32 @@ class ApiClient {
   // ─── User Profile ─────────────────────────────────────────────────────────
   getUserProfile() {
     return this.request<UserProfileResponse>(API_ENDPOINTS.USERS_ME);
+  }
+
+  /**
+   * PATCH /users/me — edit your own profile.
+   *
+   * One endpoint for students, lecturers and admins. Three role-specific
+   * copies would be three places for a field to be missing from one.
+   */
+  updateProfile(body: UpdateProfileRequest) {
+    return this.request<{ status: string; profile: UserProfileResponse }>(
+      API_ENDPOINTS.USERS_ME,
+      { method: 'PATCH', body: JSON.stringify(body) }
+    );
+  }
+
+  /**
+   * POST /auth/update-password.
+   *
+   * The current password is required by the API, not just by the form: without
+   * it a stolen access token is enough to take an account over permanently.
+   */
+  changePassword(body: ChangePasswordRequest) {
+    return this.request<{ status: string }>(API_ENDPOINTS.AUTH_UPDATE_PASSWORD, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   }
 
   selectAvatar(avatarId: string) {

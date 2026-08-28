@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { apiClient, tokenStore } from '@/services/api';
 import { useUserStore } from '@/store/userStore';
 
-// Admins are admitted so they can support an instructor without a role swap.
+// Admins are admitted so they can support a lecturer without a role swap.
 // This is a routing convenience only — the API still ownership-checks every
 // course, and this guard authorises nothing on its own.
 const ALLOWED = new Set(['lecturer', 'admin', 'super_admin']);
 
-export function InstructorAuthGuard({ children }: { children: React.ReactNode }) {
+export function LecturerAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const setUser = useUserStore((s) => s.setUser);
   const storeUser = useUserStore((s) => s.user);
@@ -52,12 +52,8 @@ export function InstructorAuthGuard({ children }: { children: React.ReactNode })
 
   if (checking) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#edf6fb] dark:bg-slate-950">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(237,232,176,0.3),transparent_25%)] dark:bg-[radial-gradient(circle_at_20%_15%,rgba(56,189,248,0.14),transparent_28%)]" />
-        <div className="relative flex items-center gap-3 rounded-2xl border border-white/70 bg-white/70 px-5 py-3 text-sm font-medium text-slate-600 shadow-xl shadow-blue-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600 dark:border-white/20 dark:border-t-cyan-300" />
-          Opening teaching workspace…
-        </div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
       </div>
     );
   }

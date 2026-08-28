@@ -39,7 +39,7 @@ test('grounding: the tutor cites the lecturer’s material, and says so when it 
 
   // ── 1. Lecturer hides the lecture notes ───────────────────────────────────
   await loginAs(page, 'lecturer');
-  await page.goto(`/instructor/${COURSE.id}`);
+  await page.goto(`/lecturer/${COURSE.id}`);
   await page.getByRole('tab', { name: 'Knowledge' }).click();
   await caption(page, 'To prove the tutor uses your notes, first take them away.');
 
@@ -109,7 +109,7 @@ test('grounding: the tutor cites the lecturer’s material, and says so when it 
   // ── 3. Lecturer publishes the notes again ─────────────────────────────────
   await logout(page);
   await loginAs(page, 'lecturer');
-  await page.goto(`/instructor/${COURSE.id}`);
+  await page.goto(`/lecturer/${COURSE.id}`);
   await page.getByRole('tab', { name: 'Knowledge' }).click();
   await caption(page, 'The lecturer publishes the notes. Nothing else changes.');
 

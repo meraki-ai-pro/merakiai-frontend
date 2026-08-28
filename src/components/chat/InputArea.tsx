@@ -6,7 +6,7 @@ import { Send, Loader2, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { useChat } from '@/hooks/use-chat';
 import { useChatStore } from '@/store/chatStore';
 import { VoiceInput } from './VoiceInput';
-import { REVIEW_SESSION_TYPES, PRACTICE_SESSION_TYPES } from '@/lib/constants';
+import { LEGACY_SCENARIO_TYPE_LABELS, REVIEW_SESSION_TYPES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 // Parse MCQ options (A, B, C, D) from a prompt message string
@@ -24,14 +24,22 @@ function parseMcqOptions(content: string): { letter: string; text: string }[] {
   return options;
 }
 
-// Human-readable labels for both modes
+// Human-readable labels.
+//
+// The Assessment entries are LEGACY ONLY: the scenario-topic picker is gone
+// and new sessions carry the neutral placeholder, but sessions started before
+// that still have a real value in mode_sessions.session_type and must not
+// suddenly render as raw snake_case. 'flashcard' is kept for the same reason —
+// no longer offered, still finishable.
 const TYPE_LABELS: Record<string, string> = {
-  // Review
+  // Review question formats
   mcq:           'Multiple Choice',
   fill_blank:    'Fill in the Blank',
-  flashcard:     'Flashcard',
   short_answer:  'Short Answer',
-  // Practice
+  flashcard:     'Flashcard',
+  // Assessment scenario topics, from before the picker was removed
+  ...LEGACY_SCENARIO_TYPE_LABELS,
+  // The froth-flotation ids these once were, still present on old rows
   flotation_basics:  'Core Concepts',
   reagents:          'Key Terms',
   process_variables: 'Applied Concepts',
@@ -39,15 +47,9 @@ const TYPE_LABELS: Record<string, string> = {
   surface_chemistry: 'Advanced Concepts',
 };
 
-// Pill colour per mode
+// Pill colour. Only Review renders one — the Assessment variant went with the
+// scenario-topic picker.
 const PILL_STYLES = {
-  practice: {
-    pill:     'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 dark:bg-emerald-300/[0.1] dark:border-emerald-300/[0.3] dark:text-emerald-200 dark:hover:bg-emerald-300/[0.16]',
-    dot:      'bg-emerald-500 dark:bg-emerald-300',
-    active:   'bg-emerald-50 dark:bg-emerald-300/[0.1]',
-    activeText: 'text-emerald-700 dark:text-emerald-200',
-    header:   'Switch practice topic',
-  },
   review: {
     pill:     'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 hover:border-amber-300 dark:bg-amber-300/[0.1] dark:border-amber-300/[0.3] dark:text-amber-200 dark:hover:bg-amber-300/[0.16]',
     dot:      'bg-amber-500 dark:bg-amber-300',
@@ -80,9 +82,12 @@ export function InputArea() {
 
   const inModeSession  = !!activeModeSession && !activeModeSession.completed;
   const hasModeSession = !!activeModeSession; // true even when completed
-  const isPractice     = hasModeSession && activeModeSession?.mode === 'application';
+  const isAssessment   = hasModeSession && activeModeSession?.mode === 'application';
   const isReview       = hasModeSession && activeModeSession?.mode === 'review';
-  const showPill       = isPractice || isReview;
+  // Only Review has anything to switch BETWEEN. Assessment lost its topic
+  // picker, so a pill offering to "switch scenario topic" would offer a choice
+  // that no longer exists anywhere else in the product.
+  const showPill       = isReview;
   const isSwitching    = isStartingModeSession;
 
   // Detect if we're in an active MCQ review session and parse the options
@@ -102,12 +107,12 @@ export function InputArea() {
     setSelectedMcqOption(null);
   }, [mcqOptions]);
 
-  // Which list to show in the dropdown
-  const sessionTypes = isPractice ? PRACTICE_SESSION_TYPES : REVIEW_SESSION_TYPES;
-  const pillStyles   = isPractice ? PILL_STYLES.practice : PILL_STYLES.review;
+  // Which list to show in the dropdown. Review formats only — see showPill.
+  const sessionTypes = REVIEW_SESSION_TYPES;
+  const pillStyles   = PILL_STYLES.review;
 
   const placeholder =
-    isPractice
+    isAssessment
       ? 'Type your answer to the guided question…'
       : isReview
       ? isMcqReview
@@ -169,11 +174,16 @@ export function InputArea() {
     <div className="flex-shrink-0 border-t border-white/60 bg-white/70 px-4 py-4 shadow-[0_-18px_45px_rgba(15,23,42,0.06)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/70">
       <div className="mx-auto max-w-4xl">
 
-        {/* Progress bar row — pill always visible when a mode session exists; progress bar only when active */}
-        {activeModeSession && showPill && (
+        {/* Progress row. The PILL is Review-only — Assessment lost its topic
+            picker — but the progress bar belongs to both, so the row itself is
+            keyed on the session, not on the pill. Nesting the bar inside the
+            pill's condition would silently drop "Step 2/3" from every
+            Assessment session. */}
+        {activeModeSession && (
           <div className="mb-2 flex items-center gap-2">
 
-            {/* Type switcher pill — shown for both practice and review, even when completed */}
+            {/* Question-format pill — Review only, even when completed */}
+            {showPill && (
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => setShowTypeSwitcher((v) => !v)}
@@ -248,6 +258,7 @@ export function InputArea() {
                 </>
               )}
             </div>
+            )}
 
             {/* Progress bar — only shown during active session */}
             {inModeSession && (
@@ -286,7 +297,11 @@ export function InputArea() {
               {activeModeSession.mode === 'application' ? '🎉' : '🎓'} Session complete!
             </span>
             <span className="text-slate-500 dark:text-slate-400">
-              Switch topic or change mode to continue
+              {/* Assessment has no topic to switch any more, so offering that
+                  would send a student looking for a control that is gone. */}
+              {activeModeSession.mode === 'application'
+                ? 'Start another or change mode to continue'
+                : 'Switch question format or change mode to continue'}
             </span>
           </div>
         )}

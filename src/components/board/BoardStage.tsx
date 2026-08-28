@@ -87,7 +87,12 @@ export function BoardStage({ content, isStreaming = false, courseId }: BoardStag
             {slide.title || 'Lesson board'}
           </span>
         </div>
-        <NarrationControls slides={slides} activeIndex={safeIndex} isStreaming={isStreaming} />
+        <NarrationControls
+          slides={slides}
+          activeIndex={safeIndex}
+          isStreaming={isStreaming}
+          courseId={courseId}
+        />
       </header>
 
       <SlideBody slide={slide} courseId={courseId} />

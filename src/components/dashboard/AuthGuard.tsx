@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
 import { apiClient } from '@/services/api';
+import { isAdminRole } from '@/lib/constants';
 import { ChatContainer } from '@/components/chat/ChatContainer';
 
 /**
@@ -12,11 +13,7 @@ import { ChatContainer } from '@/components/chat/ChatContainer';
  * Responsibilities:
  *  1. Redirect unauthenticated visitors to /auth/login
  *  2. Fetch full user profile (needed for role, avatar_id, voice_id, etc.)
- *  3. Redirect admin users to the admin console
- *
- * Lecturers are deliberately allowed through. Login may choose the teaching
- * workspace as their default, but an explicit visit to /dashboard is their
- * learner/student view and must not bounce them back to /instructor.
+ *  3. Redirect admin users away from /dashboard → /admin
  */
 export function AuthGuard() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
@@ -42,8 +39,10 @@ export function AuthGuard() {
     apiClient.getUserProfile().then((res) => {
       if (res.success && res.data) {
         setUser(res.data);
-        if (res.data.role === 'admin' || res.data.role === 'super_admin') {
-          // Admin visiting /dashboard — send them to the admin console
+        if (isAdminRole(res.data.role)) {
+          // Admin visiting /dashboard — send them to the admin console.
+          // Covers super_admin too; testing for equality left them on the
+          // student dashboard with no route into the console.
           router.replace('/admin');
           return;
         }

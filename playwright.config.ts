@@ -39,7 +39,7 @@ export default defineConfig({
     ['json', { outputFile: './e2e-results/results.json' }],
   ],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
     video: { mode: 'on', size: { width: 1280, height: 720 } },
     screenshot: 'on',
     trace: 'on',
@@ -55,7 +55,12 @@ export default defineConfig({
     {
       name: 'walkthrough',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /probe-.*\.spec\.ts/,
+      testIgnore: /(probe|smoke)-.*\.spec\.ts/,
+    },
+    {
+      name: 'smoke',
+      testMatch: /smoke-.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
     },
     {
       // Diagnostics only. Uses the real installed Chrome rather than bundled
