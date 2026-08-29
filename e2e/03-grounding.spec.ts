@@ -30,6 +30,7 @@ test.describe.configure({ mode: 'serial' });
 
 const QUESTION = 'Explain the chain rule and show a worked example.';
 const NOTES = 'Calculus-I-Differentiation-Notes.docx';
+const NOTES_TITLE = 'Calculus I — Differentiation';
 
 
 test('grounding: the tutor cites the lecturer’s material, and says so when it cannot', async ({
@@ -62,7 +63,14 @@ test('grounding: the tutor cites the lecturer’s material, and says so when it 
   const publishBtn = notesRow.locator('button[title="Publish to students"]');
   if (await publishBtn.count()) {
     await publishBtn.click();
-    await expect(notesRow.getByText('Live', { exact: true })).toBeVisible({ timeout: 30_000 });
+    const liveNotesRow = page
+      .locator('li')
+      .filter({ hasText: NOTES })
+      .filter({ has: page.locator('button[title="Hide from students"]') })
+      .first();
+    await expect(liveNotesRow.getByText('Live', { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
   }
 
   await notesRow.locator('button[title="Hide from students"]').click();
@@ -129,7 +137,14 @@ test('grounding: the tutor cites the lecturer’s material, and says so when it 
     .filter({ has: page.locator('button[title="Publish to students"]') })
     .first();
   await notesRowAgain.locator('button[title="Publish to students"]').click();
-  await expect(notesRowAgain.getByText('Live', { exact: true })).toBeVisible({ timeout: 30_000 });
+  const liveNotesRowAgain = page
+    .locator('li')
+    .filter({ hasText: NOTES })
+    .filter({ has: page.locator('button[title="Hide from students"]') })
+    .first();
+  await expect(liveNotesRowAgain.getByText('Live', { exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
   await caption(page, 'Live again.');
 
   // ── 4. Same student, same question, grounded answer ───────────────────────
@@ -157,10 +172,16 @@ test('grounding: the tutor cites the lecturer’s material, and says so when it 
 
   const drawer = page.getByRole('dialog', { name: 'Sources' });
   await expect(drawer).toBeVisible({ timeout: 30_000 });
-  // The passage is the lecturer's file, named on screen — not a paraphrase.
-  await expect(drawer.getByText(NOTES, { exact: false }).first()).toBeVisible({
+  // Students see the document's friendly title rather than its internal upload
+  // filename. The passage itself is shown directly underneath it.
+  await expect(drawer.getByText(NOTES_TITLE, { exact: false }).first()).toBeVisible({
     timeout: 30_000,
   });
+  await expect(
+    drawer.getByText('The chain rule differentiates a composition of functions', {
+      exact: false,
+    }),
+  ).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(2500);
   await page.screenshot({ path: 'e2e-results/shots/grounding-4-sources-drawer.png' });
   await caption(page, 'The exact passage, from the lecturer’s own file, with its maths.');

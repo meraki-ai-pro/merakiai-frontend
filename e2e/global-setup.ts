@@ -12,6 +12,19 @@ const PY =
   process.env.MERAKI_PYTHON ??
   path.join(BACKEND, process.platform === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python');
 const RESET = path.join(BACKEND, 'scripts/reset_e2e.py');
+const SEED = path.join(BACKEND, 'scripts/seed_accounts.py');
+
+function loadE2EEnv(): Record<string, string> {
+  const values: Record<string, string> = {};
+  const envFile = path.resolve(__dirname, '.env.e2e');
+  if (!fs.existsSync(envFile)) return values;
+
+  for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+    const match = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
+    if (match) values[match[1]] = match[2].replace(/^["']|["']$/g, '');
+  }
+  return values;
+}
 
 /**
  * Reset the demo course before recording.
@@ -34,21 +47,24 @@ export default async function globalSetup() {
   const stateFile = path.resolve('./e2e-state/state.json');
   if (fs.existsSync(stateFile)) fs.rmSync(stateFile);
 
-  if (!fs.existsSync(PY) || !fs.existsSync(RESET)) {
-    console.warn('[global-setup] reset script not found — continuing without reset');
+  if (!fs.existsSync(PY) || !fs.existsSync(RESET) || !fs.existsSync(SEED)) {
+    console.warn('[global-setup] backend E2E scripts not found — continuing without reset');
     return;
   }
 
-  try {
-    const out = execFileSync(PY, [RESET], {
-      cwd: BACKEND,
-      encoding: 'utf8',
-      timeout: 120_000,
-    });
-    console.log('[global-setup] reset:\n' + out.trim());
-  } catch (err) {
-    // A failed reset is worth knowing about but should not block the run: the
-    // specs tolerate an existing course.
-    console.warn('[global-setup] reset failed:', (err as Error).message.slice(0, 400));
-  }
+  const childEnv = { ...process.env, ...loadE2EEnv() };
+  const resetOut = execFileSync(
+    PY,
+    [RESET, '--execute', '--confirm', 'DELETE E2E DATA'],
+    { cwd: BACKEND, encoding: 'utf8', timeout: 180_000, env: childEnv },
+  );
+  console.log('[global-setup] reset:\n' + resetOut.trim());
+
+  const seedOut = execFileSync(PY, [SEED], {
+    cwd: BACKEND,
+    encoding: 'utf8',
+    timeout: 120_000,
+    env: childEnv,
+  });
+  console.log('[global-setup] accounts ready:\n' + seedOut.trim());
 }
