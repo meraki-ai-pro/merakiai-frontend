@@ -82,6 +82,38 @@ const featureCards = [
   },
 ]
 
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://www.merakiai.online/#organization',
+      name: 'Meraki AI',
+      url: 'https://www.merakiai.online',
+      logo: 'https://www.merakiai.online/brand/meraki-logo-color.png',
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://www.merakiai.online/#website',
+      url: 'https://www.merakiai.online',
+      name: 'Meraki AI',
+      description:
+        'An adaptive AI learning platform for course-grounded explanations, review, and assessments.',
+      publisher: { '@id': 'https://www.merakiai.online/#organization' },
+      inLanguage: 'en',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Meraki AI',
+      applicationCategory: 'EducationalApplication',
+      operatingSystem: 'Web',
+      url: 'https://www.merakiai.online',
+      description:
+        'Adaptive AI tutoring with Learn, Review, and Assessment modes, voice questions, and tutor-style video lessons.',
+    },
+  ],
+}
+
 export default function Home() {
   const router = useRouter()
   const goToDashboard = () => router.push('/dashboard')
@@ -96,7 +128,12 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#edf6fb] text-slate-950 dark:bg-slate-950 dark:text-white">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
+      />
+      <main className="min-h-screen overflow-hidden bg-[#edf6fb] text-slate-950 dark:bg-slate-950 dark:text-white">
       <section className="relative overflow-hidden bg-[#edf6fb] text-slate-950 dark:bg-slate-950 dark:text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(56,189,248,0.24),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(237,232,176,0.44),transparent_28%),linear-gradient(135deg,#f8fcff_0%,#dff3fb_48%,#f8fbff_100%)] dark:bg-[radial-gradient(circle_at_16%_18%,rgba(56,189,248,0.34),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(237,232,176,0.34),transparent_26%),linear-gradient(135deg,#0b1b3a_0%,#1456b8_48%,#071329_100%)]" />
         <div className="absolute right-[-8rem] top-28 h-[28rem] w-[48rem] rotate-[-12deg] rounded-[50%] border border-blue-200/70 bg-[linear-gradient(95deg,rgba(255,255,255,0.8),rgba(126,200,227,0.2),rgba(42,113,220,0.16))] blur-sm dark:border-white/[0.15] dark:bg-[linear-gradient(95deg,rgba(255,255,255,0.42),rgba(126,200,227,0.12),rgba(18,69,161,0.44))]" />
@@ -279,6 +316,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   )
 }
