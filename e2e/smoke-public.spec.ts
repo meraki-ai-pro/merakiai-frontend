@@ -1,6 +1,40 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('public production shell', () => {
+  test('publishes crawlable SEO metadata and Meraki browser icons', async ({ page, request }) => {
+    await page.goto('/');
+
+    await expect(page).toHaveTitle('Meraki AI – Adaptive AI Tutor for University Learning');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      'https://www.merakiai.online',
+    );
+    await expect(page.locator('link[rel~="icon"]').first()).toHaveAttribute(
+      'href',
+      /\/brand\/meraki-icon-color\.png/,
+    );
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+      'content',
+      /Statistics, Calculus/,
+    );
+    const structuredData = await page
+      .locator('script[type="application/ld+json"]')
+      .evaluate((element) => element.textContent ?? '');
+    expect(structuredData).toContain('EducationalApplication');
+
+    const robots = await request.get('/robots.txt');
+    expect(robots.ok()).toBeTruthy();
+    expect(await robots.text()).toContain('Sitemap: https://www.merakiai.online/sitemap.xml');
+
+    const sitemap = await request.get('/sitemap.xml');
+    expect(sitemap.ok()).toBeTruthy();
+    expect(await sitemap.text()).toContain('<loc>https://www.merakiai.online</loc>');
+
+    const manifest = await request.get('/manifest.webmanifest');
+    expect(manifest.ok()).toBeTruthy();
+    expect(await manifest.text()).toContain('meraki-icon-color.png');
+  });
+
   test('auth pages render, navigate, and remain usable on mobile', async ({ page }) => {
     const brokenChunks: string[] = [];
     page.on('response', (response) => {

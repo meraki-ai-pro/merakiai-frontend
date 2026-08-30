@@ -4,8 +4,13 @@ import { LecturerAuthGuard } from '@/components/lecturer/LecturerAuthGuard';
 import { FeedbackButton } from '@/components/feedback/FeedbackDialog';
 
 export const metadata: Metadata = {
-  title: 'Lecturer | Meraki',
+  title: { absolute: 'Meraki AI Lecturer Portal' },
   description: 'Course, knowledge and student management',
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+  },
 };
 
 export default function LecturerLayout({ children }: { children: React.ReactNode }) {
