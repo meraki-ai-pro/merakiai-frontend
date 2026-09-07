@@ -20,7 +20,7 @@ export default function LoginPage() {
 
       <div className="relative flex flex-1 items-center justify-center overflow-hidden px-5 py-12 sm:px-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(126,200,227,0.28),transparent_30%),radial-gradient(circle_at_88%_80%,rgba(245,197,163,0.22),transparent_26%)]" />
-        <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.7] bg-white/[0.08]5 p-6 shadow-2xl shadow-blue-950/[0.1] backdrop-blur-xl dark:border-white/[0.1] dark:bg-white/[0.06] sm:p-8">
+        <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.7] bg-white/[0.85] p-6 shadow-2xl shadow-blue-950/[0.1] backdrop-blur-xl dark:border-white/[0.1] dark:bg-white/[0.06] sm:p-8">
           <div className="mb-7 flex items-center justify-center lg:hidden">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/[0.25]">
@@ -36,7 +36,7 @@ export default function LoginPage() {
               Sign in to Meraki
             </h1>
             <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Continue learning, reviewing, and working through assessments with Meraki.
+              Continue learning, practicing, and reviewing with Meraki.
             </p>
           </div>
 
