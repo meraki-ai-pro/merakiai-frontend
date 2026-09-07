@@ -14,6 +14,12 @@ import toast from 'react-hot-toast';
 import { BookOpen, Check, ChevronDown, Loader2, Ticket } from 'lucide-react';
 import { useCourseStore } from '@/store/courseStore';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export function CourseSwitcher() {
   const { courses, selectedCourseId, loading, loadCourses, setSelectedCourse, joinByCode } =
@@ -54,24 +60,40 @@ export function CourseSwitcher() {
 
   return (
     <div ref={wrapRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        data-testid="course-switcher"
-        className="flex max-w-[15rem] items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-blue-50 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-cyan-300/[0.08]"
-        title="Choose the course you are studying"
-      >
-        <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
-        <span className="truncate">
-          {loading && !selected ? 'Loading…' : (selected?.name ?? 'Join a course')}
-        </span>
-        <ChevronDown
-          className={cn('h-3.5 w-3.5 flex-shrink-0 transition-transform', open && 'rotate-180')}
-        />
-      </button>
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              data-testid="course-switcher"
+              aria-label="Choose the course you are studying"
+              className="flex max-w-[15rem] items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-blue-50 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-cyan-300/[0.08] sm:rounded-2xl sm:px-3"
+            >
+              <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="hidden truncate sm:inline">
+                {loading && !selected ? 'Loading…' : (selected?.name ?? 'Join a course')}
+              </span>
+              <ChevronDown
+                className={cn(
+                  'hidden h-3.5 w-3.5 flex-shrink-0 transition-transform sm:inline',
+                  open && 'rotate-180'
+                )}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            {loading && !selected
+              ? 'Loading…'
+              : selected
+                ? `Studying: ${selected.name}`
+                : 'Choose the course you are studying'}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-2xl border border-white/70 bg-white p-3 shadow-2xl shadow-blue-950/20 dark:border-white/10 dark:bg-slate-900">
+        <div className="absolute left-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-1rem))] rounded-2xl border border-white/70 bg-white p-3 shadow-2xl shadow-blue-950/20 dark:border-white/10 dark:bg-slate-900">
           <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             Your courses
           </p>

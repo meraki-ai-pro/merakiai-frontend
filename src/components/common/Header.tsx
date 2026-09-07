@@ -125,10 +125,10 @@ export function Header() {
   return (
     <>
       <header className="z-20 flex-shrink-0 border-b border-white/60 bg-white/[0.72] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/[0.72]">
-        <div className="flex h-16 items-center justify-between gap-3 px-4">
+        <div className="flex h-16 items-center justify-between gap-1.5 px-2 sm:gap-3 sm:px-4">
 
           {/* Left: sidebar toggle + title */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 sm:gap-3">
             <Button
               size="icon"
               variant="ghost"
@@ -202,11 +202,11 @@ export function Header() {
           )}
 
           {/* Right: video toggle + message count + theme */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0 sm:gap-2">
             {currentSession && (
               <div
                 className={cn(
-                  'flex items-center gap-1 rounded-2xl border border-slate-200/70 bg-white/70 px-1.5 py-1 shadow-sm dark:border-white/10 dark:bg-white/[0.06]',
+                  'flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/70 px-1 py-1 shadow-sm dark:border-white/10 dark:bg-white/[0.06] sm:rounded-2xl sm:px-1.5',
                   isReviewMode && 'opacity-40 pointer-events-none'
                 )}
                 title={isReviewMode ? 'Review mode is text-only' : undefined}
@@ -215,7 +215,7 @@ export function Header() {
                   onClick={() => handleSetVideoMode(false)}
                   disabled={isTogglingVideo || isReviewMode}
                   className={cn(
-                    'flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all',
+                    'flex items-center gap-1 rounded-xl px-2 py-1.5 text-xs font-semibold transition-all sm:px-2.5',
                     !prefersVideo
                       ? 'border border-blue-200 bg-blue-600 text-white shadow-sm dark:border-cyan-300/40 dark:bg-cyan-300 dark:text-slate-950'
                       : 'text-slate-500 hover:bg-slate-950/5 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
@@ -232,7 +232,7 @@ export function Header() {
                   onClick={() => handleSetVideoMode(true)}
                   disabled={isTogglingVideo || isReviewMode}
                   className={cn(
-                    'flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all',
+                    'flex items-center gap-1 rounded-xl px-2 py-1.5 text-xs font-semibold transition-all sm:px-2.5',
                     prefersVideo
                       ? 'border border-blue-200 bg-blue-600 text-white shadow-sm dark:border-cyan-300/40 dark:bg-cyan-300 dark:text-slate-950'
                       : 'text-slate-500 hover:bg-slate-950/5 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
