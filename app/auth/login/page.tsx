@@ -9,7 +9,12 @@ export const metadata = {
   description: 'Sign in to your Meraki account to continue learning.',
 };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reason?: string }>;
+}) {
+  const { reason } = await searchParams;
   return (
     <div className="flex min-h-screen bg-[#edf6fb] dark:bg-slate-950">
       <div className="fixed right-4 top-4 z-50">
@@ -39,6 +44,12 @@ export default function LoginPage() {
               Continue learning, practicing, and reviewing with Meraki.
             </p>
           </div>
+
+          {reason === 'session-expired' && (
+            <p role="alert" className="mb-6 rounded-xl border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-300/10 dark:text-amber-100">
+              Your session has expired. Please sign in again to continue.
+            </p>
+          )}
 
           <LoginForm />
 

@@ -62,7 +62,8 @@ const MODE_TABS: {
 export function Header() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [isTogglingVideo, setIsTogglingVideo] = useState(false);
+  const [pendingVideoMode, setPendingVideoMode] = useState<boolean | null>(null);
+  const isTogglingVideo = pendingVideoMode !== null;
   const [modeSelectorTarget, setModeSelectorTarget] = useState<'application' | 'review' | null>(null);
 
   const { theme, setTheme } = useTheme();
@@ -113,12 +114,12 @@ export function Header() {
   const handleSetVideoMode = async (videoMode: boolean) => {
     if (!currentSessionId) return;
     if (prefersVideo === videoMode) return;
-    if (isReviewMode) return;
-    setIsTogglingVideo(true);
+    if (isReviewMode || isTogglingVideo) return;
+    setPendingVideoMode(videoMode);
     try {
       await toggleVideoPreference(videoMode);
     } finally {
-      setIsTogglingVideo(false);
+      setPendingVideoMode(null);
     }
   };
 
@@ -221,7 +222,7 @@ export function Header() {
                       : 'text-slate-500 hover:bg-slate-950/5 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
                   )}
                 >
-                  {isTogglingVideo && !prefersVideo ? (
+                  {pendingVideoMode === false ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <FileText className="h-3.5 w-3.5" />
@@ -238,7 +239,7 @@ export function Header() {
                       : 'text-slate-500 hover:bg-slate-950/5 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
                   )}
                 >
-                  {isTogglingVideo && prefersVideo ? (
+                  {pendingVideoMode === true ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <Video className="h-3.5 w-3.5" />

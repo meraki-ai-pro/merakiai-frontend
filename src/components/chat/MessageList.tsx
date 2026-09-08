@@ -111,8 +111,8 @@ export function MessageList() {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 rounded-[32px] border border-white/60 bg-white/[0.44] px-4 py-6 shadow-sm shadow-blue-950/5 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/[0.18] sm:px-6">
+    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+      <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-6 rounded-[32px] border border-white/60 bg-white/[0.44] px-4 py-6 shadow-sm shadow-blue-950/5 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/[0.18] sm:px-6">
         {messages.map((message, index) => (
           <div
             key={message.id}
@@ -138,8 +138,8 @@ export function MessageList() {
         ) : null}
 
         {showRetry && (
-          <div className="animate-in fade-in duration-200 flex flex-col items-start gap-2">
-            <p className="text-xs text-destructive/80 pl-1">{error}</p>
+          <div className="animate-in fade-in duration-200 flex w-full min-w-0 flex-col items-start gap-2">
+            <p role="alert" className="w-full min-w-0 whitespace-pre-wrap pl-1 text-xs text-destructive/80 [overflow-wrap:anywhere]">{error}</p>
             <Button
               variant="outline" size="sm"
               onClick={retryLastMessage}

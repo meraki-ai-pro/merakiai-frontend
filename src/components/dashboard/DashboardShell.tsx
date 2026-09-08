@@ -39,12 +39,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           
           useUserStore.setState({ user: res.data });
         } else {
-          // Show selector anyway if API fails
-          setShowAvatarSelector(true);
+          setShowAvatarSelector(false);
         }
       } catch (err) {
-        // Show selector anyway if error
-        setShowAvatarSelector(true);
+        setShowAvatarSelector(false);
       } finally {
         setCheckingAvatar(false);
       }
@@ -148,7 +146,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       </div>
 
-      {/* Avatar Selector Modal - DEBUG: Always show state */}
+      {/* Avatar selection is offered only after a successful profile check */}
       <AvatarSelector
         open={showAvatarSelector}
         onClose={() => {

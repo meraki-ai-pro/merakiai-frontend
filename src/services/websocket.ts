@@ -1,3 +1,4 @@
+import { refreshAccessToken } from '@/services/api';
 import { WS_URL } from '@/lib/constants';
 import type { WsIncoming } from '@/types';
 
@@ -11,6 +12,7 @@ export class MerakiWebSocket {
   private ws:      WebSocket | null = null;
   private retries  = 0;
   private closed   = false;
+  private authRetries = 0;
 
   public onMessage: OnMessageFn;
 
@@ -61,7 +63,7 @@ export class MerakiWebSocket {
 
     const token = this.getToken();
     if (!token) {
-      this.onAuthError();
+      void this.recoverAuth(null);
       return;
     }
 
@@ -94,6 +96,7 @@ export class MerakiWebSocket {
         return;
       }
 
+      this.authRetries = 0;
       try {
         this.onMessage(msg);
       } catch (err) {
@@ -104,7 +107,7 @@ export class MerakiWebSocket {
     this.ws.onclose = (event) => {
       if (this.closed) return;
       if (event.code === 4001) {
-        this.onAuthError();
+        void this.recoverAuth(token);
         return;
       }
       this.scheduleReconnect();
@@ -113,6 +116,26 @@ export class MerakiWebSocket {
     this.ws.onerror = () => {
       // onerror fires before onclose — let onclose handle the reconnect.
     };
+  }
+
+  private async recoverAuth(rejectedToken: string | null) {
+    if (this.closed) return;
+    if (this.authRetries >= 1) {
+      this.onAuthError();
+      return;
+    }
+    this.authRetries++;
+    try {
+      const token = await refreshAccessToken(rejectedToken);
+      if (this.closed) return;
+      if (token) this.connect();
+      else this.onAuthError();
+    } catch {
+      // Connectivity problems are recoverable and are not evidence of expiry.
+      if (this.closed) return;
+      this.authRetries = 0;
+      this.scheduleReconnect();
+    }
   }
 
   private scheduleReconnect() {

@@ -7,7 +7,7 @@ import { NewChat } from './NewChat';
 import { SidebarMenu } from './SidebarMenu';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ClipboardList, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
+import { ClipboardList, Search } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,6 @@ import { cn } from '@/lib/utils';
 export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState('');
   const sidebarOpen    = useUIStore((s) => s.sidebarOpen);
-  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
   const isMobile       = useIsMobile();
 
   // Collapsed = icon-only on desktop only.
@@ -52,19 +51,6 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Collapse toggle — desktop only */}
-        {!isMobile && (
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex-shrink-0 rounded-xl p-2 text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed
-              ? <PanelLeftOpen  className="h-4 w-4" />
-              : <PanelLeftClose className="h-4 w-4" />
-            }
-          </button>
-        )}
       </div>
 
       {!collapsed && (

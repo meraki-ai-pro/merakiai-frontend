@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useChatStore, newId } from "@/store/chatStore";
 import { useUserStore } from "@/store/userStore";
 import { useCourseStore } from "@/store/courseStore";
-import { apiClient, tokenStore } from "@/services/api";
+import { apiClient, tokenStore, expireSession } from "@/services/api";
 import { MerakiWebSocket } from "@/services/websocket";
 import { parseVTT, getVideoDurationFromSubtitles } from "@/lib/vtt-parser";
 import { debugBackend } from "@/lib/debug";
@@ -1114,8 +1114,7 @@ export function useChat() {
       getToken: () => tokenStore.get(),
       onMessage: (msg) => handlerRef.current(msg),
       onAuthError: () => {
-        toast.error("Session expired. Please log in again.");
-        apiClient.logout();
+        void expireSession();
       },
     });
 
@@ -1170,8 +1169,7 @@ export function useChat() {
       getToken: () => tokenStore.get(),
       onMessage: (msg) => handlerRef.current(msg),
       onAuthError: () => {
-        toast.error("Session expired. Please log in again.");
-        apiClient.logout();
+        void expireSession();
       },
     });
 
