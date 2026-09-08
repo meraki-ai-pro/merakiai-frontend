@@ -84,6 +84,43 @@ export const tokenStore = {
   },
 };
 
+// Share refresh attempts so concurrent rejected requests do not rotate the
+// refresh token independently. Network failures must not sign the user out.
+let refreshInFlight: Promise<string | null> | null = null;
+let expiringSession = false;
+
+export async function refreshAccessToken(rejectedToken: string | null): Promise<string | null> {
+  const current = tokenStore.get();
+  if (current && current !== rejectedToken) return current;
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const { supabase } = await import('@/lib/supabase');
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      if (error.name === 'AuthRetryableFetchError' || (error.status && error.status >= 500)) {
+        throw new Error('Unable to reconnect. Check your connection and try again.');
+      }
+      return null;
+    }
+    const token = data.session?.access_token ?? null;
+    if (token) tokenStore.set(token);
+    return token;
+  })();
+  try {
+    return await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
+  }
+}
+
+export async function expireSession(): Promise<void> {
+  if (typeof window === 'undefined' || expiringSession) return;
+  expiringSession = true;
+  const { useUserStore } = await import('@/store/userStore');
+  useUserStore.getState().logout();
+  window.location.assign('/auth/login?reason=session-expired');
+}
+
 // ─── API Client ───────────────────────────────────────────────────────────────
 class ApiClient {
   private baseUrl: string;
@@ -102,6 +139,18 @@ class ApiClient {
     options?: RequestInit & { skipAuth?: boolean }
   ): Promise<ApiResponse<T>> {
     try {
+      if (!options?.skipAuth && typeof window !== 'undefined') {
+        const { supabase } = await import('@/lib/supabase');
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          if (error.name === 'AuthRetryableFetchError' || (error.status && error.status >= 500)) {
+            throw new Error('Unable to reconnect. Check your connection and try again.');
+          }
+          await expireSession();
+          return { success: false, error: { code: '401', message: 'Your session has expired. Please sign in again.' } };
+        }
+        if (data.session) tokenStore.set(data.session.access_token);
+      }
       const hasBody = options?.body !== undefined && options.body !== null;
 
       const headers: Record<string, string> = {
@@ -113,10 +162,25 @@ class ApiClient {
       };
 
       const url = endpoint.startsWith('/api/') ? endpoint : `${this.baseUrl}${endpoint}`;
-      const response = await fetch(url, {
+      let response = await fetch(url, {
         ...options,
         headers,
       });
+
+      if (response.status === 401 && !options?.skipAuth) {
+        const rejectedToken = headers.Authorization?.replace(/^Bearer /, '') ?? null;
+        const refreshedToken = await refreshAccessToken(rejectedToken);
+        if (refreshedToken) {
+          response = await fetch(url, {
+            ...options,
+            headers: { ...headers, Authorization: `Bearer ${refreshedToken}` },
+          });
+        }
+        if (!refreshedToken || response.status === 401) {
+          await expireSession();
+          return { success: false, error: { code: '401', message: 'Your session has expired. Please sign in again.' } };
+        }
+      }
 
       if (!response.ok) {
         let message = `HTTP ${response.status}: ${response.statusText}`;

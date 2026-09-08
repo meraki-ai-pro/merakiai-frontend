@@ -13,7 +13,6 @@ import {
   BookOpen,
   FlaskConical,
   ClipboardCheck,
-  Zap,
   Loader2,
   ChevronRight,
   MessageSquare,
@@ -22,13 +21,6 @@ import {
   ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const QUICK_STARTS = [
-  'Explain the core idea from today\'s lesson.',
-  'Give me a simple summary before I practise.',
-  'Quiz me on the most important concepts.',
-  'What should I review before an assessment?',
-];
 
 // ─── Mode cards — backend value, UI label, full description ──────────────────
 const MODE_CARDS = [
@@ -88,22 +80,15 @@ export function ChatContainer() {
   const isCreatingSession = useChatStore((s) => s.isCreatingSession);
   const isStartingModeSession = useChatStore((s) => s.isStartingModeSession);
 
-  const { sendMessage, startModeSession, startNewSession } = useChat();
+  const { startModeSession, startNewSession } = useChat();
 
   // Owns the real-time D-ID avatar WebRTC connection for the active session.
   useAvatarStream();
 
-  const [clickedQuickStart, setClickedQuickStart] = useState<string | null>(null);
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   const [modeSelectorTarget, setModeSelectorTarget] = useState<'application' | 'review' | null>(null);
 
   const showWelcome = !currentSessionId && !isCreatingSession;
-
-  const handleQuickStart = async (question: string) => {
-    setClickedQuickStart(question);
-    await sendMessage(question, 'learn');
-    setClickedQuickStart(null);
-  };
 
   const handleModeCardClick = (mode: 'learn' | 'application' | 'review') => {
     if (mode === 'learn') {
@@ -138,43 +123,10 @@ export function ChatContainer() {
         <div className="flex flex-1 items-start justify-center overflow-y-auto px-4 pb-10 pt-8">
           <div className="w-full max-w-6xl">
 
-            {/* Hero */}
-            <div className="relative mb-8 overflow-hidden rounded-[32px] border border-blue-200/80 bg-[#edf6fb] p-6 text-slate-950 shadow-2xl shadow-blue-950/10 dark:border-white/10 dark:bg-slate-950 dark:text-white sm:p-8 lg:p-10">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(56,189,248,0.24),transparent_30%),radial-gradient(circle_at_82%_10%,rgba(237,232,176,0.44),transparent_26%),linear-gradient(135deg,#f8fcff_0%,#dff3fb_52%,#f8fbff_100%)] dark:bg-[radial-gradient(circle_at_14%_18%,rgba(56,189,248,0.32),transparent_28%),radial-gradient(circle_at_82%_10%,rgba(237,232,176,0.26),transparent_24%),linear-gradient(135deg,#081629_0%,#1456b8_52%,#04101f_100%)]" />
-              <div className="absolute -right-24 top-20 h-72 w-[34rem] rotate-[-14deg] rounded-[50%] border border-blue-200/70 bg-white/70 blur-sm dark:border-white/[0.14] dark:bg-white/[0.14]" />
-              <div className="relative z-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-sm font-semibold text-blue-950 shadow-sm shadow-blue-950/[0.06] dark:border-cyan-200/[0.3] dark:bg-cyan-100/[0.1] dark:text-cyan-50 dark:shadow-none">
-                    <Zap className="h-4 w-4 text-blue-700 dark:text-cyan-200" />
-                    AI learning workspace
-                  </div>
-                  <h1 className="mt-6 max-w-3xl text-balance text-4xl font-semibold leading-tight sm:text-5xl">
-                    Choose how you want to learn with Meraki today.
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-200">
-                    Start with an explanation, practise with guided exercises, or review for assessment. Meraki keeps the flow connected so each session builds on the last.
-                  </p>
-                </div>
-
-                <div className="rounded-3xl border border-blue-200/80 bg-white/70 p-4 shadow-sm shadow-blue-950/[0.06] backdrop-blur dark:border-white/[0.12] dark:bg-white/[0.1] dark:shadow-none">
-                  <div className="rounded-2xl border border-slate-200 bg-white/82 p-4 dark:border-white/[0.12] dark:bg-slate-950/70">
-                    <p className="text-sm font-semibold text-blue-950 dark:text-cyan-100">Suggested prompt</p>
-                    <p className="mt-3 text-lg leading-7 text-slate-950 dark:text-white">
-                      Explain the lesson simply, then give me some questions to try.
-                    </p>
-                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-medium text-slate-600 dark:text-slate-200">
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Voice ready</span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Video optional</span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Assessment scoring</span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/[0.12] dark:bg-white/[0.08]">Review drills</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <h1 className="sr-only">Choose a study mode</h1>
 
             {/* Mode cards — full-width expandable */}
-            <div className="mb-8 grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-4 lg:grid-cols-3">
               {MODE_CARDS.map(({ mode, icon: Icon, label, tagline, color, bg, activeBg, iconBg, bullets, cta }) => {
                 const isHovered = hoveredMode === mode;
                 const disabled = isCreatingSession || isStartingModeSession;
@@ -237,29 +189,6 @@ export function ChatContainer() {
               })}
             </div>
 
-            {/* Quick starts */}
-            <div className="rounded-[28px] border border-white/70 bg-white/[0.76] p-5 shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Quick starts — Learn mode
-              </p>
-              <div className="grid gap-2 md:grid-cols-2">
-                {QUICK_STARTS.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => handleQuickStart(q)}
-                    disabled={!!clickedQuickStart}
-                    className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-left text-sm text-slate-600 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:border-cyan-300/30 dark:hover:bg-cyan-300/[0.08] dark:hover:text-white"
-                  >
-                    {clickedQuickStart === q ? (
-                      <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin text-blue-600 dark:text-cyan-200" />
-                    ) : (
-                      <Zap className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-cyan-200" />
-                    )}
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
         {modeModal}
