@@ -3,6 +3,7 @@ packages:
 
 # Patch vulnerable transitive packages while upstream dependencies catch up.
 overrides:
+  'browserslist@<=4.28.6': 4.28.7
   'lodash@<=4.17.23': 4.18.1
   'picomatch@<2.3.2': 2.3.2
   'picomatch@>=4.0.0 <4.0.4': 4.0.4
