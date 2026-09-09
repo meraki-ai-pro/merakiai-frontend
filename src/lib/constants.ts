@@ -63,6 +63,7 @@ export const API_ENDPOINTS = {
   SESSIONS_COURSES: '/sessions/courses',
   SESSIONS_CREATE: '/sessions/',
   SESSIONS_GET: (id: string) => `/sessions/${id}`,
+  SESSIONS_DELETE: (id: string) => `/sessions/${id}`,
   SESSIONS_MODE: (id: string) => `/sessions/${id}/mode`,
   SESSIONS_VIDEO: (id: string) => `/sessions/${id}/video`,
   SESSIONS_END: (id: string) => `/sessions/${id}/end`,
