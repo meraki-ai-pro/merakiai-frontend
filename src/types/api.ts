@@ -135,6 +135,12 @@ export interface EndSessionResponse {
   ended_at: string;
 }
 
+export interface DeleteSessionResponse {
+  session_id: string;
+  status: 'deleted';
+  storage_objects_deleted: number;
+}
+
 // ─── User Profile ─────────────────────────────────────────────────────────────
 export interface UserProfileResponse {
   id: string;

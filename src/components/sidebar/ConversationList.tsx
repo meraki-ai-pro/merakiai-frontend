@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useChatStore, newId } from '@/store/chatStore';
-import { Trash2, MessageSquare, BookOpen, FlaskConical, ClipboardCheck } from 'lucide-react';
+import { Trash2, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const deleteSession     = useChatStore((s) => s.deleteSession);
   const setMessages       = useChatStore((s) => s.setMessages);
   const loadedSessionsRef = useRef<Set<string>>(new Set());
+  const [deletingSessionIds, setDeletingSessionIds] = useState<Set<string>>(new Set());
 
   const handleSelect = async (id: string) => {
     router.push('/dashboard');
@@ -70,9 +71,23 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
     if (useChatStore.getState().currentSessionId === id) setMessages(messages);
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    void apiClient.endSession(id);
+    if (deletingSessionIds.has(id)) return;
+
+    setDeletingSessionIds((current) => new Set(current).add(id));
+    const response = await apiClient.deleteSession(id);
+    setDeletingSessionIds((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+
+    if (!response.success) {
+      toast.error(response.error?.message ?? 'Could not delete session');
+      return;
+    }
+
     loadedSessionsRef.current.delete(id);
     deleteSession(id);
     toast.success('Session deleted');
@@ -113,6 +128,7 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
 
       {filteredSessions.map((session) => {
         const isActive = session.id === currentSessionId;
+        const isDeleting = deletingSessionIds.has(session.id);
         const Icon     = modeIcon[(session.mode as ModeKey)] ?? BookOpen;
         const timeAgo  = formatDistanceToNow(new Date(session.createdAt), { addSuffix: true });
 
@@ -161,6 +177,7 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
               <button
                 onClick={(e) => handleDelete(session.id, e)}
                 onFocus={(e) => e.stopPropagation()}
+                disabled={isDeleting}
                 aria-label="Delete session"
                 title="Delete session"
                 className={cn(
@@ -168,10 +185,15 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
                   'text-slate-500 opacity-70 transition-all',
                   'hover:bg-red-500/[0.12] hover:text-red-600 hover:opacity-100',
                   'focus:bg-red-500/[0.12] focus:text-red-600 focus:opacity-100 focus:outline-none',
+                  'disabled:cursor-wait disabled:opacity-60',
                   'dark:text-slate-400 dark:hover:text-red-300 dark:focus:text-red-300'
                 )}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                {isDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
               </button>
             </div>
           </div>

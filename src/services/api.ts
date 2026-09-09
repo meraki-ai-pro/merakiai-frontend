@@ -42,6 +42,7 @@ import type {
   VideoToggleRequest,
   VideoToggleResponse,
   EndSessionResponse,
+  DeleteSessionResponse,
   UserProfileResponse,
   UpdateProfileRequest,
   ChangePasswordRequest,
@@ -350,6 +351,12 @@ class ApiClient {
   endSession(sessionId: string) {
     return this.request<EndSessionResponse>(API_ENDPOINTS.SESSIONS_END(sessionId), {
       method: 'POST',
+    });
+  }
+
+  deleteSession(sessionId: string) {
+    return this.request<DeleteSessionResponse>(API_ENDPOINTS.SESSIONS_DELETE(sessionId), {
+      method: 'DELETE',
     });
   }
 
