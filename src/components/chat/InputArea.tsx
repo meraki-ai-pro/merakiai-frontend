@@ -360,6 +360,7 @@ export function InputArea() {
         <div className="flex items-end gap-2 rounded-[24px] border border-white/70 bg-white/[0.86] px-3 py-3 shadow-xl shadow-blue-950/10 transition-all focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200/70 dark:border-white/10 dark:bg-white/[0.08] dark:focus-within:border-cyan-300/[0.5] dark:focus-within:ring-cyan-300/[0.16]">
           <VoiceInput
             onRecordingComplete={handleVoiceTranscript}
+            onInterimTranscript={setMessage}
             disabled={isLoadingMessage || isSwitching || activeModeSession?.completed}
           />
 
