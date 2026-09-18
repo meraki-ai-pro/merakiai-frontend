@@ -214,14 +214,18 @@ export function ChatContainer() {
   // ── Active chat ────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
+        {/* Text column: messages + input, on the left on sm+ (top on mobile). */}
+        <div className="order-2 flex min-h-0 flex-1 flex-col overflow-hidden sm:order-1">
+          <MessageList />
+          <InputArea />
+        </div>
         {/* AvatarStage stays a direct child here, rendered exactly once and
             never remounted: the <video> owns the WebRTC MediaStream, and a
-            remount costs a ~15s reconnect. It aligns itself to the message
-            column so it reads as part of the conversation. */}
+            remount costs a ~15s reconnect. It renders itself as a right-hand
+            rail on sm+ (a strip above the text on mobile) and returns null
+            when video mode is off, so text reclaims the full width. */}
         <AvatarStage />
-        <MessageList />
-        <InputArea />
       </div>
       {/* Side sheet — mounted once here rather than per message, so opening a
           citation from any turn reuses the same panel. */}

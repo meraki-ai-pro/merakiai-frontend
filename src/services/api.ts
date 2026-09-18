@@ -43,6 +43,7 @@ import type {
   VideoToggleResponse,
   EndSessionResponse,
   DeleteSessionResponse,
+  RenameSessionResponse,
   UserProfileResponse,
   UpdateProfileRequest,
   ChangePasswordRequest,
@@ -357,6 +358,13 @@ class ApiClient {
   deleteSession(sessionId: string) {
     return this.request<DeleteSessionResponse>(API_ENDPOINTS.SESSIONS_DELETE(sessionId), {
       method: 'DELETE',
+    });
+  }
+
+  renameSession(sessionId: string, title: string) {
+    return this.request<RenameSessionResponse>(API_ENDPOINTS.SESSIONS_TITLE(sessionId), {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
     });
   }
 
