@@ -17,6 +17,14 @@ test.describe('public production shell', () => {
       'content',
       /Statistics, Calculus/,
     );
+
+    const documentResponse = await request.get('/');
+    expect(documentResponse.headers()['content-security-policy']).toContain(
+      "default-src 'self'",
+    );
+    expect(documentResponse.headers()['content-security-policy']).toContain(
+      "frame-ancestors 'none'",
+    );
     const structuredData = await page
       .locator('script[type="application/ld+json"]')
       .evaluate((element) => element.textContent ?? '');
