@@ -3,11 +3,16 @@ import { debugBackend } from '@/lib/debug';
 import type {
   AcademicLevelOption,
   ApiResponse,
+  Accommodation,
   Assessment,
-  AssessmentKind,
   AssessmentQuestion,
   AvailableAssessment,
-  MasteryTopic,
+  ExamKind,
+  ExamResults,
+  ImportedQuestion,
+  LecturerQuestion,
+  MarkingItem,
+  MyResult,
   QuestionCreate,
   SubmissionItem,
   SubmitAssessmentResponse,
@@ -29,7 +34,15 @@ import type {
   RenderRegenerateBody,
   RosterImportResult,
   EnrolmentInvitation,
+  AttentionStudent,
   CourseMastery,
+  MisconceptionRadar,
+  StudentTimeline,
+  TutorActivity,
+  InterventionBody,
+  InterventionOption,
+  PracticeFormat,
+  RetrievedSource,
   TestQueryResponse,
   LoginResponse,
   SignupRequest,
@@ -41,7 +54,6 @@ import type {
   SessionModeUpdateResponse,
   VideoToggleRequest,
   VideoToggleResponse,
-  EndSessionResponse,
   DeleteSessionResponse,
   UserProfileResponse,
   UpdateProfileRequest,
@@ -221,11 +233,6 @@ class ApiClient {
     }
   }
 
-  // ─── Health ───────────────────────────────────────────────────────────────
-  healthCheck() {
-    return this.request<{ status: string }>(API_ENDPOINTS.HEALTH, { skipAuth: true });
-  }
-
   // ─── Auth ─────────────────────────────────────────────────────────────────
   async login(email: string, password: string) {
     const res = await this.request<LoginResponse>(API_ENDPOINTS.AUTH_LOGIN, {
@@ -348,9 +355,10 @@ class ApiClient {
     });
   }
 
-  endSession(sessionId: string) {
-    return this.request<EndSessionResponse>(API_ENDPOINTS.SESSIONS_END(sessionId), {
-      method: 'POST',
+  renameSession(sessionId: string, title: string) {
+    return this.request<{ session_id: string; title: string }>(`/sessions/${sessionId}/title`, {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
     });
   }
 
@@ -463,13 +471,6 @@ class ApiClient {
     );
   }
 
-  deactivateInviteCode(courseId: string, codeId: string) {
-    return this.request<{ code_id: string }>(
-      `/lecturer/courses/${courseId}/invite-codes/${codeId}`,
-      { method: 'DELETE' }
-    );
-  }
-
   listCourseStudents(courseId: string, status?: string) {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
     return this.request<{ students: CourseStudent[] }>(
@@ -560,12 +561,6 @@ class ApiClient {
     }
   }
 
-  renameLecturerVoice(voiceId: string, name: string) {
-    return this.request<{ voice_id: string }>(`/lecturer/voices/${voiceId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ name }),
-    });
-  }
 
   deleteLecturerVoice(voiceId: string) {
     return this.request<{ voice_id: string }>(`/lecturer/voices/${voiceId}`, {
@@ -604,6 +599,62 @@ class ApiClient {
     );
   }
 
+  getCourseAttention(courseId: string) {
+    return this.request<{ students: AttentionStudent[] }>(
+      `/lecturer/courses/${courseId}/analytics/attention`
+    );
+  }
+
+  getTutorActivity(courseId: string, days = 7) {
+    return this.request<TutorActivity>(
+      `/lecturer/courses/${courseId}/analytics/tutor-activity?days=${days}`
+    );
+  }
+
+  getMisconceptions(courseId: string, days = 30) {
+    return this.request<MisconceptionRadar>(
+      `/lecturer/courses/${courseId}/analytics/misconceptions?days=${days}`
+    );
+  }
+
+  suggestInterventions(courseId: string, body: InterventionBody) {
+    return this.request<{ options: InterventionOption[] }>(
+      `/lecturer/courses/${courseId}/interventions/options`,
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+  }
+
+  /** Drafts (does not publish) a paper for the chosen students. */
+  createInterventionPractice(courseId: string, body: InterventionBody & { format: PracticeFormat }) {
+    return this.request<{ assessment_id: string; title: string; questions: number; students: number }>(
+      `/lecturer/courses/${courseId}/interventions/practice`,
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+  }
+
+  draftMiniLesson(courseId: string, body: InterventionBody) {
+    return this.request<{ lesson: string; sources: RetrievedSource[] }>(
+      `/lecturer/courses/${courseId}/interventions/mini-lesson/draft`,
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+  }
+
+  sendMiniLesson(
+    courseId: string,
+    body: { topic: string; lesson: string; student_ids: string[]; sources?: RetrievedSource[] }
+  ) {
+    return this.request<{ sent: number; skipped: number }>(
+      `/lecturer/courses/${courseId}/interventions/mini-lesson/send`,
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+  }
+
+  getStudentTimeline(courseId: string, studentId: string) {
+    return this.request<StudentTimeline>(
+      `/lecturer/courses/${courseId}/analytics/students/${studentId}/timeline`
+    );
+  }
+
   /** GET /render/archetypes — visual styles, and which renderer each routes to. */
   listRenderArchetypes() {
     return this.request<{ archetypes: { name: string; renderer: string }[]; unsupported: string[] }>(
@@ -635,6 +686,12 @@ class ApiClient {
    * the revision is approved, so a bad regeneration never leaves the course
    * with nothing for the minutes a re-render takes.
    */
+  deleteRenderAsset(assetId: string) {
+    return this.request<{ status: string; asset_id: string }>(`/render/${assetId}`, {
+      method: 'DELETE',
+    });
+  }
+
   regenerateRenderAsset(assetId: string, body: RenderRegenerateBody) {
     return this.request<{ status: string; asset: RenderAsset; replaces: string }>(
       `/render/${assetId}/regenerate`,
@@ -689,33 +746,6 @@ class ApiClient {
     );
   }
 
-  /**
-   * POST /rag/turn/voice — voice input for Learn mode.
-   * The transcript is returned immediately; the AI response is pushed via WebSocket.
-   */
-  async uploadVoice(sessionId: string, audioBlob: Blob) {
-    const formData = new FormData();
-    formData.append('session_id', sessionId);
-    formData.append('file', audioBlob, 'recording.webm');
-    return this.request<{ task_id: string; transcript: string; status: string }>(
-      API_ENDPOINTS.RAG_TURN_VOICE,
-      { method: 'POST', body: formData }
-    );
-  }
-
-  /**
-   * POST /mode-sessions/{id}/turn/voice — voice input for Application/Review.
-   * The transcript is returned immediately; the AI evaluation is pushed via WebSocket.
-   */
-  async uploadModeVoice(modeSessionId: string, audioBlob: Blob) {
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.webm');
-    return this.request<{ task_id: string; transcript: string; status: string }>(
-      API_ENDPOINTS.MODE_SESSIONS_TURN_VOICE(modeSessionId),
-      { method: 'POST', body: formData }
-    );
-  }
-
   // ─── User Profile ─────────────────────────────────────────────────────────
   getUserProfile() {
     return this.request<UserProfileResponse>(API_ENDPOINTS.USERS_ME);
@@ -761,17 +791,32 @@ class ApiClient {
     });
   }
 
-  // ─── Assessments ──────────────────────────────────────────────────────────
+  // ─── Exams (and the retired pre/post papers) ──────────────────────────────
 
-  /** POST /assessments — lecturer creates a pre/post/retention paper. */
   createAssessment(payload: {
     course_id: string;
-    kind: AssessmentKind;
+    kind: ExamKind;
     title: string;
     instructions?: string | null;
+    time_limit_minutes?: number | null;
+    opens_at?: string | null;
+    closes_at?: string | null;
   }) {
     return this.request<{ status: string; assessment: Assessment }>('/assessments', {
       method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  updateAssessment(
+    assessmentId: string,
+    payload: Partial<Pick<Assessment, 'title' | 'instructions' | 'time_limit_minutes' | 'opens_at' | 'closes_at'>> & {
+      untimed?: boolean;
+      clear_window?: boolean;
+    }
+  ) {
+    return this.request<{ status: string; assessment: Assessment }>(`/assessments/${assessmentId}`, {
+      method: 'PATCH',
       body: JSON.stringify(payload),
     });
   }
@@ -780,10 +825,38 @@ class ApiClient {
     return this.request<{ assessments: Assessment[] }>(`/assessments/course/${courseId}`);
   }
 
+  listAssessmentQuestions(assessmentId: string) {
+    return this.request<{ questions: LecturerQuestion[] }>(`/assessments/${assessmentId}/questions`);
+  }
+
   addAssessmentQuestion(assessmentId: string, payload: QuestionCreate) {
     return this.request<{ status: string; question: AssessmentQuestion | null }>(
       `/assessments/${assessmentId}/questions`,
       { method: 'POST', body: JSON.stringify(payload) }
+    );
+  }
+
+  addAssessmentQuestions(assessmentId: string, questions: QuestionCreate[]) {
+    return this.request<{ status: string; added: number }>(
+      `/assessments/${assessmentId}/questions/bulk`,
+      { method: 'POST', body: JSON.stringify({ questions }) }
+    );
+  }
+
+  deleteAssessmentQuestion(assessmentId: string, questionId: string) {
+    return this.request<{ status: string }>(
+      `/assessments/${assessmentId}/questions/${questionId}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  /** Reads a PDF/Word paper into DRAFT questions; nothing is saved. */
+  importAssessmentQuestions(assessmentId: string, file: File) {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.request<{ questions: ImportedQuestion[]; needs_attention: number }>(
+      `/assessments/${assessmentId}/import`,
+      { method: 'POST', body: formData }
     );
   }
 
@@ -795,7 +868,24 @@ class ApiClient {
   }
 
   getAssessmentResults(assessmentId: string) {
-    return this.request<Record<string, unknown>>(`/assessments/${assessmentId}/results`);
+    return this.request<ExamResults>(`/assessments/${assessmentId}/results`);
+  }
+
+  getMarkingQueue(assessmentId: string) {
+    return this.request<{ items: MarkingItem[] }>(`/assessments/${assessmentId}/marking`);
+  }
+
+  confirmMark(attemptId: string, score: number, feedback?: string) {
+    return this.request<{ status: string; score: number }>(`/assessments/attempts/${attemptId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ score, feedback }),
+    });
+  }
+
+  releaseResults(assessmentId: string) {
+    return this.request<{ status: string }>(`/assessments/${assessmentId}/release`, {
+      method: 'POST',
+    });
   }
 
   getLearningGain(courseId: string) {
@@ -804,14 +894,27 @@ class ApiClient {
     );
   }
 
-  /** GET /assessments/available/{course} — what this student may sit. */
+  listAccommodations(courseId: string) {
+    return this.request<{ students: Accommodation[] }>(
+      `/assessments/course/${courseId}/accommodations`
+    );
+  }
+
+  setExtraTime(courseId: string, studentId: string, extraTimePercent: number) {
+    return this.request<{ status: string }>(
+      `/assessments/course/${courseId}/accommodations/${studentId}`,
+      { method: 'PUT', body: JSON.stringify({ extra_time_percent: extraTimePercent }) }
+    );
+  }
+
+  /** GET /assessments/available/{course} — the exams this student may sit. */
   listAvailableAssessments(courseId: string) {
-    return this.request<{ assessments: AvailableAssessment[] }>(
+    return this.request<{ assessments: AvailableAssessment[]; extra_time_percent: number }>(
       `/assessments/available/${courseId}`
     );
   }
 
-  /** GET /assessments/{id}/take — questions with the answer key withheld. */
+  /** GET /assessments/{id}/take — questions without the key; starts the clock. */
   takeAssessment(assessmentId: string) {
     return this.request<TakeAssessmentResponse>(`/assessments/${assessmentId}/take`);
   }
@@ -823,8 +926,8 @@ class ApiClient {
     });
   }
 
-  getMyMastery(courseId: string) {
-    return this.request<{ topics: MasteryTopic[] }>(`/assessments/mastery/${courseId}`);
+  getMyResult(assessmentId: string) {
+    return this.request<MyResult>(`/assessments/${assessmentId}/my-result`);
   }
 
   // ─── Feedback ─────────────────────────────────────────────────────────────

@@ -11,7 +11,6 @@ import { useChat } from '@/hooks/use-chat';
 import { useAvatarStream } from '@/hooks/use-avatar-stream';
 import {
   BookOpen,
-  FlaskConical,
   ClipboardCheck,
   Loader2,
   ChevronRight,
@@ -41,33 +40,16 @@ const MODE_CARDS = [
     cta: 'Start asking',
   },
   {
-    mode: 'application' as const,
-    icon: FlaskConical,
-    // 'application' is the wire value; "Assessment" is what a student reads.
-    label: 'Assessment',
-    tagline: 'Guided 3-step real-world scenarios',
-    color: 'text-emerald-600 dark:text-emerald-200',
-    bg: 'hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-300/[0.08] dark:hover:border-emerald-300/[0.3]',
-    activeBg: 'bg-emerald-50 border-emerald-300 dark:bg-emerald-300/[0.08] dark:border-emerald-300/[0.3]',
-    iconBg: 'bg-emerald-100 dark:bg-emerald-300/[0.12]',
-    bullets: [
-      { icon: FlaskConical, text: 'Receive a guided scenario or exercise to work through' },
-      { icon: ListChecks,   text: 'Answer 3 guided questions; get scored feedback after each' },
-      { icon: BarChart2,    text: 'Finish with a personalised summary of key learning points' },
-    ],
-    cta: 'Choose a difficulty',
-  },
-  {
     mode: 'review' as const,
     icon: ClipboardCheck,
     label: 'Review',
-    tagline: 'Adaptive quiz — up to 10 questions',
+    tagline: 'Adaptive quizzes and guided scenarios',
     color: 'text-amber-600 dark:text-amber-200',
     bg: 'hover:bg-amber-50 hover:border-amber-300 dark:hover:bg-amber-300/[0.08] dark:hover:border-amber-300/[0.3]',
     activeBg: 'bg-amber-50 border-amber-300 dark:bg-amber-300/[0.08] dark:border-amber-300/[0.3]',
     iconBg: 'bg-amber-100 dark:bg-amber-300/[0.12]',
     bullets: [
-      { icon: ClipboardCheck, text: 'Choose multiple choice, fill-in-the-blank or short answer' },
+      { icon: ClipboardCheck, text: 'Multiple choice, fill-in-the-blank, short answer or a guided scenario' },
       { icon: BarChart2,      text: 'Difficulty adapts after every answer based on your score' },
       { icon: ListChecks,     text: 'Text-only, fast-paced — ideal for exam prep' },
     ],
@@ -86,16 +68,16 @@ export function ChatContainer() {
   useAvatarStream();
 
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
-  const [modeSelectorTarget, setModeSelectorTarget] = useState<'application' | 'review' | null>(null);
+  const [modeSelectorOpen, setModeSelectorOpen] = useState(false);
 
   const showWelcome = !currentSessionId && !isCreatingSession;
 
-  const handleModeCardClick = (mode: 'learn' | 'application' | 'review') => {
+  const handleModeCardClick = (mode: 'learn' | 'review') => {
     if (mode === 'learn') {
       startNewSession(undefined, 'learn');
       return;
     }
-    setModeSelectorTarget(mode);
+    setModeSelectorOpen(true);
   };
 
   const handleModeStart = async (
@@ -104,14 +86,13 @@ export function ChatContainer() {
     difficulty: 'Basic' | 'Intermediate' | 'Advanced'
   ) => {
     await startModeSession(mode, sessionType, difficulty);
-    setModeSelectorTarget(null);
+    setModeSelectorOpen(false);
   };
 
-  const modeModal = modeSelectorTarget ? (
+  const modeModal = modeSelectorOpen ? (
     <ModeSelector
-      mode={modeSelectorTarget}
       onStart={handleModeStart}
-      onClose={() => setModeSelectorTarget(null)}
+      onClose={() => setModeSelectorOpen(false)}
       isLoading={isStartingModeSession}
     />
   ) : null;
@@ -126,7 +107,7 @@ export function ChatContainer() {
             <h1 className="sr-only">Choose a study mode</h1>
 
             {/* Mode cards — full-width expandable */}
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-4 lg:grid-cols-2">
               {MODE_CARDS.map(({ mode, icon: Icon, label, tagline, color, bg, activeBg, iconBg, bullets, cta }) => {
                 const isHovered = hoveredMode === mode;
                 const disabled = isCreatingSession || isStartingModeSession;

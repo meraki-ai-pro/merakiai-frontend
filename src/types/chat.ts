@@ -36,6 +36,10 @@ export interface Message {
   // row, so these survive a reload and the citation markers stay clickable.
   sources?: RetrievedSource[];
 
+  // Help-ladder rung the tutor answered at (Learn, live turns only): 1-4 is a
+  // hint, which is what shows the "next hint / full solution" buttons.
+  helpLevel?: number | null;
+
   // Photos the student submitted with this turn, carrying short-lived signed
   // URLs minted at fetch time — student-uploads is a private bucket.
   attachments?: ConversationAttachment[];

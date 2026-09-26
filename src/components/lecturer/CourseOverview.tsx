@@ -27,6 +27,7 @@ import { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   BarChart3,
+  BellRing,
   Clock,
   GraduationCap,
   Loader2,
@@ -34,11 +35,21 @@ import {
   Users,
 } from 'lucide-react';
 import { apiClient } from '@/services/api';
+import { InterventionStudio } from './InterventionStudio';
+import {
+  MisconceptionRadarPanel,
+  StudentTimelineDialog,
+  TutorActivityPanel,
+} from './TutorInsights';
 import { MODE_LABELS } from '@/lib/constants';
 import type {
+  AttentionKind,
+  AttentionStudent,
   CourseAnalytics,
   CourseMastery,
+  InterventionFocus,
   MasteryBand,
+  StudentRef,
 } from '@/types/lecturer';
 
 const BAND_STYLES: Record<MasteryBand, { label: string; dot: string; text: string }> = {
@@ -71,10 +82,13 @@ interface LearningGain {
   declined?: number;
 }
 
-export function CourseOverview({ courseId }: { courseId: string }) {
+export function CourseOverview({ courseId, onOpenExams }: { courseId: string; onOpenExams?: () => void }) {
   const [data, setData] = useState<CourseAnalytics | null>(null);
   const [mastery, setMastery] = useState<CourseMastery | null>(null);
   const [gain, setGain] = useState<LearningGain | null>(null);
+  const [attention, setAttention] = useState<AttentionStudent[] | null>(null);
+  const [timelineFor, setTimelineFor] = useState<StudentRef | null>(null);
+  const [studioFocus, setStudioFocus] = useState<InterventionFocus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -86,11 +100,13 @@ export function CourseOverview({ courseId }: { courseId: string }) {
       apiClient.getCourseAnalytics(courseId),
       apiClient.getCourseMastery(courseId),
       apiClient.getLearningGain(courseId),
-    ]).then(([a, m, g]) => {
+      apiClient.getCourseAttention(courseId),
+    ]).then(([a, m, g, att]) => {
       if (cancelled) return;
       setData(a?.data ?? null);
       setMastery(m?.data ?? null);
       setGain((g?.data as LearningGain) ?? null);
+      setAttention(att?.data?.students ?? null);
       setLoading(false);
     });
     return () => {
@@ -135,6 +151,23 @@ export function CourseOverview({ courseId }: { courseId: string }) {
         </p>
       )}
 
+      {attention !== null && (
+        <AttentionPanel students={attention} onOpenStudent={setTimelineFor} onAct={setStudioFocus} />
+      )}
+
+      <MisconceptionRadarPanel courseId={courseId} onOpenStudent={setTimelineFor} onAct={setStudioFocus} />
+
+      <TutorActivityPanel courseId={courseId} onOpenStudent={setTimelineFor} />
+
+      <StudentTimelineDialog courseId={courseId} student={timelineFor} onClose={() => setTimelineFor(null)} />
+
+      <InterventionStudio
+        courseId={courseId}
+        focus={studioFocus}
+        onClose={() => setStudioFocus(null)}
+        onOpenExams={onOpenExams}
+      />
+
       <Panel icon={BarChart3} title="Sessions by mode">
         <div className="grid gap-4 sm:grid-cols-3">
           <Stat label={`${MODE_LABELS.learn} sessions`} value={data.sessions.by_mode.learn} />
@@ -148,7 +181,7 @@ export function CourseOverview({ courseId }: { courseId: string }) {
 
       <TimeOnTaskPanel data={data} />
       <EngagementPanel data={data} />
-      <MasteryPanel summary={data} mastery={mastery} />
+      <MasteryPanel summary={data} mastery={mastery} setTimelineFor={setTimelineFor} onAct={setStudioFocus} />
       <LearningGainPanel gain={gain} />
 
       {data.unavailable?.length > 0 && (
@@ -221,10 +254,19 @@ function EngagementPanel({ data }: { data: CourseAnalytics }) {
 function MasteryPanel({
   summary,
   mastery,
+  setTimelineFor,
+  onAct,
 }: {
   summary: CourseAnalytics;
   mastery: CourseMastery | null;
+  setTimelineFor: (s: StudentRef) => void;
+  onAct: (focus: InterventionFocus) => void;
 }) {
+  // The students struggling on a topic, as the default audience for acting on it.
+  const strugglingOn = (topic: string): StudentRef[] =>
+    (mastery?.students ?? [])
+      .filter((s) => s.struggling_topics.includes(topic))
+      .map((s) => ({ student_id: s.student_id, name: s.name ?? null, email: s.email ?? null }));
   const [showStudents, setShowStudents] = useState(false);
   const bands = summary.mastery?.bands;
 
@@ -234,7 +276,7 @@ function MasteryPanel({
         <NotMeasured
           reason={
             summary.mastery?.reason ??
-            'No graded attempts yet. Mastery appears once students answer Review or Assessment questions.'
+            'No graded attempts yet. Mastery appears once students answer Review questions or scenarios.'
           }
         />
       ) : (
@@ -253,6 +295,7 @@ function MasteryPanel({
               title="Needs reteaching"
               empty="No weak topics."
               topics={summary.mastery.weakest_topics ?? []}
+              onAct={(topic) => onAct({ topic, students: strugglingOn(topic) })}
             />
             <TopicList
               title="Secure"
@@ -293,9 +336,14 @@ function MasteryPanel({
                           className="border-b border-slate-100 dark:border-white/5"
                         >
                           <td className="py-2 pr-4">
-                            <span className="text-slate-900 dark:text-white">
+                            <button
+                              type="button"
+                              onClick={() => setTimelineFor({ student_id: s.student_id, name: s.name ?? null, email: s.email ?? null })}
+                              className="text-slate-900 underline-offset-2 hover:underline dark:text-white"
+                              title="Open timeline"
+                            >
                               {s.name ?? s.email ?? 'Unknown'}
-                            </span>
+                            </button>
                             {s.name && s.email && (
                               <span className="ml-2 text-xs text-slate-400">{s.email}</span>
                             )}
@@ -405,10 +453,12 @@ function TopicList({
   title,
   topics,
   empty,
+  onAct,
 }: {
   title: string;
   topics: { topic: string; mean: number; students: number }[];
   empty: string;
+  onAct?: (topic: string) => void;
 }) {
   return (
     <div>
@@ -422,14 +472,85 @@ function TopicList({
           {topics.map((t) => (
             <li key={t.topic} className="flex items-center justify-between gap-3 text-sm">
               <span className="min-w-0 truncate text-slate-700 dark:text-slate-200">{t.topic}</span>
-              <span className="flex-shrink-0 text-xs text-slate-400">
+              <span className="flex flex-shrink-0 items-center gap-2 text-xs text-slate-400">
                 {Math.round(t.mean * 100)}% · {t.students} student{t.students === 1 ? '' : 's'}
+                {onAct && (
+                  <button type="button" onClick={() => onAct(t.topic)} className="font-medium text-blue-700 hover:underline dark:text-cyan-300">
+                    Act
+                  </button>
+                )}
               </span>
             </li>
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+const ATTENTION_LABELS: Record<AttentionKind, { label: string; tone: string }> = {
+  declining: { label: 'Declining', tone: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' },
+  dependency: { label: 'Relies on solutions', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' },
+  disengaged: { label: 'Gone quiet', tone: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300' },
+  stuck: { label: 'Stuck', tone: 'bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300' },
+};
+
+/**
+ * Not a ranking by lowest grade: each row is a situation worth a lecturer's
+ * time, with the sentence that explains it (rules: app/core/attention.py).
+ */
+function AttentionPanel({
+  students,
+  onOpenStudent,
+  onAct,
+}: {
+  students: AttentionStudent[];
+  onOpenStudent: (s: StudentRef) => void;
+  onAct: (focus: InterventionFocus) => void;
+}) {
+  return (
+    <Panel icon={BellRing} title="Students needing your attention">
+      {students.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-white/15">
+          Nobody right now. Students are listed here when their mastery is falling, they lean on
+          worked solutions, they have gone quiet, or they are stuck on a topic.
+        </p>
+      ) : (
+        <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-white/5" data-testid="attention-list">
+          {students.map((s) => (
+            <li key={s.student_id} className="p-4">
+              <button
+                type="button"
+                onClick={() => onOpenStudent(s)}
+                className="font-medium text-slate-900 underline-offset-2 hover:underline dark:text-white"
+                title="Open timeline"
+              >
+                {s.name ?? s.email ?? 'Unnamed student'}
+              </button>
+              <ul className="mt-2 space-y-1.5">
+                {s.flags.map((f, i) => (
+                  <li key={i} className="flex flex-wrap items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ATTENTION_LABELS[f.kind]?.tone ?? ''}`}>
+                      {ATTENTION_LABELS[f.kind]?.label ?? f.kind}
+                    </span>
+                    <span className="min-w-0 flex-1">{f.reason}</span>
+                    {f.topic && (
+                      <button
+                        type="button"
+                        onClick={() => onAct({ topic: f.topic as string, students: [s] })}
+                        className="text-xs font-medium text-blue-700 hover:underline dark:text-cyan-300"
+                      >
+                        Act
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }
 

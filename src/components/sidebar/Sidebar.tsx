@@ -6,8 +6,7 @@ import { ConversationList } from './ConversationList';
 import { NewChat } from './NewChat';
 import { SidebarMenu } from './SidebarMenu';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ClipboardList, Search } from 'lucide-react';
+import { GraduationCap, Search } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -73,17 +72,16 @@ export function Sidebar() {
         <Link
           href="/dashboard/assessments"
           data-testid="nav-assessments"
-          title="Pre/post tests"
+          title="Exams"
           className={cn(
             'flex items-center rounded-2xl text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-cyan-300/[0.08] dark:hover:text-cyan-100',
             collapsed ? 'h-10 w-10 justify-center' : 'h-10 w-full gap-2 px-3',
           )}
         >
-          <ClipboardList className="h-3.5 w-3.5 flex-shrink-0" />
-          {/* "Pre/post tests", not "Assessments" — Assessment is now the
-              name of a study mode, and two things called the same thing in one
-              sidebar is exactly the inconsistency this rename removed. */}
-          {!collapsed && 'Pre/post tests'}
+          <GraduationCap className="h-3.5 w-3.5 flex-shrink-0" />
+          {/* Exams set by the lecturer. Pre/post tests were removed from the
+              student view at the client's request. */}
+          {!collapsed && 'Exams'}
         </Link>
       </div>
 
@@ -97,13 +95,13 @@ export function Sidebar() {
       )}
 
       {/* ── Conversation list — hidden in icon-only mode ─────────────────── */}
-      <ScrollArea className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {!collapsed && (
           <div className="px-4">
             <ConversationList searchQuery={searchQuery} />
           </div>
         )}
-      </ScrollArea>
+      </div>
 
       {/* ── Bottom menu ─────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-4 pb-5 pt-3">

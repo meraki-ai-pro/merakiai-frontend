@@ -42,7 +42,6 @@ export const WS_URL = getWebSocketBaseUrl();
 
 export const API_ENDPOINTS = {
   // Health
-  HEALTH: '/health',
 
   // Auth
   AUTH_LOGIN: '/auth/login',
@@ -54,10 +53,8 @@ export const API_ENDPOINTS = {
   AUTH_UPDATE_PASSWORD: '/auth/update-password',
 
   // RAG/Chat (Learn mode voice input only — text goes via WebSocket)
-  RAG_TURN: '/rag/turn',
   RAG_STATUS: (taskId: string) => `/rag/status/${taskId}`,
   RAG_TRANSCRIBE: '/rag/transcribe',
-  RAG_TURN_VOICE: '/rag/turn/voice',
 
   // Sessions
   SESSIONS_COURSES: '/sessions/courses',
@@ -66,12 +63,13 @@ export const API_ENDPOINTS = {
   SESSIONS_DELETE: (id: string) => `/sessions/${id}`,
   SESSIONS_MODE: (id: string) => `/sessions/${id}/mode`,
   SESSIONS_VIDEO: (id: string) => `/sessions/${id}/video`,
-  SESSIONS_END: (id: string) => `/sessions/${id}/end`,
   SESSIONS_CONVERSATIONS: (id: string) => `/sessions/${id}/conversations`,
 
   // Users
   USERS_ME: '/users/me',
-  USERS_AVATAR: '/users/me/avatar',
+  // POST /users/avatar. '/users/me/avatar' accepts only PATCH, so POSTing there
+  // 405'd and the first-run tutor picker never saved a choice.
+  USERS_AVATAR: '/users/avatar',
   USERS_AVATAR_UPDATE: '/users/me/avatar',
 
   // Feedback
@@ -80,24 +78,6 @@ export const API_ENDPOINTS = {
 
   // Mode Sessions voice turns (text turns go via WebSocket)
   MODE_SESSIONS_STATUS: (taskId: string) => `/mode-sessions/status/${taskId}`,
-  MODE_SESSIONS_TURN_VOICE: (id: string) => `/mode-sessions/${id}/turn/voice`,
-} as const;
-
-export const ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Network error. Please check your connection.',
-  AUTH_FAILED: 'Authentication failed. Please try again.',
-  SESSION_NOT_FOUND: 'Session not found.',
-  UNAUTHORIZED: 'Unauthorized. Please log in.',
-  REVIEW_MODE_NO_VIDEO: 'Review mode is text-only. Video responses are disabled.',
-  NO_COURSE_SELECTED: 'Please select a course before starting a session.',
-} as const;
-
-export const AUDIO_CONSTRAINTS = {
-  audio: {
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-  },
 } as const;
 
 // ─── Roles ───────────────────────────────────────────────────────────────────
@@ -115,25 +95,27 @@ export function isAdminRole(role: string | null | undefined): boolean {
 }
 
 // ─── Mode vocabulary ─────────────────────────────────────────────────────────
-// The product says Learn / Review / Assessment. The WIRE VALUE for the third
-// is still 'application' — renaming it would touch sessions, mode_sessions,
-// document_chunks, every stored conversation and the Pinecone namespaces, for
-// no user-visible benefit. So: 'application' on the wire, "Assessment" in
-// anything a person reads. Use MODE_LABELS rather than writing either word by
-// hand, which is how "Practice" ended up in nine components and this file.
+// The product shows TWO modes: Learn and Review. The guided scenario that used
+// to be a third mode ("Assessment", before that "Practice") is now one of
+// Review's formats, at the client's request.
+//
+// Its WIRE VALUE is still 'application' — renaming it would touch sessions,
+// mode_sessions, document_chunks, every stored conversation and the Pinecone
+// namespaces, for no user-visible benefit. So: 'application' on the wire,
+// "Guided scenario" in anything a person reads, and it is always presented as
+// part of Review. Use MODE_LABELS rather than writing either word by hand.
 export type TutorMode = 'learn' | 'review' | 'application';
 
 export const MODE_LABELS: Record<TutorMode, string> = {
   learn: 'Learn',
   review: 'Review',
-  application: 'Assessment',
+  application: 'Guided scenario',
 };
 
-export const MODE_LABELS_PLURAL: Record<TutorMode, string> = {
-  learn: 'Learn',
-  review: 'Review',
-  application: 'Assessments',
-};
+/** Which visible mode a stored mode belongs to: scenarios live inside Review. */
+export function visibleMode(mode: string | null | undefined): 'learn' | 'review' {
+  return mode === 'review' || mode === 'application' || mode === 'practice' ? 'review' : 'learn';
+}
 
 /** Label for a mode value from anywhere, including legacy 'practice' rows. */
 export function modeLabel(mode: string | null | undefined): string {
@@ -165,6 +147,10 @@ export const LEGACY_SCENARIO_TYPE_LABELS: Record<string, string> = {
 // Flashcard was removed at the client's request. The backend still ACCEPTS it
 // on the wire, because a student half-way through a flashcard set when this
 // shipped must be able to finish it — it is simply no longer offered.
+//
+// These three are the formats a lecturer can TAG material with. The guided
+// scenario is offered beside them in the Review picker (SCENARIO_FORMAT) but
+// is a different session type on the wire, so it is kept out of this list.
 export const REVIEW_SESSION_TYPES = [
   {
     value: 'mcq',
@@ -182,6 +168,13 @@ export const REVIEW_SESSION_TYPES = [
     desc: 'Write a concise answer to an exam-style question',
   },
 ] as const;
+
+/** Picker value that starts an 'application' session instead of a Review one. */
+export const SCENARIO_FORMAT = {
+  value: 'scenario',
+  label: 'Guided Scenario',
+  desc: 'Work through a real-world problem in 3 guided steps with feedback',
+} as const;
 
 /** The same three formats as the lecturer tags uploaded Review material with. */
 export const QUESTION_FORMATS = REVIEW_SESSION_TYPES.map((t) => ({

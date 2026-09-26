@@ -290,6 +290,91 @@ export interface CourseAnalytics {
   unavailable: string[];
 }
 
+/** GET /analytics/attention — students the lecturer should act on, and why. */
+export type AttentionKind = 'declining' | 'dependency' | 'disengaged' | 'stuck';
+
+export interface AttentionStudent {
+  student_id: string;
+  name: string | null;
+  email: string | null;
+  /** Most urgent first. */
+  flags: { kind: AttentionKind; reason: string; topic?: string }[];
+}
+
+export interface StudentRef {
+  student_id: string;
+  name: string | null;
+  email: string | null;
+}
+
+/** GET /analytics/tutor-activity — what the AI tutor did for the class. */
+export interface TutorActivity {
+  days: number;
+  counts: {
+    concept_explanations: number;
+    socratic_prompts: number;
+    concept_cues: number;
+    structural_hints: number;
+    partial_steps: number;
+    worked_solutions: number;
+    solutions_requested: number;
+    misconceptions_detected: number;
+  };
+  /** Sessions where a full solution came unasked, before any hint. */
+  sessions_skipping_ladder: number;
+  frequent_requesters: (StudentRef & { requests: number })[];
+}
+
+/** GET /analytics/misconceptions — wrong beliefs shared across students. */
+export interface MisconceptionRadar {
+  days: number;
+  misconceptions: {
+    topic: string | null;
+    label: string;
+    students: number;
+    occurrences: number;
+    first_seen: string | null;
+    last_seen: string | null;
+    emerging: boolean;
+    students_list: StudentRef[];
+  }[];
+  /** Misconceptions seen in only one student so far. */
+  individual: number;
+}
+
+export type TimelineKind =
+  | 'started' | 'mastered' | 'slipped' | 'recovered' | 'struggling'
+  | 'misconception' | 'tutoring' | 'exam';
+
+/** GET /analytics/students/{id}/timeline */
+export interface StudentTimeline {
+  student: StudentRef;
+  mastery: { topic: string; mastery_score: number; attempts_count: number; band: MasteryBand }[];
+  timeline: { at: string; kind: TimelineKind; text: string; topic?: string | null }[];
+}
+
+/** Intervention Studio — what the lecturer is acting on. */
+export interface InterventionFocus {
+  topic: string;
+  misconception?: string | null;
+  students: StudentRef[];
+}
+
+export type PracticeFormat = 'practice' | 'diagnostic' | 'retrieval';
+
+/** Request body shared by the studio endpoints. */
+export interface InterventionBody {
+  topic: string;
+  misconception?: string | null;
+  student_ids: string[];
+}
+
+export interface InterventionOption {
+  action: PracticeFormat | 'mini_lesson' | 'in_person';
+  title: string;
+  why: string;
+}
+
 export interface CourseMastery {
   measured: boolean;
   reason?: string;

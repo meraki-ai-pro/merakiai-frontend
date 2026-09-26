@@ -2,8 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useChatStore, newId } from '@/store/chatStore';
-import { Trash2, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Trash2, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/api';
@@ -22,6 +21,20 @@ interface ConversationListProps {
   searchQuery?: string;
 }
 
+const RELATIVE = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['year', 31_536_000], ['month', 2_592_000], ['day', 86_400], ['hour', 3_600], ['minute', 60],
+];
+
+/** "3 hours ago", "yesterday", "now" — the largest unit that fits. */
+function timeAgoLabel(date: Date): string {
+  const seconds = (date.getTime() - Date.now()) / 1000;
+  for (const [unit, size] of UNITS) {
+    if (Math.abs(seconds) >= size) return RELATIVE.format(Math.round(seconds / size), unit);
+  }
+  return RELATIVE.format(0, 'second');
+}
+
 export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const router             = useRouter();
   const sessions          = useChatStore((s) => s.sessions);
@@ -29,9 +42,31 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const currentSessionId  = useChatStore((s) => s.currentSessionId);
   const setCurrentSession = useChatStore((s) => s.setCurrentSession);
   const deleteSession     = useChatStore((s) => s.deleteSession);
+  const updateSession     = useChatStore((s) => s.updateSession);
   const setMessages       = useChatStore((s) => s.setMessages);
   const loadedSessionsRef = useRef<Set<string>>(new Set());
   const [deletingSessionIds, setDeletingSessionIds] = useState<Set<string>>(new Set());
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState('');
+
+  const startRename = (id: string, title: string, e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    setRenamingId(id);
+    setDraftTitle(title);
+  };
+
+  const commitRename = async (id: string, previous: string) => {
+    const title = draftTitle.trim().slice(0, 120);
+    setRenamingId(null);
+    if (!title || title === previous) return;
+
+    updateSession(id, { title }); // optimistic; reverted below on failure
+    const response = await apiClient.renameSession(id, title);
+    if (!response.success) {
+      updateSession(id, { title: previous });
+      toast.error(response.error?.message ?? 'Could not rename session');
+    }
+  };
 
   const handleSelect = async (id: string) => {
     router.push('/dashboard');
@@ -130,15 +165,15 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
         const isActive = session.id === currentSessionId;
         const isDeleting = deletingSessionIds.has(session.id);
         const Icon     = modeIcon[(session.mode as ModeKey)] ?? BookOpen;
-        const timeAgo  = formatDistanceToNow(new Date(session.createdAt), { addSuffix: true });
+        const timeAgo  = timeAgoLabel(new Date(session.createdAt));
 
         return (
           <div
             key={session.id}
             role="button"
             tabIndex={0}
-            onClick={() => void handleSelect(session.id)}
-            onKeyDown={(e) => e.key === 'Enter' && void handleSelect(session.id)}
+            onClick={() => renamingId !== session.id && void handleSelect(session.id)}
+            onKeyDown={(e) => renamingId !== session.id && e.key === 'Enter' && void handleSelect(session.id)}
             className={cn(
               // `w-full` + `overflow-hidden` on the row itself is the key fix —
               // without this the row can grow wider than the sidebar and text
@@ -159,21 +194,58 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
               Fixed grid columns keep the destructive action available even when
               the session title is very long.
             */}
-            <div className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)_2rem] items-center gap-2">
+            <div className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-2">
               {/* 1 — Mode icon */}
               <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-blue-600 dark:text-cyan-200' : 'text-slate-400')} />
 
               {/* 2 — Title + timestamp */}
               <div className="min-w-0 overflow-hidden">
-                <p className="truncate text-xs font-semibold leading-tight text-inherit" title={session.title}>
-                  {session.title}
-                </p>
+                {renamingId === session.id ? (
+                  <input
+                    autoFocus
+                    value={draftTitle}
+                    maxLength={120}
+                    aria-label="Session name"
+                    onChange={(e) => setDraftTitle(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={() => void commitRename(session.id, session.title)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === 'Enter') e.currentTarget.blur();
+                      if (e.key === 'Escape') setRenamingId(null);
+                    }}
+                    className="w-full rounded-md border border-blue-300 bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-blue-400 dark:border-cyan-300/40 dark:bg-slate-900 dark:text-white"
+                  />
+                ) : (
+                  <p
+                    className="truncate text-xs font-semibold leading-tight text-inherit"
+                    title={`${session.title} — double-click to rename`}
+                    onDoubleClick={(e) => startRename(session.id, session.title, e)}
+                  >
+                    {session.title}
+                  </p>
+                )}
                 <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400" title={timeAgo}>
                   {timeAgo}
                 </p>
               </div>
 
-              {/* 3 — Delete button: fixed column, always visible, never squeezed out. */}
+              {/* 3 — Rename + delete: fixed column, always visible, never squeezed out. */}
+              <div className="flex items-center">
+              <button
+                onClick={(e) => startRename(session.id, session.title, e)}
+                aria-label="Rename session"
+                title="Rename session"
+                className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-xl',
+                  'text-slate-500 opacity-70 transition-all',
+                  'hover:bg-slate-950/[0.06] hover:text-slate-950 hover:opacity-100',
+                  'focus:bg-slate-950/[0.06] focus:opacity-100 focus:outline-none',
+                  'dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
+                )}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
               <button
                 onClick={(e) => handleDelete(session.id, e)}
                 onFocus={(e) => e.stopPropagation()}
@@ -195,6 +267,7 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
                   <Trash2 className="h-3.5 w-3.5" />
                 )}
               </button>
+              </div>
             </div>
           </div>
         );

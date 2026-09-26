@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
   Menu, Moon, Sun, Video, FileText, Loader2,
-  BookOpen, FlaskConical, ClipboardCheck,
+  BookOpen, ClipboardCheck,
 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useChatStore } from '@/store/chatStore';
@@ -13,6 +13,7 @@ import { useChat } from '@/hooks/use-chat';
 import { ModeSelector } from '@/components/mode/ModeSelector';
 import { CourseSwitcher } from '@/components/course/CourseSwitcher';
 import { FeedbackButton } from '@/components/feedback/FeedbackDialog';
+import { AvatarToggle } from '@/components/common/AvatarSelector';
 import {
   Tooltip,
   TooltipContent,
@@ -20,12 +21,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { TutorMode } from '@/types';
+import { MODE_LABELS, SCENARIO_FORMAT, visibleMode } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 
 // ─── Tooltip copy — concise since the welcome screen covers the full detail ──
+// Two tabs. The guided scenario ('application' on the wire) is a Review format,
+// so a scenario session lights up the Review tab — see visibleMode().
 const MODE_TABS: {
-  mode: TutorMode;
+  mode: 'learn' | 'review';
   label: string;
   icon: React.ElementType;
   color: string;
@@ -34,28 +37,19 @@ const MODE_TABS: {
 }[] = [
   {
     mode: 'learn',
-    label: 'Learn',
+    label: MODE_LABELS.learn,
     icon: BookOpen,
     color: 'text-muted-foreground',
     activeColor: 'text-blue-400',
     tooltip: 'Learn — ask anything, get instant AI explanations (text or video)',
   },
   {
-    mode: 'application',
-    // 'application' is the wire value; "Assessment" is what a student reads.
-    label: 'Assessment',
-    icon: FlaskConical,
-    color: 'text-muted-foreground',
-    activeColor: 'text-emerald-400',
-    tooltip: 'Assessment — work through a guided 3-step real-world scenario with scored feedback',
-  },
-  {
     mode: 'review',
-    label: 'Review',
+    label: MODE_LABELS.review,
     icon: ClipboardCheck,
     color: 'text-muted-foreground',
     activeColor: 'text-amber-400',
-    tooltip: 'Review — answer up to 10 adaptive quiz questions (multiple choice, fill in the blank, short answer)',
+    tooltip: 'Review — adaptive quiz questions or a guided real-world scenario, text only',
   },
 ];
 
@@ -64,7 +58,7 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const [pendingVideoMode, setPendingVideoMode] = useState<boolean | null>(null);
   const isTogglingVideo = pendingVideoMode !== null;
-  const [modeSelectorTarget, setModeSelectorTarget] = useState<'application' | 'review' | null>(null);
+  const [modeSelectorOpen, setModeSelectorOpen] = useState(false);
 
   const { theme, setTheme } = useTheme();
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
@@ -85,19 +79,21 @@ export function Header() {
   const currentSession = sessions.find((s) => s.id === currentSessionId);
   // Text-first: default to text when the preference is unknown.
   const prefersVideo = currentSession?.prefersVideo ?? false;
-  const currentMode = currentSession?.currentMode ?? 'learn';
+  const currentMode = visibleMode(currentSession?.currentMode);
+  // Video (and the avatar behind it) is a Learn feature. Review — including its
+  // guided scenarios — answers in text only.
   const isReviewMode = currentMode === 'review';
 
   // ── Mode switching ──────────────────────────────────────────────────────────
-  const handleModeClick = async (mode: TutorMode) => {
+  const handleModeClick = async (mode: 'learn' | 'review') => {
     router.push('/dashboard');
     if (!currentSessionId) return;
-    if (currentMode === mode) return;
 
     if (mode === 'learn') {
-      await switchMode('learn');
+      if (currentMode !== 'learn') await switchMode('learn');
     } else {
-      setModeSelectorTarget(mode as 'application' | 'review');
+      // Re-opening the picker while in Review is how a student changes format.
+      setModeSelectorOpen(true);
     }
   };
 
@@ -107,7 +103,7 @@ export function Header() {
     difficulty: 'Basic' | 'Intermediate' | 'Advanced'
   ) => {
     await startModeSession(mode, sessionType, difficulty);
-    setModeSelectorTarget(null);
+    setModeSelectorOpen(false);
   };
 
   // ── Video toggle ────────────────────────────────────────────────────────────
@@ -143,7 +139,7 @@ export function Header() {
               <h2 className="max-w-[220px] truncate text-sm font-semibold text-slate-950 dark:text-white">
                 {currentSession?.title || 'Meraki'}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Learn, Review, Assessment</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{MODE_LABELS.learn}, {MODE_LABELS.review}</p>
             </div>
             <CourseSwitcher />
           </div>
@@ -162,7 +158,9 @@ export function Header() {
                 {MODE_TABS.map(({ mode, label, icon: Icon, color, activeColor, tooltip }) => {
                   const isActive = currentMode === mode;
                   const isRunning =
-                    activeModeSession?.mode === mode && !activeModeSession?.completed;
+                    !!activeModeSession &&
+                    visibleMode(activeModeSession.mode) === mode &&
+                    !activeModeSession.completed;
                   const isThisTabSwitching = isSwitchingMode && mode === 'learn';
 
                   return (
@@ -210,7 +208,8 @@ export function Header() {
                   'flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/70 px-1 py-1 shadow-sm dark:border-white/10 dark:bg-white/[0.06] sm:rounded-2xl sm:px-1.5',
                   isReviewMode && 'opacity-40 pointer-events-none'
                 )}
-                title={isReviewMode ? 'Review mode is text-only' : undefined}
+                title={isReviewMode ? 'Review is text-only — switch to Learn for video' : undefined}
+                aria-disabled={isReviewMode}
               >
                 <button
                   onClick={() => handleSetVideoMode(false)}
@@ -246,6 +245,12 @@ export function Header() {
                   )}
                   <span className="hidden sm:inline font-medium">Video</span>
                 </button>
+                {prefersVideo && !isReviewMode && (
+                  <>
+                    <span className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-white/10" aria-hidden />
+                    <AvatarToggle disabled={isTogglingVideo} />
+                  </>
+                )}
               </div>
             )}
 
@@ -272,22 +277,19 @@ export function Header() {
         </div>
       </header>
 
-      {/* Mode selector modal */}
-      {modeSelectorTarget && (
+      {/* Review picker */}
+      {modeSelectorOpen && (
         <ModeSelector
-          mode={modeSelectorTarget}
           onStart={handleModeStart}
-          onClose={() => setModeSelectorTarget(null)}
+          onClose={() => setModeSelectorOpen(false)}
           isLoading={isStartingModeSession}
           defaultSessionType={
-            activeModeSession?.mode === modeSelectorTarget
-              ? activeModeSession.sessionType
-              : undefined
+            activeModeSession?.mode === 'application'
+              ? SCENARIO_FORMAT.value
+              : activeModeSession?.sessionType
           }
           defaultDifficulty={
-            activeModeSession?.mode === modeSelectorTarget
-              ? (activeModeSession.difficulty as 'Basic' | 'Intermediate' | 'Advanced')
-              : undefined
+            activeModeSession?.difficulty as 'Basic' | 'Intermediate' | 'Advanced' | undefined
           }
         />
       )}

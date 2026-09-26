@@ -394,6 +394,8 @@ export interface WsResponseComplete {
   // (source "did_agent", streaming true) rather than a rendered MP4 clip.
   source?: string;
   streaming?: boolean;
+  /** Help-ladder rung of this answer: 0 concept, 1-4 hints, 5 full solution. */
+  help_level?: number | null;
 }
 
 export interface WsLearnResponse {

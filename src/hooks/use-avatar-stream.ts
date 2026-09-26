@@ -17,9 +17,12 @@ export function useAvatarStream() {
   const setAvatarStream = useChatStore((s) => s.setAvatarStream);
   const setAvatarStatus = useChatStore((s) => s.setAvatarStatus);
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+  // The D-ID agent is chosen from the avatar when the stream opens, so a switch
+  // of avatar has to reopen it — otherwise the old tutor keeps answering.
+  const avatarId = useUserStore((s) => s.user?.avatar_id);
 
   const session = sessions.find((s) => s.id === currentSessionId);
-  // Only Learn mode supports video; Review and Assessment are text-only.
+  // Only Learn mode supports video; Review (including scenarios) is text-only.
   const mode = session?.currentMode ?? session?.mode ?? 'learn';
   const prefersVideo = !!session?.prefersVideo && mode === 'learn';
 
@@ -43,5 +46,5 @@ export function useAvatarStream() {
       setAvatarStream(null);
       setAvatarStatus('off');
     };
-  }, [currentSessionId, prefersVideo, isAuthenticated, setAvatarStream, setAvatarStatus]);
+  }, [currentSessionId, prefersVideo, isAuthenticated, avatarId, setAvatarStream, setAvatarStatus]);
 }

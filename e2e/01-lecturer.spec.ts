@@ -86,9 +86,9 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   // Review material — retag before uploading the tutorial sheet.
   const learnBox = page.locator('label', { hasText: /^learn$/i }).locator('input[type=checkbox]');
   const reviewBox = page.locator('label', { hasText: /^review$/i }).locator('input[type=checkbox]');
-  // Labelled "Assessment" on screen; the wire value is still 'application'.
+  // Labelled "Guided scenario" (a Review format); the wire value is still 'application'.
   const appBox = page
-    .locator('label', { hasText: /^assessment$/i })
+    .locator('label', { hasText: /^guided scenario$/i })
     .locator('input[type=checkbox]');
 
   await learnBox.uncheck();
@@ -226,17 +226,16 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   await expect(page.getByText('Live').first()).toBeVisible({ timeout: 30_000 });
   await caption(page, 'Approved — students can now see this animation.');
 
-  // ── 10. Assessment ────────────────────────────────────────────────────────
-  // "Pre/post tests", not "Assessments" — Assessment is now the name of a
-  // study mode, so the research instrument was renamed to keep the two apart.
-  await page.getByRole('tab', { name: 'Pre/post tests' }).click();
-  await caption(page, 'Pre/post tests: the pair that measures learning gain.');
+  // ── 10. Exams ─────────────────────────────────────────────────────────────
+  // Pre/post tests were retired from the student view; lecturers set exams.
+  await page.getByRole('tab', { name: 'Exams' }).click();
+  await caption(page, 'Exams: class tests, mid-sems and finals — typed or imported from a paper.');
   await page.getByTestId('new-assessment').click();
 
-  await page.getByTestId('assessment-title').fill('Differentiation — pre-test');
-  await page.getByTestId('assessment-kind').selectOption('pre');
+  await page.getByTestId('assessment-title').fill('Differentiation — class test');
+  await page.getByTestId('assessment-kind').selectOption('test');
   await page.getByTestId('create-assessment-submit').click();
-  await expect(page.getByText('Differentiation — pre-test')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Differentiation — class test')).toBeVisible({ timeout: 30_000 });
   await caption(page, 'Paper created. Now the questions.');
 
   const QUESTIONS = [
@@ -264,7 +263,7 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   // already showing — an unconditional click would collapse the row.
   const promptField = page.getByTestId('question-prompt');
   if (!(await promptField.isVisible().catch(() => false))) {
-    await page.getByText('Differentiation — pre-test').click();
+    await page.getByText('Differentiation — class test').click();
   }
   await expect(promptField).toBeVisible({ timeout: 20_000 });
 
@@ -280,9 +279,11 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   }
   await caption(page, 'Three questions added, each tagged with its topic.');
 
+  // Publishing asks for confirmation: its questions freeze once students can sit it.
+  page.once('dialog', (dialog) => void dialog.accept());
   await page.locator('button[data-testid^="publish-"]').first().click();
   await page.waitForTimeout(3000);
-  await caption(page, 'Published. Students can now sit the pre-test.');
+  await caption(page, 'Published. Students can now sit the class test.');
 
   // ── 11. Overview ──────────────────────────────────────────────────────────
   await page.getByRole('tab', { name: 'Overview' }).click();

@@ -2,16 +2,15 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FlaskConical, ClipboardCheck, X, ChevronRight, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
-import { REVIEW_SESSION_TYPES, DIFFICULTY_LEVELS } from '@/lib/constants';
+import { ClipboardCheck, X, ChevronRight, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { REVIEW_SESSION_TYPES, SCENARIO_FORMAT, DIFFICULTY_LEVELS, MODE_LABELS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 interface ModeSelectorProps {
-  mode: 'application' | 'review';
   /**
-   * `sessionType` is the question format for Review and is EMPTY for
-   * Assessment — that mode no longer has a topic to pick, so the server fills
-   * in a neutral placeholder rather than the client inventing one.
+   * Review is the only mode with a picker. Choosing the guided scenario starts
+   * an 'application' session (its wire value) with an EMPTY sessionType — the
+   * server fills in a neutral placeholder rather than the client inventing one.
    */
   onStart: (
     mode: 'application' | 'review',
@@ -24,49 +23,24 @@ interface ModeSelectorProps {
   defaultDifficulty?: 'Basic' | 'Intermediate' | 'Advanced';
 }
 
-// ─── Keyed by the actual backend mode value ('application' | 'review') ────────
-// 'application' is the wire value; "Assessment" is what a student reads. See
-// MODE_LABELS in lib/constants.
-const MODE_META = {
-  application: {
-    icon: FlaskConical,
-    label: 'Assessment',
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    ring: 'ring-emerald-500/20',
-    selectedBg: 'bg-emerald-500/20 border-emerald-500/50',
-    loadingColor: 'text-emerald-400',
-    // Detailed description shown in the modal header
-    description: 'Apply your knowledge to a real-world scenario with guided steps and AI feedback.',
-    // How-it-works steps shown below the header
-    howItWorks: [
-      'You receive a realistic scenario or exercise drawn from your course material.',
-      'Answer each of 3 guided sub-questions in your own words.',
-      'After each answer the AI evaluates your response, highlights what you got right and what you missed, then presents the next step.',
-      'At the end you receive a summary of key learning points.',
-    ],
-    // No topic picker: Assessment scenarios are drawn from the whole course.
-    topicLabel: null,
-    loadingLabel: 'scenario',
-  },
-  review: {
-    icon: ClipboardCheck,
-    label: 'Review',
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10',
-    ring: 'ring-amber-500/20',
-    selectedBg: 'bg-amber-500/20 border-amber-500/50',
-    loadingColor: 'text-amber-400',
-    description: 'Test your understanding with adaptive quiz questions that adjust to your performance.',
-    howItWorks: [
-      'Choose a question format: Multiple Choice, Fill in the Blank, or Short Answer.',
-      'Answer up to 10 questions one at a time.',
-      'After each answer the AI grades your response and explains the correct reasoning.',
-      'Difficulty adjusts automatically — harder questions when you score well, easier ones when you need more practice.',
-    ],
-    topicLabel: 'Question Format',
-    loadingLabel: 'first question',
-  },
+const FORMATS: ReadonlyArray<{ value: string; label: string; desc: string }> = [
+  ...REVIEW_SESSION_TYPES,
+  SCENARIO_FORMAT,
+];
+
+const meta = {
+  icon: ClipboardCheck,
+  color: 'text-amber-400',
+  bg: 'bg-amber-500/10',
+  ring: 'ring-amber-500/20',
+  selectedBg: 'bg-amber-500/20 border-amber-500/50',
+  description: 'Test your understanding with adaptive questions or a guided real-world scenario.',
+  howItWorks: [
+    'Choose a format: Multiple Choice, Fill in the Blank, Short Answer, or a Guided Scenario.',
+    'Quiz formats give you up to 10 questions one at a time; a scenario gives you 3 guided steps.',
+    'After each answer the AI marks your response and explains the reasoning.',
+    'Difficulty adjusts automatically — harder when you score well, easier when you need more practice.',
+  ],
 } as const;
 
 const DIFFICULTY_DESCRIPTIONS: Record<string, string> = {
@@ -76,30 +50,27 @@ const DIFFICULTY_DESCRIPTIONS: Record<string, string> = {
 };
 
 export function ModeSelector({
-  mode,
   onStart,
   onClose,
   isLoading = false,
   defaultSessionType,
   defaultDifficulty,
 }: ModeSelectorProps) {
-  const meta = MODE_META[mode]; // always defined — keyed on 'application' | 'review'
   const Icon = meta.icon;
-
-  // Review picks a question format; Assessment has nothing to pick.
-  const sessionTypes: ReadonlyArray<{ value: string; label: string; desc?: string }> =
-    mode === 'review' ? REVIEW_SESSION_TYPES : [];
+  const label = MODE_LABELS.review;
 
   const [sessionType, setSessionType] = useState<string>(
-    defaultSessionType ?? sessionTypes[0]?.value ?? ''
+    defaultSessionType ?? FORMATS[0].value
   );
   const [difficulty, setDifficulty] = useState<'Basic' | 'Intermediate' | 'Advanced'>(
     defaultDifficulty ?? 'Basic'
   );
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const isScenario = sessionType === SCENARIO_FORMAT.value;
 
   const handleStart = async () => {
-    await onStart(mode, sessionType, difficulty);
+    if (isScenario) await onStart('application', '', difficulty);
+    else await onStart('review', sessionType, difficulty);
   };
 
   return (
@@ -116,7 +87,7 @@ export function ModeSelector({
               <Icon className={cn('h-5 w-5', meta.color)} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-foreground">Start {meta.label}</h2>
+              <h2 className="text-base font-semibold text-foreground">Start {label}</h2>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed max-w-sm">
                 {meta.description}
               </p>
@@ -163,19 +134,18 @@ export function ModeSelector({
         {/* ── Body (scrollable) ─────────────────────────────────────────────── */}
         <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
 
-          {/* Question format — Review only. Assessment scenarios are drawn
-              from the whole course, so there is nothing here to choose. */}
-          {meta.topicLabel && sessionTypes.length > 0 && (
-          <div>
+          <div role="radiogroup" aria-label="Format">
             <label className="mb-2.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {meta.topicLabel}
+              Format
             </label>
             <div className="flex flex-col gap-1.5">
-              {sessionTypes.map((type) => {
+              {FORMATS.map((type) => {
                 const isSelected = sessionType === type.value;
                 return (
                   <button
                     key={type.value}
+                    role="radio"
+                    aria-checked={isSelected}
                     onClick={() => setSessionType(type.value)}
                     disabled={isLoading}
                     className={cn(
@@ -188,11 +158,9 @@ export function ModeSelector({
                   >
                     <div>
                       <span className="block font-medium text-sm">{type.label}</span>
-                      {'desc' in type && (
-                        <span className="block text-[11px] text-muted-foreground mt-0.5">
-                          {type.desc}
-                        </span>
-                      )}
+                      <span className="block text-[11px] text-muted-foreground mt-0.5">
+                        {type.desc}
+                      </span>
                     </div>
                     {isSelected ? (
                       <CheckCircle2 className={cn('h-4 w-4 flex-shrink-0 ml-2', meta.color)} />
@@ -204,7 +172,6 @@ export function ModeSelector({
               })}
             </div>
           </div>
-          )}
 
           {/* Difficulty */}
           <div>
@@ -252,7 +219,7 @@ export function ModeSelector({
               </>
             ) : (
               <>
-                Start {meta.label}
+                Start {label}
                 <ChevronRight className="ml-2 h-4 w-4" />
               </>
             )}
@@ -267,10 +234,10 @@ export function ModeSelector({
             </div>
             <div className="text-center px-8">
               <p className={cn('text-sm font-semibold', meta.color)}>
-                Starting {meta.label} session…
+                Starting {label} session…
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Generating your {meta.loadingLabel}
+                Generating your {isScenario ? 'scenario' : 'first question'}
               </p>
             </div>
           </div>

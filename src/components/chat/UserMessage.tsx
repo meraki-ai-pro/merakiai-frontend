@@ -2,7 +2,6 @@
 
 import { useUserStore } from "@/store/userStore";
 import type { Message } from "@/types";
-import { format } from "date-fns";
 
 interface UserMessageProps {
   message: Message;
@@ -26,7 +25,7 @@ export function UserMessage({ message }: UserMessageProps) {
 
         {/* Timestamp */}
         <span className="text-xs text-muted-foreground/50 pr-1">
-          {format(new Date(message.timestamp), "HH:mm")}
+          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}
         </span>
       </div>
 

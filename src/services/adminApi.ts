@@ -18,6 +18,8 @@ export interface AdminUser {
   university_name: string | null;
   country: string | null;
   created_at: string;
+  /** Set when a super admin soft-deleted the account (sql/016). */
+  deleted_at?: string | null;
 }
 
 /**
@@ -292,18 +294,15 @@ class AdminApiClient {
   }
 
   // ─── Users ───────────────────────────────────────────────────────────────
-  getUsers(opts: { page?: number; pageSize?: number; role?: string; search?: string } = {}) {
+  getUsers(opts: { page?: number; pageSize?: number; role?: string; search?: string; includeDeleted?: boolean } = {}) {
     const q = new URLSearchParams({
       page: String(opts.page ?? 1),
       page_size: String(Math.min(opts.pageSize ?? 100, 100)), // backend caps page_size at 100
     });
     if (opts.role) q.set('role', opts.role);
     if (opts.search) q.set('search', opts.search);
+    if (opts.includeDeleted) q.set('include_deleted', 'true');
     return this.paginated<AdminUser>(`/admin/users?${q.toString()}`, 'users');
-  }
-
-  getUserById(userId: string) {
-    return this.request<AdminUser>(`/admin/users/${userId}`);
   }
 
   /**
@@ -317,6 +316,21 @@ class AdminApiClient {
     return this.request<{ status: string; user_id: string; new_role: string }>(
       `/admin/users/${userId}/role`,
       { method: 'PATCH', body: JSON.stringify({ role }) }
+    );
+  }
+
+  /** Soft delete — super admins only. The account is banned, never erased. */
+  deleteUser(userId: string) {
+    return this.request<{ status: string; user_id: string; deleted_at: string }>(
+      `/admin/users/${userId}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  restoreUser(userId: string) {
+    return this.request<{ status: string; user_id: string }>(
+      `/admin/users/${userId}/restore`,
+      { method: 'POST' }
     );
   }
 

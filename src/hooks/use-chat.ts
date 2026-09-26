@@ -85,10 +85,9 @@ const REVIEW_LABELS = Object.fromEntries(
 /**
  * Conversation title for a mode session.
  *
- * Assessment sessions no longer carry a topic, so the title is just
- * "Assessment". Sessions started before the picker was removed still have one
- * and keep showing it — a conversation must not silently rename itself in the
- * sidebar because we shipped.
+ * A guided scenario is a Review format, so it is titled like the others:
+ * "Review — Guided scenario". Sessions started before the topic picker was
+ * removed still carry a topic and keep showing it.
  */
 function getModeSessionTitle(
   mode: "application" | "review",
@@ -99,8 +98,8 @@ function getModeSessionTitle(
   }
   const legacyTopic = LEGACY_SCENARIO_TYPE_LABELS[sessionType];
   return legacyTopic && sessionType !== "general"
-    ? `${MODE_LABELS.application} — ${legacyTopic}`
-    : MODE_LABELS.application;
+    ? `${MODE_LABELS.review} — ${MODE_LABELS.application}: ${legacyTopic}`
+    : `${MODE_LABELS.review} — ${MODE_LABELS.application}`;
 }
 
 // ─── Subtitle helper ──────────────────────────────────────────────────────────
@@ -655,6 +654,7 @@ export function useChat() {
       // Prefer the terminal push (authoritative, and present even if the
       // earlier `sources` event was missed by a mid-turn reconnect).
       sources: msg.sources?.length ? msg.sources : store.streamingSources,
+      helpLevel: msg.help_level ?? null,
       timestamp: new Date(),
     };
 
@@ -1303,6 +1303,13 @@ export function useChat() {
 
       await ensureVideoPreference(sessionId, mode);
 
+      // An answer that has fully arrived but is still being revealed lives in
+      // pendingFinals until the reveal catches up. Sending again clears the
+      // stream below, which used to drop it from the conversation (a long
+      // board answer takes 20s+ to reveal). Commit it first, before the new
+      // question, so it stays and stays in order.
+      useChatStore.getState().commitPendingFinals();
+
       if (!isRetry) {
         addMessage({
           id: newId(),
@@ -1576,6 +1583,9 @@ export function useChat() {
   const sendModeMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || !activeModeSession || !currentSessionId) return;
+
+      // As in sendMessage: keep a still-revealing evaluation or question.
+      useChatStore.getState().commitPendingFinals();
 
       addMessage({
         id: newId(),

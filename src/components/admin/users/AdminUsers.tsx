@@ -12,6 +12,8 @@ import {
   Loader2,
   Shield,
   UserCircle,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,10 +30,11 @@ export function AdminUsers() {
   const [search, setSearch] = useState('');
   const [me, setMe] = useState<{ id: string; role: string } | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const res = await adminApiClient.getUsers({ pageSize: 100 });
+    const res = await adminApiClient.getUsers({ pageSize: 100, includeDeleted: showDeleted });
     if (res.success && res.data) {
       setUsers(res.data.items);
     } else {
@@ -40,7 +43,7 @@ export function AdminUsers() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [showDeleted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The caller's own role decides which roles they may hand out, and it is not
   // in the users list response.
@@ -82,6 +85,41 @@ export function AdminUsers() {
     setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role } : u)));
   };
 
+  const softDelete = async (user: AdminUser) => {
+    const confirmed = window.confirm(
+      `Delete ${user.email}?\n\nThey will no longer be able to sign in. Their sessions, ` +
+        'results and feedback are kept, and a super admin can restore the account later.'
+    );
+    if (!confirmed) return;
+
+    setSaving(user.id);
+    const res = await adminApiClient.deleteUser(user.id);
+    setSaving(null);
+    if (!res.success || !res.data) {
+      toast.error(res.error?.message ?? 'Could not delete that user');
+      return;
+    }
+    toast.success(`${user.email} deleted`);
+    const deletedAt = res.data.deleted_at;
+    setUsers((prev) =>
+      showDeleted
+        ? prev.map((u) => (u.id === user.id ? { ...u, deleted_at: deletedAt } : u))
+        : prev.filter((u) => u.id !== user.id)
+    );
+  };
+
+  const restore = async (user: AdminUser) => {
+    setSaving(user.id);
+    const res = await adminApiClient.restoreUser(user.id);
+    setSaving(null);
+    if (!res.success) {
+      toast.error(res.error?.message ?? 'Could not restore that user');
+      return;
+    }
+    toast.success(`${user.email} restored`);
+    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, deleted_at: null } : u)));
+  };
+
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
     return (
@@ -103,6 +141,14 @@ export function AdminUsers() {
           )}
         </h2>
         <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <input
+              type="checkbox"
+              checked={showDeleted}
+              onChange={(e) => setShowDeleted(e.target.checked)}
+            />
+            Show deleted
+          </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
             <input
@@ -118,6 +164,7 @@ export function AdminUsers() {
             className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <RefreshCw className="h-3.5 w-3.5" />
+            <span className="sr-only">Refresh</span>
           </button>
         </div>
       </div>
@@ -137,7 +184,7 @@ export function AdminUsers() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200/70 dark:border-white/10">
-                {['User', 'Role', 'Change role', 'University', 'Country', 'Joined'].map((h) => (
+                {['User', 'Role', 'Change role', 'University', 'Country', 'Joined', ...(isSuperAdmin ? ['Account'] : [])].map((h) => (
                   <th key={h} className="text-left px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {h}
                   </th>
@@ -150,7 +197,8 @@ export function AdminUsers() {
                   key={user.id}
                   className={cn(
                     'border-b border-slate-200/70 dark:border-white/10 hover:bg-blue-50 dark:hover:bg-cyan-300/[0.08] transition-colors',
-                    i % 2 !== 0 && 'bg-slate-950/[0.03] dark:bg-white/[0.04]'
+                    i % 2 !== 0 && 'bg-slate-950/[0.03] dark:bg-white/[0.04]',
+                    user.deleted_at && 'opacity-60'
                   )}
                 >
                   <td className="px-6 py-3">
@@ -161,7 +209,14 @@ export function AdminUsers() {
                         </span>
                       </div>
                       <div>
-                        <p className="text-slate-900 dark:text-white font-medium">{fullName(user)}</p>
+                        <p className="text-slate-900 dark:text-white font-medium">
+                          {fullName(user)}
+                          {user.deleted_at && (
+                            <span className="ml-2 rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-red-600 dark:text-red-300">
+                              Deleted
+                            </span>
+                          )}
+                        </p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">{user.email}</p>
                       </div>
                     </div>
@@ -196,6 +251,35 @@ export function AdminUsers() {
                       {new Date(user.created_at).toLocaleDateString()}
                     </span>
                   </td>
+                  {isSuperAdmin && (
+                    <td className="px-6 py-3">
+                      {user.deleted_at ? (
+                        <button
+                          onClick={() => void restore(user)}
+                          disabled={saving === user.id}
+                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50 dark:text-cyan-200 dark:hover:bg-cyan-300/10"
+                        >
+                          <RotateCcw className="h-3 w-3" /> Restore
+                        </button>
+                      ) : me?.id !== user.id && user.role !== 'super_admin' ? (
+                        <button
+                          onClick={() => void softDelete(user)}
+                          disabled={saving === user.id}
+                          aria-label={`Delete ${user.email}`}
+                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-300"
+                        >
+                          <Trash2 className="h-3 w-3" /> Delete
+                        </button>
+                      ) : (
+                        <span
+                          className="text-xs text-slate-400"
+                          title={me?.id === user.id ? 'You cannot delete your own account' : 'Demote a super admin before deleting them'}
+                        >
+                          —
+                        </span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

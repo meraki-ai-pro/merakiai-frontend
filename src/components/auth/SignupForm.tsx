@@ -8,15 +8,11 @@ import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const SELECT_CLASS =
+  'h-12 w-full rounded-2xl border border-slate-200 bg-transparent px-4 text-sm disabled:opacity-60 dark:border-white/[0.1] dark:bg-white/[0.08] dark:[color-scheme:dark]';
 
 interface CountryOption {
   code: string;
@@ -238,21 +234,21 @@ export function SignupForm() {
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="country" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Country</Label>
-            <Select value={country} onValueChange={handleCountryChange} disabled={isLoading || isLoadingCountries} required>
-              <SelectTrigger
-                id="country"
-                className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 dark:border-white/[0.1] dark:bg-white/[0.08]"
-              >
-                <SelectValue placeholder={isLoadingCountries ? 'Loading countries...' : 'Select country'} />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {sortedCountries.map((item) => (
-                  <SelectItem key={item.code} value={item.name}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              id="country"
+              value={country}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              disabled={isLoading || isLoadingCountries}
+              required
+              className={SELECT_CLASS}
+            >
+              <option value="" disabled>
+                {isLoadingCountries ? 'Loading countries...' : 'Select country'}
+              </option>
+              {sortedCountries.map((item) => (
+                <option key={item.code} value={item.name}>{item.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -265,19 +261,19 @@ export function SignupForm() {
                 className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-slate-600 disabled:opacity-100 dark:border-white/[0.1] dark:bg-white/[0.05] dark:text-slate-300"
               />
             ) : (
-              <Select value={region} onValueChange={(value) => { setRegion(value); setError(null); }} disabled={isLoading} required>
-                <SelectTrigger
-                  id="region"
-                  className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 dark:border-white/[0.1] dark:bg-white/[0.08]"
-                >
-                  <SelectValue placeholder="Select region" />
-                </SelectTrigger>
-                <SelectContent>
-                  {regionOptions.map((item) => (
-                    <SelectItem key={item} value={item}>{item}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                id="region"
+                value={region}
+                onChange={(e) => { setRegion(e.target.value); setError(null); }}
+                disabled={isLoading}
+                required
+                className={SELECT_CLASS}
+              >
+                <option value="" disabled>Select region</option>
+                {regionOptions.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
             )}
           </div>
         </div>

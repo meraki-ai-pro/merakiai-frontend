@@ -21,6 +21,7 @@ import {
   Volume2,
   VolumeX,
   X,
+  Trash2,
 } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import type { RenderAsset } from '@/types/lecturer';
@@ -326,6 +327,22 @@ function AssetRow({
     onReviewed();
   };
 
+  const remove = async () => {
+    const live = !!asset.approved_at;
+    const confirmed = window.confirm(
+      `Delete the video "${asset.concept_key}"?` +
+        (live ? '\n\nIt is live: students will stop seeing it immediately.' : '') +
+        '\n\nThis cannot be undone.'
+    );
+    if (!confirmed) return;
+    setBusy(true);
+    const res = await apiClient.deleteRenderAsset(asset.id);
+    setBusy(false);
+    if (!res.success) return toast.error(res.error?.message ?? 'Could not delete the video');
+    toast.success('Video deleted');
+    onReviewed();
+  };
+
   return (
     <li className="rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5">
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
@@ -380,6 +397,16 @@ function AssetRow({
               </button>
             </>
           )}
+          <button
+            type="button"
+            onClick={() => void remove()}
+            disabled={busy}
+            aria-label={`Delete video ${asset.concept_key}`}
+            title="Delete this video"
+            className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-30 dark:border-red-400/30 dark:text-red-300 dark:hover:bg-red-500/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </button>
         </div>
       </div>
 

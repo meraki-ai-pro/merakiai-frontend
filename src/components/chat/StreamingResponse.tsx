@@ -5,10 +5,10 @@ import { useChatStore } from '@/store/chatStore';
 import { useSmoothText } from '@/hooks/use-smooth-text';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
-import { MarkdownRenderer } from '@/components/common/MarkdownRenderer';
 import { AssistantProgress } from './AssistantProgress';
 import { BoardStage } from '@/components/board/BoardStage';
 import { hasBoard } from '@/lib/board';
+import { AnswerWithVideos } from './AIResponse';
 import { SourcesProvider } from '@/components/sources/SourcesContext';
 import { SourcesBar } from '@/components/sources/SourcesBar';
 
@@ -72,7 +72,7 @@ export function StreamingResponse() {
             <BoardStage content={shown} isStreaming courseId={courseId} />
           ) : (
             <div className="rounded-2xl border border-white/70 bg-white/[0.88] px-4 py-3 shadow-sm shadow-blue-950/5 backdrop-blur dark:border-white/10 dark:bg-white/[0.06]">
-              <MarkdownRenderer content={shown} />
+              <AnswerWithVideos content={shown} courseId={courseId} />
               <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-blue-500/70 dark:bg-cyan-300/70" />
             </div>
           )

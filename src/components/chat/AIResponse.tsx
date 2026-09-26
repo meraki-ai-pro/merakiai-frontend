@@ -9,12 +9,14 @@ import type { Message } from '@/types';
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer';
 import { AssistantProgress } from './AssistantProgress';
 import { BoardStage } from '@/components/board/BoardStage';
-import { hasBoard } from '@/lib/board';
+import { hasBoard, splitVideoFences } from '@/lib/board';
+import { ConceptVideo } from '@/components/board/ConceptVideo';
 import { SourcesProvider } from '@/components/sources/SourcesContext';
 import { SourcesBar } from '@/components/sources/SourcesBar';
 import { PracticeEvalCard, PracticeCompletedCard } from '@/components/mode/PracticeModeUI';
 import { ReviewEvalCard, ReviewCompletedCard } from '@/components/mode/ReviewModeUI';
 import { ModePromptCard } from '@/components/mode/ModePromptCard';
+import { ListenButton } from './ListenButton';
 
 interface AIResponseProps {
   message: Message;
@@ -156,7 +158,7 @@ export function AIResponse({ message }: AIResponseProps) {
         ) : (
           // ── Standard learn-mode text response ───────────────────────────
           <div className="rounded-2xl border border-white/70 bg-white/[0.88] px-4 py-3 shadow-sm shadow-blue-950/5 backdrop-blur dark:border-white/10 dark:bg-white/[0.06]">
-            <MarkdownRenderer content={message.content} />
+            <AnswerWithVideos content={message.content} courseId={courseId} />
           </div>
         )}
 
@@ -164,14 +166,37 @@ export function AIResponse({ message }: AIResponseProps) {
           <SourcesBar sources={sources} content={message.content} />
         )}
 
-        {/* Timestamp on hover */}
-        <span className="text-xs text-muted-foreground/50 pl-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {message.timestamp instanceof Date
-            ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
+        <div className="flex items-center gap-2">
+          {/* Audio for every answer — text, board, video and Review alike (UDL). */}
+          {message.content && <ListenButton content={message.content} courseId={courseId} />}
+          {/* Timestamp on hover */}
+          <span className="text-xs text-muted-foreground/50 pl-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {message.timestamp instanceof Date
+              ? message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
       </div>
       </SourcesProvider>
+    </div>
+  );
+}
+
+/**
+ * A plain answer with the lecturer's approved animations shown where the tutor
+ * placed them. The key is resolved server-side against approved assets only,
+ * so an unknown key renders nothing rather than arbitrary media.
+ */
+export function AnswerWithVideos({ content, courseId }: { content: string; courseId?: string }) {
+  return (
+    <div className="space-y-3">
+      {splitVideoFences(content).map((part, i) =>
+        'video' in part ? (
+          courseId ? <ConceptVideo key={`v${i}`} courseId={courseId} concept={part.video} /> : null
+        ) : (
+          <MarkdownRenderer key={`m${i}`} content={part.markdown} />
+        )
+      )}
     </div>
   );
 }

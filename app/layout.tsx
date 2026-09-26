@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
-import { QueryProvider } from '@/components/providers/QueryProvider'
 import { Toaster } from 'react-hot-toast'
 
 const siteUrl = new URL('https://www.merakiai.online')
@@ -115,7 +114,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans antialiased text-base">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <QueryProvider>
             {children}
             <Toaster
               position="bottom-right"
@@ -129,7 +127,6 @@ export default function RootLayout({
                 },
               }}
             />
-          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -23,7 +23,7 @@ const DOC_TYPES = [
 
 const DEFAULT_MODES = [
   { value: 'learn', label: 'Learn' },
-  { value: 'practice', label: 'Assessment' },
+  { value: 'practice', label: 'Guided scenario' },
   { value: 'review', label: 'Review' },
 ] as const;
 

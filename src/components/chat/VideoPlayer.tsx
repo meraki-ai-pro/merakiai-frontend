@@ -6,7 +6,6 @@ import { Subtitle } from '@/types';
 import { SubtitleDisplay } from './SubtitleDisplay';
 import { Play, Pause, Volume2, VolumeX, Maximize, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -226,12 +225,15 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
           <span className="text-xs text-white/90 tabular-nums min-w-[40px]">
             {formatTime(currentTime)}
           </span>
-          <Slider
-            value={[currentTime]}
+          <input
+            type="range"
+            aria-label="Seek"
+            value={currentTime}
+            min={0}
             max={videoDuration}
             step={100}
-            onValueChange={handleTimelineChange}
-            className="flex-1"
+            onChange={(e) => handleTimelineChange([Number(e.target.value)])}
+            className="flex-1 accent-white"
           />
           <span className="text-xs text-white/90 tabular-nums min-w-[40px] text-right">
             {formatTime(videoDuration)}
@@ -269,12 +271,15 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
               )}
             </Button>
 
-            <Slider
-              value={[isMuted ? 0 : volume]}
+            <input
+              type="range"
+              aria-label="Volume"
+              value={isMuted ? 0 : volume}
+              min={0}
               max={1}
               step={0.05}
-              onValueChange={handleVolumeChange}
-              className="w-20"
+              onChange={(e) => handleVolumeChange([Number(e.target.value)])}
+              className="w-20 accent-white"
             />
           </div>
 

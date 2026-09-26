@@ -66,7 +66,46 @@ const CONCEPT_KEY_RE = /^[a-z0-9][a-z0-9-]{0,118}[a-z0-9]$/i;
 
 /** True when the text uses board syntax at all. */
 export function hasBoard(text: string): boolean {
-  return /^:::\s*(slide|plot|video)\b/m.test(text);
+  // A video fence alone does not make a board: with the Lesson Board off, a
+  // plain Learn answer can still carry the lecturer's video (splitVideoFences).
+  return /^:::\s*(slide|plot)\b/m.test(text);
+}
+
+export type AnswerPart = { markdown: string } | { video: string };
+
+/**
+ * A plain answer split around its `::: video <key>` fences.
+ *
+ * A fence counts only once its closing `:::` has arrived. While the answer is
+ * still streaming, `::: video number-li` is half a key, and resolving it would
+ * flash "no video" before the real key lands — so an unclosed fence is hidden,
+ * not guessed at. Stray `:::` lines are dropped for the same reason.
+ */
+export function splitVideoFences(text: string): AnswerPart[] {
+  const parts: AnswerPart[] = [];
+  const lines = text.split('\n');
+  let buffer: string[] = [];
+  const flush = () => {
+    const markdown = buffer.join('\n').trim();
+    if (markdown) parts.push({ markdown });
+    buffer = [];
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const open = lines[i].match(/^:::\s*video\s+(\S+)\s*$/);
+    if (open) {
+      if (/^:::\s*$/.test(lines[i + 1] ?? '')) {
+        flush();
+        parts.push({ video: open[1] });
+        i++; // the closing fence
+      }
+      continue;
+    }
+    if (/^:::\s*$/.test(lines[i])) continue;
+    buffer.push(lines[i]);
+  }
+  flush();
+  return parts;
 }
 
 /**
