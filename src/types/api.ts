@@ -141,6 +141,11 @@ export interface DeleteSessionResponse {
   storage_objects_deleted: number;
 }
 
+export interface RenameSessionResponse {
+  session_id: string;
+  title: string;
+}
+
 // ─── User Profile ─────────────────────────────────────────────────────────────
 export interface UserProfileResponse {
   id: string;

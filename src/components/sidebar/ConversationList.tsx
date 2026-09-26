@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useChatStore, newId } from '@/store/chatStore';
-import { Trash2, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, Check, X, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/api';
@@ -46,27 +46,9 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const setMessages       = useChatStore((s) => s.setMessages);
   const loadedSessionsRef = useRef<Set<string>>(new Set());
   const [deletingSessionIds, setDeletingSessionIds] = useState<Set<string>>(new Set());
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [draftTitle, setDraftTitle] = useState('');
-
-  const startRename = (id: string, title: string, e: React.SyntheticEvent) => {
-    e.stopPropagation();
-    setRenamingId(id);
-    setDraftTitle(title);
-  };
-
-  const commitRename = async (id: string, previous: string) => {
-    const title = draftTitle.trim().slice(0, 120);
-    setRenamingId(null);
-    if (!title || title === previous) return;
-
-    updateSession(id, { title }); // optimistic; reverted below on failure
-    const response = await apiClient.renameSession(id, title);
-    if (!response.success) {
-      updateSession(id, { title: previous });
-      toast.error(response.error?.message ?? 'Could not rename session');
-    }
-  };
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
 
   const handleSelect = async (id: string) => {
     router.push('/dashboard');
@@ -128,6 +110,39 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
     toast.success('Session deleted');
   };
 
+  const startRename = (session: { id: string; title: string }, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenamingSessionId(session.id);
+    setRenameValue(session.title);
+  };
+
+  const cancelRename = () => {
+    setRenamingSessionId(null);
+    setRenameValue('');
+  };
+
+  const commitRename = async (id: string) => {
+    if (isRenaming) return;
+    const title = renameValue.trim();
+    const current = sessions.find((s) => s.id === id)?.title ?? '';
+    if (!title || title === current) {
+      cancelRename();
+      return;
+    }
+
+    setIsRenaming(true);
+    const response = await apiClient.renameSession(id, title);
+    setIsRenaming(false);
+
+    if (!response.success) {
+      toast.error(response.error?.message ?? 'Could not rename session');
+      return;
+    }
+
+    updateSession(id, { title });
+    cancelRename();
+  };
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredSessions = normalizedQuery
     ? sessions.filter((session) => session.title.toLowerCase().includes(normalizedQuery))
@@ -164,6 +179,7 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
       {filteredSessions.map((session) => {
         const isActive = session.id === currentSessionId;
         const isDeleting = deletingSessionIds.has(session.id);
+        const isRenamingThis = renamingSessionId === session.id;
         const Icon     = modeIcon[(session.mode as ModeKey)] ?? BookOpen;
         const timeAgo  = timeAgoLabel(new Date(session.createdAt));
 
@@ -172,8 +188,8 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
             key={session.id}
             role="button"
             tabIndex={0}
-            onClick={() => renamingId !== session.id && void handleSelect(session.id)}
-            onKeyDown={(e) => renamingId !== session.id && e.key === 'Enter' && void handleSelect(session.id)}
+            onClick={() => !isRenamingThis && void handleSelect(session.id)}
+            onKeyDown={(e) => e.key === 'Enter' && !isRenamingThis && void handleSelect(session.id)}
             className={cn(
               // `w-full` + `overflow-hidden` on the row itself is the key fix —
               // without this the row can grow wider than the sidebar and text
@@ -194,80 +210,100 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
               Fixed grid columns keep the destructive action available even when
               the session title is very long.
             */}
-            <div className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-2">
+            <div className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)_4.25rem] items-center gap-2">
               {/* 1 — Mode icon */}
               <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-blue-600 dark:text-cyan-200' : 'text-slate-400')} />
 
-              {/* 2 — Title + timestamp */}
+              {/* 2 — Title + timestamp, or the rename input in its place */}
               <div className="min-w-0 overflow-hidden">
-                {renamingId === session.id ? (
+                {isRenamingThis ? (
                   <input
                     autoFocus
-                    value={draftTitle}
-                    maxLength={120}
-                    aria-label="Session name"
-                    onChange={(e) => setDraftTitle(e.target.value)}
+                    value={renameValue}
+                    disabled={isRenaming}
+                    onChange={(e) => setRenameValue(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
-                    onBlur={() => void commitRename(session.id, session.title)}
+                    onFocus={(e) => e.stopPropagation()}
                     onKeyDown={(e) => {
                       e.stopPropagation();
-                      if (e.key === 'Enter') e.currentTarget.blur();
-                      if (e.key === 'Escape') setRenamingId(null);
+                      if (e.key === 'Enter') void commitRename(session.id);
+                      else if (e.key === 'Escape') cancelRename();
                     }}
-                    className="w-full rounded-md border border-blue-300 bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-blue-400 dark:border-cyan-300/40 dark:bg-slate-900 dark:text-white"
+                    onBlur={() => void commitRename(session.id)}
+                    maxLength={120}
+                    className="w-full min-w-0 rounded-lg border border-blue-300 bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-950 outline-none ring-2 ring-blue-200/70 dark:border-cyan-300/[0.5] dark:bg-slate-900 dark:text-white dark:ring-cyan-300/[0.16]"
                   />
                 ) : (
-                  <p
-                    className="truncate text-xs font-semibold leading-tight text-inherit"
-                    title={`${session.title} — double-click to rename`}
-                    onDoubleClick={(e) => startRename(session.id, session.title, e)}
-                  >
-                    {session.title}
-                  </p>
+                  <>
+                    <p className="truncate text-xs font-semibold leading-tight text-inherit" title={session.title}>
+                      {session.title}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400" title={timeAgo}>
+                      {timeAgo}
+                    </p>
+                  </>
                 )}
-                <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400" title={timeAgo}>
-                  {timeAgo}
-                </p>
               </div>
 
-              {/* 3 — Rename + delete: fixed column, always visible, never squeezed out. */}
-              <div className="flex items-center">
-              <button
-                onClick={(e) => startRename(session.id, session.title, e)}
-                aria-label="Rename session"
-                title="Rename session"
-                className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-xl',
-                  'text-slate-500 opacity-70 transition-all',
-                  'hover:bg-slate-950/[0.06] hover:text-slate-950 hover:opacity-100',
-                  'focus:bg-slate-950/[0.06] focus:opacity-100 focus:outline-none',
-                  'dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
-                )}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={(e) => handleDelete(session.id, e)}
-                onFocus={(e) => e.stopPropagation()}
-                disabled={isDeleting}
-                aria-label="Delete session"
-                title="Delete session"
-                className={cn(
-                  'flex h-8 w-8 items-center justify-center justify-self-end rounded-xl',
-                  'text-slate-500 opacity-70 transition-all',
-                  'hover:bg-red-500/[0.12] hover:text-red-600 hover:opacity-100',
-                  'focus:bg-red-500/[0.12] focus:text-red-600 focus:opacity-100 focus:outline-none',
-                  'disabled:cursor-wait disabled:opacity-60',
-                  'dark:text-slate-400 dark:hover:text-red-300 dark:focus:text-red-300'
-                )}
-              >
-                {isDeleting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-              </button>
-              </div>
+              {/* 3 — Actions: fixed column, always visible, never squeezed out.
+                  Rename/delete normally; confirm/cancel while editing the title. */}
+              {isRenamingThis ? (
+                <div className="flex items-center justify-self-end gap-1">
+                  <button
+                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); void commitRename(session.id); }}
+                    onFocus={(e) => e.stopPropagation()}
+                    disabled={isRenaming}
+                    aria-label="Save title"
+                    title="Save title"
+                    className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 opacity-70 transition-all hover:bg-emerald-500/[0.12] hover:text-emerald-600 hover:opacity-100 disabled:cursor-wait disabled:opacity-60 dark:text-slate-400 dark:hover:text-emerald-300"
+                  >
+                    {isRenaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  </button>
+                  <button
+                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); cancelRename(); }}
+                    onFocus={(e) => e.stopPropagation()}
+                    disabled={isRenaming}
+                    aria-label="Cancel rename"
+                    title="Cancel rename"
+                    className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 opacity-70 transition-all hover:bg-slate-500/[0.12] hover:text-slate-700 hover:opacity-100 disabled:cursor-wait disabled:opacity-60 dark:text-slate-400 dark:hover:text-white"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-self-end gap-1">
+                  <button
+                    onClick={(e) => startRename(session, e)}
+                    onFocus={(e) => e.stopPropagation()}
+                    aria-label="Rename session"
+                    title="Rename session"
+                    className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 opacity-70 transition-all hover:bg-blue-500/[0.12] hover:text-blue-600 hover:opacity-100 focus:bg-blue-500/[0.12] focus:text-blue-600 focus:opacity-100 focus:outline-none dark:text-slate-400 dark:hover:text-cyan-300 dark:focus:text-cyan-300"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => handleDelete(session.id, e)}
+                    onFocus={(e) => e.stopPropagation()}
+                    disabled={isDeleting}
+                    aria-label="Delete session"
+                    title="Delete session"
+                    className={cn(
+                      'flex h-8 w-8 items-center justify-center rounded-xl',
+                      'text-slate-500 opacity-70 transition-all',
+                      'hover:bg-red-500/[0.12] hover:text-red-600 hover:opacity-100',
+                      'focus:bg-red-500/[0.12] focus:text-red-600 focus:opacity-100 focus:outline-none',
+                      'disabled:cursor-wait disabled:opacity-60',
+                      'dark:text-slate-400 dark:hover:text-red-300 dark:focus:text-red-300'
+                    )}
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );

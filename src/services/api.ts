@@ -55,6 +55,7 @@ import type {
   VideoToggleRequest,
   VideoToggleResponse,
   DeleteSessionResponse,
+  RenameSessionResponse,
   UserProfileResponse,
   UpdateProfileRequest,
   ChangePasswordRequest,
@@ -355,16 +356,16 @@ class ApiClient {
     });
   }
 
-  renameSession(sessionId: string, title: string) {
-    return this.request<{ session_id: string; title: string }>(`/sessions/${sessionId}/title`, {
-      method: 'PATCH',
-      body: JSON.stringify({ title }),
-    });
-  }
-
   deleteSession(sessionId: string) {
     return this.request<DeleteSessionResponse>(API_ENDPOINTS.SESSIONS_DELETE(sessionId), {
       method: 'DELETE',
+    });
+  }
+
+  renameSession(sessionId: string, title: string) {
+    return this.request<RenameSessionResponse>(API_ENDPOINTS.SESSIONS_TITLE(sessionId), {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
     });
   }
 

@@ -8,6 +8,11 @@ import toast from 'react-hot-toast';
 
 interface VoiceInputProps {
   onRecordingComplete: (transcript: string) => void;
+  /** Fired continuously while the browser recognizer is listening, with the
+   * transcript so far (finalized + in-progress words), so the caller can show
+   * it appearing live instead of only once recording stops. Browser speech
+   * mode only — the upload/Whisper path has no partial result to report. */
+  onInterimTranscript?: (transcript: string) => void;
   disabled?: boolean;
 }
 
@@ -66,10 +71,13 @@ declare global {
 type RecordingState = 'idle' | 'listening' | 'uploading' | 'processing';
 type InputMode = 'speech' | 'upload';
 
-export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInputProps) {
+export function VoiceInput({ onRecordingComplete, onInterimTranscript, disabled = false }: VoiceInputProps) {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [isSpeechSupported, setIsSpeechSupported] = useState(true);
-  const [mode, setMode] = useState<InputMode>('upload');
+  // Browser speech recognition streams words in live (interimResults below),
+  // so it's the mode that can actually show the transcript as it's spoken.
+  // Upload falls back to a single batch transcription call on stop.
+  const [mode, setMode] = useState<InputMode>('speech');
   const [duration, setDuration] = useState(0);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -154,19 +162,27 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
       setRecordingState('listening');
       setIsRecording(true);
       startTimer();
+      onInterimTranscript?.('');
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let final = '';
+      let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
           final += result[0].transcript;
+        } else {
+          interim += result[0].transcript;
         }
       }
       if (final) {
         finalTranscriptRef.current += final + ' ';
       }
+      // Live view: everything finalized so far plus whatever is still being
+      // recognized, so words appear as they're spoken rather than only once
+      // a phrase is finalized or recording stops.
+      onInterimTranscript?.((finalTranscriptRef.current + interim).trim());
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -204,7 +220,7 @@ export function VoiceInput({ onRecordingComplete, disabled = false }: VoiceInput
       setRecordingState('idle');
       toast.error('Could not start voice input.');
     }
-  }, [startTimer, stopTimer, setIsRecording, onRecordingComplete]);
+  }, [startTimer, stopTimer, setIsRecording, onRecordingComplete, onInterimTranscript]);
 
   // ─── Mode 2: File Upload ───────────────────────────────────────────────────
   const startFileRecording = useCallback(async () => {
