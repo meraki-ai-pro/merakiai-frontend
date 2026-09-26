@@ -24,17 +24,14 @@ jobs:
       E2E_STUDENT2_PASSWORD: ${{ secrets.E2E_STUDENT2_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          run_install: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm run test:e2e
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - if: always()
         uses: actions/upload-artifact@v7
         with:
