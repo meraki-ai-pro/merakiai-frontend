@@ -12,8 +12,7 @@ const CHUNK_CHARS = 1150;
 function spokenAnswer(markdown: string): string {
   const withoutBoard = markdown
     .replace(/^:::\s*(plot|video)\b[\s\S]*?^:::\s*$/gm, ' ')
-    .replace(/^:::.*$/gm, ' ')
-    .replace(/\[(\d+)\]/g, '');
+    .replace(/^:::.*$/gm, ' ');
   return toSpokenText(withoutBoard);
 }
 

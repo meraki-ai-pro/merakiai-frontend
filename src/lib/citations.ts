@@ -60,6 +60,31 @@ function rewrite(segment: string, maxCitation: number): string {
   });
 }
 
+/**
+ * Remove source markers from a spoken copy of an answer.
+ *
+ * The original Markdown is never changed: it still reaches the renderer and
+ * becomes clickable citation badges. Protected regions are preserved so a
+ * mathematical ``[1]`` or a numeric Markdown link is not mistaken for a
+ * source marker.
+ */
+export function stripCitationMarkers(markdown: string): string {
+  if (!markdown) return markdown;
+
+  let result = '';
+  let cursor = 0;
+
+  PROTECTED_RE.lastIndex = 0;
+  for (let match = PROTECTED_RE.exec(markdown); match; match = PROTECTED_RE.exec(markdown)) {
+    result += markdown.slice(cursor, match.index).replace(CITATION_RE, '');
+    result += match[0];
+    cursor = match.index + match[0].length;
+  }
+  result += markdown.slice(cursor).replace(CITATION_RE, '');
+
+  return result;
+}
+
 /** Citation number for a rewritten href, or null if it is an ordinary link. */
 export function parseCitationHref(href: string | undefined): number | null {
   if (!href || !href.startsWith(CITE_HREF_PREFIX)) return null;
