@@ -28,8 +28,9 @@ interface NarrationControlsProps {
  *      lesson that reads itself badly beats one that goes silent because an
  *      API was down.
  *
- * Only finished slides are spoken: narrating a half-written sentence and then
- * repeating it when the rest arrives sounds broken.
+ * Nothing plays on its own. The client asked that narration wait until every
+ * slide of the answer has been written and then start only when the student
+ * presses Play — so Play stays disabled while the answer streams.
  */
 export function NarrationControls({
   slides,
@@ -40,7 +41,6 @@ export function NarrationControls({
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [muted, setMuted] = useState(false);
-  const spokenIds = useRef<Set<number>>(new Set());
   const cancelled = useRef(false);
   const audio = useRef<HTMLAudioElement | null>(null);
   // Set once the hosted voice has failed, so a course with no voice does not
@@ -128,19 +128,11 @@ export function NarrationControls({
             setNeedsGesture(false);
             return;
           } catch {
-            // The autoplay policy refused to START audio without a user
-            // gesture. This is NOT a broken voice, and it must not be treated
-            // as one.
-            //
-            // Slides are narrated automatically as they complete, so the first
-            // one always arrives without a gesture. Folding this into the
-            // failure path above marked the lecturer's voice unavailable for
-            // the rest of the lesson and quietly substituted the browser's
-            // robot voice — for every student, every time.
-            //
-            // Staying silent is the right call here: the Play button is
-            // already on screen, one click is a gesture, and the student then
-            // hears their actual lecturer instead of a substitute.
+            // The autoplay policy refused to START audio. Play is a click, but
+            // the synthesis round trip can outlive the click's activation
+            // window. This is NOT a broken voice: folding it into the failure
+            // path above would swap the lecturer for the browser's robot voice
+            // for the rest of the lesson. A second click plays it.
             setNeedsGesture(true);
             setSpeaking(false);
             return;
@@ -152,23 +144,6 @@ export function NarrationControls({
     },
     [courseId, speakInBrowser, stop],
   );
-
-  // Speak each completed slide once, as it lands.
-  useEffect(() => {
-    if (!supported || muted || cancelled.current) return;
-    const slide = slides[activeIndex];
-    if (!slide || !slide.complete) return;
-    if (spokenIds.current.has(slide.id)) return;
-
-    spokenIds.current.add(slide.id);
-    const text = [slide.title, toSpokenText(slide.body)].filter(Boolean).join('. ');
-    if (text.trim()) void speak(text);
-  }, [slides, activeIndex, muted, supported, speak]);
-
-  // A new answer clears the "already said this" record.
-  useEffect(() => {
-    if (slides.length === 0) spokenIds.current.clear();
-  }, [slides.length]);
 
   const toggleMute = () => {
     setMuted((wasMuted) => {
@@ -184,11 +159,12 @@ export function NarrationControls({
     }
     const slide = slides[activeIndex];
     if (!slide) return;
-    spokenIds.current.add(slide.id);
     void speak([slide.title, toSpokenText(slide.body)].filter(Boolean).join('. '));
   };
 
-  const playLabel = speaking
+  const playLabel = isStreaming
+    ? 'Narration is available once every slide is written'
+    : speaking
     ? 'Pause narration'
     : needsGesture
       ? 'Play narration in your lecturer’s voice'
@@ -208,7 +184,7 @@ export function NarrationControls({
       <button
         type="button"
         onClick={togglePlay}
-        disabled={muted}
+        disabled={muted || isStreaming}
         className={`rounded-lg p-1.5 transition disabled:opacity-30 ${
           needsGesture
             ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-300'

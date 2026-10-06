@@ -16,7 +16,9 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { ArrowLeft } from 'lucide-react';
+import {
+  ArrowLeft, BookOpenText, ClipboardCheck, Clapperboard, LayoutDashboard, Settings, Users,
+} from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { KnowledgeTab } from '@/components/lecturer/KnowledgeTab';
 import { StudentsTab } from '@/components/lecturer/StudentsTab';
@@ -34,6 +36,15 @@ const TABS = [
   'Settings',
 ] as const;
 type Tab = (typeof TABS)[number];
+
+const TAB_ICONS: Record<Tab, React.ElementType> = {
+  Overview: LayoutDashboard,
+  Knowledge: BookOpenText,
+  Students: Users,
+  Videos: Clapperboard,
+  Exams: ClipboardCheck,
+  Settings,
+};
 
 export default function CourseWorkspace() {
   const params = useParams<{ courseId: string }>();
@@ -65,37 +76,44 @@ export default function CourseWorkspace() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
         <Link
           href="/lecturer"
           className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white"
         >
-          <ArrowLeft className="h-4 w-4" /> All courses
+          <ArrowLeft className="h-4 w-4" /> Your courses
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
           {course?.name ?? courseId}
         </h1>
         <p className="font-mono text-xs text-slate-400">{courseId}</p>
-      </div>
 
-      <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-white/10" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={
-              tab === t
-                ? 'border-b-2 border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 dark:border-cyan-300 dark:text-cyan-300'
-                : 'border-b-2 border-transparent px-4 py-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white'
-            }
-          >
-            {t}
-          </button>
-        ))}
-      </nav>
+        <nav
+          className="-mb-2 mt-5 flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-white/5"
+          role="tablist"
+        >
+          {TABS.map((t) => {
+            const Icon = TAB_ICONS[t];
+            return (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => setTab(t)}
+                className={
+                  tab === t
+                    ? 'flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-white px-3.5 py-1.5 text-sm font-medium text-blue-700 shadow-sm dark:bg-slate-800 dark:text-cyan-200'
+                    : 'flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }
+              >
+                <Icon className="h-4 w-4" />
+                {t}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
       {tab === 'Overview' && (
         <CourseOverview courseId={courseId} onOpenExams={() => setTab('Exams')} />

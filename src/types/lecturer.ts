@@ -241,6 +241,8 @@ export interface MasterySummary {
   bands?: Record<MasteryBand, number>;
   weakest_topics?: { topic: string; mean: number; students: number }[];
   strongest_topics?: { topic: string; mean: number; students: number }[];
+  /** Every topic, weakest first. */
+  topics?: { topic: string; mean: number; students: number }[];
 }
 
 export interface EngagementSummary {
@@ -258,12 +260,17 @@ export interface EngagementSummary {
 export interface TimeOnTask {
   measured: boolean;
   reason?: string;
-  completed_sessions?: number;
-  open_sessions?: number;
+  /** Sessions with at least two messages — the ones a duration can be measured for. */
+  sessions?: number;
+  single_message_sessions?: number;
+  /** A gap between messages longer than this counts as this many minutes. */
+  break_minutes?: number;
   total_minutes?: number;
   mean_minutes?: number;
   /** Reported next to the mean because the distribution is badly skewed. */
   median_minutes?: number;
+  /** Measured sessions by minutes of activity. */
+  histogram?: { bucket: string; sessions: number }[];
 }
 
 export interface CourseAnalytics {
@@ -286,6 +293,8 @@ export interface CourseAnalytics {
   mastery: MasterySummary;
   engagement: EngagementSummary;
   time_on_task: TimeOnTask;
+  /** Last 30 days, oldest first, every day present. */
+  activity?: { date: string; sessions: number; students: number }[];
   /** Metrics not yet instrumented - shown as "not yet measured", never 0. */
   unavailable: string[];
 }
@@ -450,4 +459,24 @@ export interface RenderRequestBody {
   archetype?: string | null;
   topic?: string | null;
   subject?: string | null;
+}
+
+/** GET /assessments/course/{id}/summary — one row per exam. Percent fields are
+ *  absent until someone has sat the paper: never shown as 0. */
+export interface ExamSummary {
+  id: string;
+  title: string;
+  kind: string;
+  is_published: boolean;
+  results_released: boolean;
+  question_count: number;
+  total_points: number;
+  responses: number;
+  mean_percent?: number;
+  median_percent?: number;
+  highest_percent?: number;
+  lowest_percent?: number;
+  pass_rate?: number;
+  pending_review: number;
+  distribution: { band: string; students: number }[];
 }

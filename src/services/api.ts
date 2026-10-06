@@ -9,6 +9,7 @@ import type {
   AvailableAssessment,
   ExamKind,
   ExamResults,
+  ExamSummary,
   ImportedQuestion,
   LecturerQuestion,
   MarkingItem,
@@ -889,10 +890,29 @@ class ApiClient {
     });
   }
 
-  getLearningGain(courseId: string) {
-    return this.request<Record<string, unknown>>(
-      `/assessments/course/${courseId}/learning-gain`
-    );
+  /** Cohort results for every exam on the course (analytics overview). */
+  getExamsSummary(courseId: string) {
+    return this.request<{ exams: ExamSummary[] }>(`/assessments/course/${courseId}/summary`);
+  }
+
+  /** Every exam's marks as an .xlsx workbook. Saves it via a temporary link. */
+  async downloadExamResults(courseId: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/assessments/course/${courseId}/results.xlsx`, {
+        headers: this.authHeaders(),
+      });
+      if (!res.ok) return false;
+      const url = URL.createObjectURL(await res.blob());
+      const a = Object.assign(document.createElement('a'), {
+        href: url,
+        download: `${courseId}-exam-results.xlsx`,
+      });
+      a.click();
+      URL.revokeObjectURL(url);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   listAccommodations(courseId: string) {

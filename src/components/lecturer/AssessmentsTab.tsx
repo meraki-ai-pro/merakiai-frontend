@@ -13,8 +13,8 @@
  * students who already sat it against a question they never saw. Timing and
  * the open window stay editable — extending a deadline is the common case.
  *
- * Pre/post tests are retired at the client's request. Existing ones still
- * list here, read-only, and the learning-gain report still reads them.
+ * Pre/post tests are retired at the client's request and no longer shown to
+ * lecturers either; their rows stay in the database.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -69,7 +69,6 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
   }, [load]);
 
   const exams = assessments.filter((a) => !RETIRED.has(a.kind));
-  const retired = assessments.filter((a) => RETIRED.has(a.kind));
 
   return (
     <div className="space-y-6">
@@ -118,7 +117,6 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
 
       <AccommodationsPanel courseId={courseId} />
 
-      {retired.length > 0 && <RetiredPanel courseId={courseId} papers={retired} />}
     </div>
   );
 }
@@ -714,33 +712,6 @@ function AccommodationsPanel({ courseId }: { courseId: string }) {
             ))}
           </ul>
         )
-      )}
-    </section>
-  );
-}
-
-// ── Retired pre/post papers ─────────────────────────────────────────────────
-
-function RetiredPanel({ courseId, papers }: { courseId: string; papers: Assessment[] }) {
-  const [gain, setGain] = useState<Record<string, unknown> | null>(null);
-  return (
-    <section className="rounded-xl border border-slate-200 p-5 text-sm dark:border-white/10">
-      <h2 className="flex items-center gap-2 font-medium"><ClipboardList className="h-4 w-4" /> Earlier pre/post tests</h2>
-      <p className="mt-1 text-slate-500">
-        Retired from the student view. Kept so their results and the learning-gain report stay available.
-      </p>
-      <ul className="mt-2 list-disc pl-5">
-        {papers.map((p) => <li key={p.id}>{p.title} — {EXAM_KIND_LABELS[p.kind]}</li>)}
-      </ul>
-      <button type="button" onClick={() => void apiClient.getLearningGain(courseId).then((r) => setGain(r?.data ?? null))} className="mt-2 text-xs font-medium text-blue-600 dark:text-cyan-300">
-        Show learning gain
-      </button>
-      {gain && (
-        <p className="mt-2">
-          {gain.available
-            ? `Mean gain ${String(gain.mean_gain)} points (pre ${String(gain.mean_pre)}% → post ${String(gain.mean_post)}%), n = ${String(gain.n)}.`
-            : String(gain.reason)}
-        </p>
       )}
     </section>
   );
