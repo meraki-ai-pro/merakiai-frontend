@@ -4,11 +4,9 @@ import { useState } from 'react';
 import { useChatStore } from '@/store/chatStore';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
-import { AvatarStage } from './AvatarStage';
 import { SourcesDrawer } from '@/components/sources/SourcesDrawer';
 import { ModeSelector } from '@/components/mode/ModeSelector';
 import { useChat } from '@/hooks/use-chat';
-import { useAvatarStream } from '@/hooks/use-avatar-stream';
 import {
   BookOpen,
   ClipboardCheck,
@@ -64,9 +62,6 @@ export function ChatContainer() {
 
   const { startModeSession, startNewSession } = useChat();
 
-  // Owns the real-time D-ID avatar WebRTC connection for the active session.
-  useAvatarStream();
-
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   const [modeSelectorOpen, setModeSelectorOpen] = useState(false);
 
@@ -101,8 +96,10 @@ export function ChatContainer() {
   if (showWelcome) {
     return (
       <>
-        <div className="flex flex-1 items-start justify-center overflow-y-auto px-4 pb-10 pt-8">
-          <div className="w-full max-w-6xl">
+        {/* m-auto rather than items-center: centres the tiles on the page,
+            yet still scrolls from the top when they are taller than it. */}
+        <div className="flex flex-1 overflow-y-auto px-4 py-8">
+          <div className="m-auto w-full max-w-4xl">
 
             <h1 className="sr-only">Choose a study mode</h1>
 
@@ -121,26 +118,26 @@ export function ChatContainer() {
                     onBlur={() => setHoveredMode(null)}
                     disabled={disabled}
                     className={cn(
-                      'group w-full rounded-3xl border border-white/70 bg-white/[0.82] text-left shadow-sm shadow-blue-950/5 backdrop-blur-xl',
+                      'group w-full rounded-3xl border border-white/70 bg-white/[0.82] text-center shadow-sm shadow-blue-950/5 backdrop-blur-xl',
                       'min-h-[270px] transition-all duration-200 cursor-pointer dark:border-white/10 dark:bg-white/[0.06]',
                       'disabled:opacity-50 disabled:cursor-not-allowed',
                       isHovered ? cn(activeBg, 'shadow-xl shadow-blue-950/10 -translate-y-1') : bg,
                     )}
                   >
                     {/* Always-visible row */}
-                    <div className="flex flex-col gap-5 p-5">
+                    <div className="flex flex-col items-center gap-5 p-6">
                       <div className={cn(
                         'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl',
                         iconBg
                       )}>
                         <Icon className={cn('h-6 w-6', color)} />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0">
                         <p className="text-xl font-semibold text-slate-950 dark:text-white">{label}</p>
                         <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{tagline}</p>
                       </div>
                       <div className={cn(
-                        'mt-auto flex items-center gap-1.5 text-sm font-semibold transition-colors',
+                        'flex items-center justify-center gap-1.5 text-sm font-semibold transition-colors',
                         isHovered ? color : 'text-slate-500 dark:text-slate-400'
                       )}>
                         <span>{cta}</span>
@@ -156,7 +153,7 @@ export function ChatContainer() {
                       'overflow-hidden transition-all duration-200 lg:max-h-48 lg:opacity-100',
                       isHovered ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'
                     )}>
-                      <div className="mx-5 flex flex-col gap-2 border-t border-slate-200/70 pb-5 pt-4 dark:border-white/10">
+                      <div className="mx-5 flex flex-col items-center gap-2 border-t border-slate-200/70 pb-5 pt-4 dark:border-white/10">
                         {bullets.map(({ icon: BulletIcon, text }, i) => (
                           <div key={i} className="flex items-start gap-2.5">
                             <BulletIcon className={cn('h-3.5 w-3.5 flex-shrink-0 mt-0.5', color)} />
@@ -195,18 +192,12 @@ export function ChatContainer() {
   // ── Active chat ────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
-        {/* Text column: messages + input, on the left on sm+ (top on mobile). */}
-        <div className="order-2 flex min-h-0 flex-1 flex-col overflow-hidden sm:order-1">
-          <MessageList />
-          <InputArea />
-        </div>
-        {/* AvatarStage stays a direct child here, rendered exactly once and
-            never remounted: the <video> owns the WebRTC MediaStream, and a
-            remount costs a ~15s reconnect. It renders itself as a right-hand
-            rail on sm+ (a strip above the text on mobile) and returns null
-            when video mode is off, so text reclaims the full width. */}
-        <AvatarStage />
+      {/* No live-avatar rail: the client asked for the streaming tile to go.
+          With no live stream open, the backend renders each video answer as
+          a clip, shown inside its own answer bubble (AIResponse). */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <MessageList />
+        <InputArea />
       </div>
       {/* Side sheet — mounted once here rather than per message, so opening a
           citation from any turn reuses the same panel. */}

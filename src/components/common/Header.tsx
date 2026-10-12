@@ -60,7 +60,7 @@ export function Header() {
   const isTogglingVideo = pendingVideoMode !== null;
   const [modeSelectorOpen, setModeSelectorOpen] = useState(false);
 
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme: theme, setTheme } = useTheme();
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const currentSessionId = useChatStore((state) => state.currentSessionId);
   const sessions = useChatStore((state) => state.sessions);

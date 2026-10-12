@@ -64,8 +64,8 @@ function useSelectAvatar() {
 
 /**
  * Switch tutor without leaving the conversation. Shown beside the Text/Video
- * toggle while video answers are on; the live stream reopens with the new
- * presenter (see useAvatarStream).
+ * toggle while video answers are on; the next video answer is rendered with
+ * the new presenter.
  */
 export function AvatarToggle({ disabled = false }: { disabled?: boolean }) {
   const { select, loading, currentId } = useSelectAvatar();

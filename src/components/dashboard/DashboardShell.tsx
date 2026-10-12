@@ -94,7 +94,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const sidebarWidth = isMobile ? 0 : sidebarOpen ? 240 : 64;
+  // 288, up from 240, so session titles are readable rather than truncated.
+  const SIDEBAR_OPEN = 288;
+  const sidebarWidth = isMobile ? 0 : sidebarOpen ? SIDEBAR_OPEN : 64;
 
   return (
     <>
@@ -112,7 +114,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* SIDEBAR */}
         <aside
           style={{
-            width: isMobile ? 240 : sidebarOpen ? 240 : 64,
+            width: isMobile ? 'min(288px, 85vw)' : sidebarOpen ? SIDEBAR_OPEN : 64,
             transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
           }}
           className="

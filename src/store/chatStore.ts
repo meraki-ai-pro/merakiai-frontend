@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 import type { Message, Session, VideoResponse, TutorMode, ActiveModeSession, ProgressStep } from '@/types';
 import type { RetrievedSource } from '@/types/api';
 
-export type AvatarStatus = 'off' | 'connecting' | 'live' | 'error';
 
 // Shared uuid util — safe fallback for non-secure contexts (HTTP) and SSR
 export const newId = (): string => {
@@ -45,11 +44,6 @@ export interface ChatState {
   // ── Source inspection side sheet ───────────────────────────────────────────
   sourceDrawer: { sources: RetrievedSource[]; activeCitation: number | null } | null;
 
-  // ── Real-time D-ID avatar (WebRTC) ─────────────────────────────────────────
-  avatarStream: MediaStream | null;
-  avatarStatus: AvatarStatus;
-  avatarSpeaking: boolean;
-
   // ── Mode session tracking ──────────────────────────────────────────────────
   activeModeSession: ActiveModeSession | null;
   isStartingModeSession: boolean;
@@ -86,11 +80,6 @@ export interface ChatState {
   setIsSwitchingMode: (v: boolean) => void;
   updateActiveModeSession: (updates: Partial<ActiveModeSession>) => void;
 
-  // Real-time avatar actions
-  setAvatarStream: (stream: MediaStream | null) => void;
-  setAvatarStatus: (status: AvatarStatus) => void;
-  setAvatarSpeaking: (speaking: boolean) => void;
-
   // Legacy aliases
   conversations: Session[];
   currentConversationId: string | null;
@@ -118,9 +107,6 @@ export const useChatStore = create<ChatState>()(
       pendingFinals: [],
       streamingSources: [],
       sourceDrawer: null,
-      avatarStream: null,
-      avatarStatus: 'off',
-      avatarSpeaking: false,
       activeModeSession: null,
       isStartingModeSession: false,
       isSwitchingMode: false,
@@ -276,9 +262,6 @@ export const useChatStore = create<ChatState>()(
 
       closeSourceDrawer: () => set({ sourceDrawer: null }),
 
-      setAvatarStream: (stream) => set({ avatarStream: stream }),
-      setAvatarStatus: (status) => set({ avatarStatus: status }),
-      setAvatarSpeaking: (speaking) => set({ avatarSpeaking: speaking }),
 
       setActiveModeSession: (v) => set({ activeModeSession: v }),
       setIsStartingModeSession: (v) => set({ isStartingModeSession: v }),

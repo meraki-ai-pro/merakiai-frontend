@@ -41,11 +41,14 @@ export function AIResponse({ message }: AIResponseProps) {
     [openSourceDrawer, sources],
   );
 
-  // Only show the video player for the latest assistant message with that URL
+  // Every stored video answer keeps its player after a refresh. Subtitle and
+  // duration metadata arrive separately for the newest response; older clips
+  // can still derive duration from the media element and retain the transcript.
   const showVideo =
     message.responseFormat === 'video' &&
-    message.videoUrl &&
-    currentVideoResponse?.videoUrl === message.videoUrl;
+    Boolean(message.videoUrl);
+  const currentVideoMetadata =
+    currentVideoResponse?.videoUrl === message.videoUrl ? currentVideoResponse : null;
 
   // ── Message type flags ────────────────────────────────────────────────────
   const isPracticeEval     = message.messageType === 'evaluation' && message.mode === 'application';
@@ -78,8 +81,8 @@ export function AIResponse({ message }: AIResponseProps) {
             <VideoPlayer
               videoUrl={message.videoUrl!}
               audioUrl={message.audioUrl ?? undefined}
-              subtitles={currentVideoResponse?.subtitles ?? []}
-              duration={currentVideoResponse?.duration ?? 0}
+              subtitles={currentVideoMetadata?.subtitles ?? []}
+              duration={currentVideoMetadata?.duration ?? 0}
             />
             {message.content && (
               <div className="border-t border-slate-200/70 bg-slate-50/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.04]">

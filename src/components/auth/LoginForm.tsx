@@ -118,7 +118,7 @@ export function LoginForm() {
           </div>
           <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Two-factor verification</h2>
           <p className="max-w-xs text-xs text-slate-500 dark:text-slate-400">
-            Enter the 6-digit code from your authenticator app to finish signing in.
+            Enter the 6-digit code from Google Authenticator or your authenticator app to finish signing in.
           </p>
         </div>
 

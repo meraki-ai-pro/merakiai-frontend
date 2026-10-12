@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChatStore, newId } from '@/store/chatStore';
-import { Trash2, Pencil, Check, X, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2 } from 'lucide-react';
+import { Trash2, Pencil, Check, X, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2, MoreVertical } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/api';
@@ -49,6 +49,42 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
+  // The ⋮ menu. Fixed-positioned from the button's rect: the list scrolls and
+  // each row clips its overflow, so an in-row dropdown would be cut off.
+  const [menu, setMenu] = useState<{ id: string; top: number; left: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Element;
+      // A ⋮ button handles its own toggle; closing here would make it reopen.
+      if (!menuRef.current?.contains(target) && !target.closest?.('[aria-haspopup="menu"]')) close();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    menuRef.current?.querySelector('button')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [menu]);
+
+  const openMenu = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (menu?.id === id) return setMenu(null);
+    const r = e.currentTarget.getBoundingClientRect();
+    const MENU_W = 160, MENU_H = 92;
+    // Open upwards when there is no room below (the last rows of the list).
+    const top = r.bottom + 4 + MENU_H > window.innerHeight ? r.top - 4 - MENU_H : r.bottom + 4;
+    setMenu({ id, top, left: Math.max(8, r.right - MENU_W) });
+  };
 
   const handleSelect = async (id: string) => {
     router.push('/dashboard');
@@ -210,7 +246,12 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
               Fixed grid columns keep the destructive action available even when
               the session title is very long.
             */}
-            <div className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)_4.25rem] items-center gap-2">
+            <div
+              className={cn(
+                'grid min-w-0 items-center gap-2',
+                isRenamingThis ? 'grid-cols-[1rem_minmax(0,1fr)_4.25rem]' : 'grid-cols-[1rem_minmax(0,1fr)_2rem]',
+              )}
+            >
               {/* 1 — Mode icon */}
               <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-blue-600 dark:text-cyan-200' : 'text-slate-400')} />
 
@@ -271,43 +312,63 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-self-end gap-1">
-                  <button
-                    onClick={(e) => startRename(session, e)}
-                    onFocus={(e) => e.stopPropagation()}
-                    aria-label="Rename session"
-                    title="Rename session"
-                    className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 opacity-70 transition-all hover:bg-blue-500/[0.12] hover:text-blue-600 hover:opacity-100 focus:bg-blue-500/[0.12] focus:text-blue-600 focus:opacity-100 focus:outline-none dark:text-slate-400 dark:hover:text-cyan-300 dark:focus:text-cyan-300"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => handleDelete(session.id, e)}
-                    onFocus={(e) => e.stopPropagation()}
-                    disabled={isDeleting}
-                    aria-label="Delete session"
-                    title="Delete session"
-                    className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-xl',
-                      'text-slate-500 opacity-70 transition-all',
-                      'hover:bg-red-500/[0.12] hover:text-red-600 hover:opacity-100',
-                      'focus:bg-red-500/[0.12] focus:text-red-600 focus:opacity-100 focus:outline-none',
-                      'disabled:cursor-wait disabled:opacity-60',
-                      'dark:text-slate-400 dark:hover:text-red-300 dark:focus:text-red-300'
-                    )}
-                  >
-                    {isDeleting ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => openMenu(session.id, e)}
+                  onFocus={(e) => e.stopPropagation()}
+                  disabled={isDeleting}
+                  aria-label={`Options for ${session.title}`}
+                  aria-haspopup="menu"
+                  aria-expanded={menu?.id === session.id}
+                  title="Rename or delete"
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center justify-self-end rounded-xl',
+                    'text-slate-500 opacity-70 transition-all hover:bg-slate-950/[0.06] hover:text-slate-900 hover:opacity-100',
+                    'focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300',
+                    'disabled:cursor-wait dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white',
+                    menu?.id === session.id && 'bg-slate-950/[0.06] opacity-100 dark:bg-white/10',
+                  )}
+                >
+                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
+                </button>
               )}
             </div>
           </div>
         );
       })}
+
+      {menu && (
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{ top: menu.top, left: menu.left }}
+          className="fixed z-50 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-blue-950/10 dark:border-white/10 dark:bg-slate-900"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              const session = sessions.find((x) => x.id === menu.id);
+              setMenu(null);
+              if (session) startRename(session, e);
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-200 dark:hover:bg-white/10 dark:focus:bg-white/10"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Rename
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              const id = menu.id;
+              setMenu(null);
+              void handleDelete(id, e);
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none dark:text-red-300 dark:hover:bg-red-500/10 dark:focus:bg-red-500/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }

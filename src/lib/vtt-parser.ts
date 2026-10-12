@@ -66,11 +66,12 @@ export function parseVTT(vttString: string): Subtitle[] {
 }
 
 /**
- * Parse VTT timestamp to milliseconds
- * Formats: "00:00:01.000" or "00:01:23.456"
+ * Parse VTT or SRT timestamps to milliseconds. D-ID may return an SRT track,
+ * while our own stored caption tracks use WebVTT.
+ * Formats: "00:00:01.000", "00:01:23.456", or the SRT comma equivalents.
  */
 function parseTimestamp(timestamp: string): number | null {
-  const match = timestamp.match(/(\d{2}):(\d{2}):(\d{2})\.(\d{3})/);
+  const match = timestamp.match(/(\d{2}):(\d{2}):(\d{2})[.,](\d{3})/);
   if (!match) return null;
 
   const [, hours, minutes, seconds, milliseconds] = match;

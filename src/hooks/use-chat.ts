@@ -478,6 +478,12 @@ export function useChat() {
         void handleResponseComplete(msg as WsResponseComplete);
         return;
       }
+      if (t === "session_title") {
+        // A short model-written name replaces the first-message placeholder.
+        const m = msg as unknown as { session_id: string; title: string };
+        useChatStore.getState().updateSession(m.session_id, { title: m.title });
+        return;
+      }
       // Assessment/Review typewriter events. Unlike Learn, a single turn can
       // include more than one of these back-to-back (e.g. evaluation
       // feedback, then the next question) before the terminal mode push
@@ -626,9 +632,9 @@ export function useChat() {
     const { response, response_format, video_url, audio_url, subtitles_url } =
       msg;
 
-    // Real-time D-ID avatar path: the answer is being spoken live by the
-    // persistent AvatarStage over WebRTC, so there is no MP4 to attach. Render
-    // the message as normal text; the avatar is a separate, persistent surface.
+    // Real-time D-ID avatar path (retired from the client: no live stream is
+    // opened any more). Only a stream cached server-side before that change
+    // can still produce it — there is no MP4 to attach, so render as text.
     const isRealtimeAvatar =
       msg.streaming === true || msg.source === "did_agent";
 

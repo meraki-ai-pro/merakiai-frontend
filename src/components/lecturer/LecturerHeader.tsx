@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { ArrowLeftRight, BookOpen, Mic, UserRound } from 'lucide-react';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
 import { FeedbackButton } from '@/components/feedback/FeedbackDialog';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -64,6 +65,7 @@ export function LecturerHeader() {
           {/* Lecturers had no way to send feedback at all — the trigger lived
               only in the student header. */}
           <FeedbackButton showSessionSurvey={false} label="Feedback" />
+          <ThemeToggle />
           <Link
             href="/dashboard"
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"

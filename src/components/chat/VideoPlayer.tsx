@@ -79,16 +79,19 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
       setCurrentSubtitle(current || null);
     };
 
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
     video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('play', () => setIsPlaying(true));
-    video.addEventListener('pause', () => setIsPlaying(false));
-    video.addEventListener('ended', () => setIsPlaying(false));
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handlePause);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('play', () => setIsPlaying(true));
-      video.removeEventListener('pause', () => setIsPlaying(false));
-      video.removeEventListener('ended', () => setIsPlaying(false));
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handlePause);
     };
   }, [subtitles]);
 
@@ -248,6 +251,7 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
               size="sm"
               variant="ghost"
               onClick={handlePlayPause}
+              aria-label={isPlaying ? 'Pause video' : 'Play video'}
               className="h-8 w-8 text-white hover:bg-white/20"
             >
               {isPlaying ? (
@@ -262,6 +266,7 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
               size="sm"
               variant="ghost"
               onClick={handleMute}
+              aria-label={isMuted ? 'Unmute video' : 'Mute video'}
               className="h-8 w-8 text-white hover:bg-white/20"
             >
               {isMuted ? (
@@ -288,6 +293,7 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
             size="sm"
             variant="ghost"
             onClick={handleFullscreen}
+            aria-label="Open video fullscreen"
             className="h-8 w-8 text-white hover:bg-white/20"
           >
             <Maximize className="h-4 w-4" />
