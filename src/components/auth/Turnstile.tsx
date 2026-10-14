@@ -6,7 +6,7 @@
  *
  * Supabase Auth verifies the token server-side once captcha protection is
  * switched on in the dashboard (provider: Turnstile); our backend only
- * forwards it. With no NEXT_PUBLIC_TURNSTILE_SITE_KEY this renders nothing and
+ * forwards it. With no NEXT_TURNSTILE_SITE_KEY this renders nothing and
  * the forms behave as they did before, which is what lets the code ship ahead
  * of the dashboard switch.
  *
@@ -17,7 +17,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+export const TURNSTILE_SITE_KEY = process.env.NEXT_TURNSTILE_SITE_KEY ?? '';
 
 type TurnstileApi = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;

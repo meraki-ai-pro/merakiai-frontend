@@ -24,6 +24,9 @@ const contentSecurityPolicy = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Unprefixed names stay server-only in Next; listing one here inlines it into
+  // the browser bundle. The Turnstile site key is public by design.
+  env: { NEXT_TURNSTILE_SITE_KEY: process.env.NEXT_TURNSTILE_SITE_KEY ?? '' },
   // Playwright and containerised development servers may reach the local app
   // through either loopback hostname. Next.js 16 otherwise rejects its own
   // development chunks as cross-origin requests.
