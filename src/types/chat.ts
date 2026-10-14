@@ -95,6 +95,7 @@ export interface Session {
   startedAt?: string;
   endedAt?: string | null;
   courseId?: string;
+  pinnedAt?: string | null;
 }
 
 export interface VideoResponse {

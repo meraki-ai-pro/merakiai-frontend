@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 export function ForgotPasswordForm() {
@@ -66,9 +65,9 @@ export function ForgotPasswordForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+        <label htmlFor="email" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">
           Email address
-        </Label>
+        </label>
         <Input
           id="email"
           type="email"

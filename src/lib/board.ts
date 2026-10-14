@@ -108,33 +108,6 @@ export function splitVideoFences(text: string): AnswerPart[] {
   return parts;
 }
 
-/**
- * Strip board fences, leaving plain markdown.
- *
- * Used for the chat transcript and for narration, so a student reading (or
- * hearing) the answer never encounters the markup.
- */
-export function stripBoardSyntax(text: string): string {
-  const out: string[] = [];
-  let inPlot = false;
-
-  for (const line of text.split('\n')) {
-    const open = OPEN_RE.exec(line.trim());
-    if (open) {
-      inPlot = open[1] === 'plot';
-      if (open[1] === 'slide' && open[2].trim()) out.push(`### ${open[2].trim()}`);
-      continue;
-    }
-    if (CLOSE_RE.test(line.trim())) {
-      inPlot = false;
-      continue;
-    }
-    if (!inPlot) out.push(line);
-  }
-
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
 function parsePlot(raw: string, fallbackTitle: string): PlotSpec | undefined {
   const text = raw.trim();
   if (!text) return undefined;

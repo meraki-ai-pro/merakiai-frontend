@@ -103,8 +103,3 @@ export function citationsUsed(markdown: string, maxCitation: number): number[] {
   }
   return seen;
 }
-
-/** True when the text contains at least one usable citation marker. */
-export function hasCitations(markdown: string, maxCitation: number): boolean {
-  return citationsUsed(markdown, maxCitation).length > 0;
-}

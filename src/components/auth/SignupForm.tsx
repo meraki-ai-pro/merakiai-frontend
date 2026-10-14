@@ -7,7 +7,6 @@ import { useUserStore } from '@/store/userStore';
 import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -196,7 +195,7 @@ export function SignupForm() {
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="firstName" className="text-xs font-semibold text-slate-700 dark:text-slate-200">First name</Label>
+            <label htmlFor="firstName" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">First name</label>
             <Input
               id="firstName" type="text" placeholder="Ama"
               value={firstName} onChange={(e) => { setFirstName(e.target.value); setError(null); }}
@@ -206,7 +205,7 @@ export function SignupForm() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="lastName" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Last name</Label>
+            <label htmlFor="lastName" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Last name</label>
             <Input
               id="lastName" type="text" placeholder="Mensah"
               value={lastName} onChange={(e) => { setLastName(e.target.value); setError(null); }}
@@ -222,7 +221,7 @@ export function SignupForm() {
           School
         </p>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="universityName" className="text-xs font-semibold text-slate-700 dark:text-slate-200">University name</Label>
+          <label htmlFor="universityName" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">University name</label>
           <Input
             id="universityName" type="text" placeholder="University of Ghana"
             value={universityName} onChange={(e) => { setUniversityName(e.target.value); setError(null); }}
@@ -233,7 +232,7 @@ export function SignupForm() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="country" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Country</Label>
+            <label htmlFor="country" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Country</label>
             <select
               id="country"
               value={country}
@@ -252,7 +251,7 @@ export function SignupForm() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="region" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Region</Label>
+            <label htmlFor="region" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Region</label>
             {region ? (
               <Input
                 id="region" type="text"
@@ -284,7 +283,7 @@ export function SignupForm() {
           Account
         </p>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Email address</Label>
+          <label htmlFor="email" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Email address</label>
           <Input
             id="email" type="email" placeholder="you@example.com"
             value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }}
@@ -295,7 +294,7 @@ export function SignupForm() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Password</Label>
+            <label htmlFor="password" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Password</label>
             <div className="relative">
               <Input
                 id="password" type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters"
@@ -317,7 +316,7 @@ export function SignupForm() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="confirmPassword" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Confirm password</Label>
+            <label htmlFor="confirmPassword" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Confirm password</label>
             <Input
               id="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters"
               value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}

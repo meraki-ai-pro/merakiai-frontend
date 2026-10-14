@@ -6,7 +6,7 @@ import { ConversationList } from './ConversationList';
 import { NewChat } from './NewChat';
 import { SidebarMenu } from './SidebarMenu';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
-import { GraduationCap, Search } from 'lucide-react';
+import { Archive, GraduationCap, Search } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -83,16 +83,21 @@ export function Sidebar() {
               student view at the client's request. */}
           {!collapsed && 'Exams'}
         </Link>
+        <Link
+          href="/dashboard/archived"
+          data-testid="nav-archived"
+          title="Archived sessions"
+          className={cn(
+            'flex items-center rounded-2xl text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-cyan-300/[0.08] dark:hover:text-cyan-100',
+            collapsed ? 'h-10 w-10 justify-center' : 'h-10 w-full gap-2 px-3',
+          )}
+        >
+          <Archive className="h-3.5 w-3.5 flex-shrink-0" />
+          {!collapsed && 'Archived'}
+        </Link>
       </div>
 
-      {/* ── Section label — full mode only ──────────────────────────────── */}
-      {!collapsed && (
-        <div className="flex-shrink-0 px-5 pb-1">
-          <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-            Recent
-          </p>
-        </div>
-      )}
+      {/* Section labels (Pinned / Recent) are drawn by ConversationList. */}
 
       {/* ── Conversation list — hidden in icon-only mode ─────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto">

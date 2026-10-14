@@ -14,8 +14,11 @@ import {
   UserCircle,
   Trash2,
   RotateCcw,
+  Pencil,
+  UserPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AccountDialog } from './AccountDialog';
 
 const ROLE_ORDER: AdminRole[] = ['user', 'lecturer', 'admin', 'super_admin'];
 
@@ -31,6 +34,8 @@ export function AdminUsers() {
   const [me, setMe] = useState<{ id: string; role: string } | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
+  // null = closed; 'new' = create; a user = edit that account.
+  const [dialog, setDialog] = useState<AdminUser | 'new' | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -141,6 +146,16 @@ export function AdminUsers() {
           )}
         </h2>
         <div className="flex items-center gap-3">
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setDialog('new')}
+              data-testid="new-account"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+            >
+              <UserPlus className="h-3.5 w-3.5" /> New account
+            </button>
+          )}
           <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <input
               type="checkbox"
@@ -253,6 +268,17 @@ export function AdminUsers() {
                   </td>
                   {isSuperAdmin && (
                     <td className="px-6 py-3">
+                      <div className="flex items-center gap-1">
+                      {!user.deleted_at && (
+                        <button
+                          onClick={() => setDialog(user)}
+                          disabled={saving === user.id}
+                          aria-label={`Edit ${user.email}`}
+                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-white/10"
+                        >
+                          <Pencil className="h-3 w-3" /> Edit
+                        </button>
+                      )}
                       {user.deleted_at ? (
                         <button
                           onClick={() => void restore(user)}
@@ -278,6 +304,7 @@ export function AdminUsers() {
                           —
                         </span>
                       )}
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -289,6 +316,13 @@ export function AdminUsers() {
 
       {/* Stated once, at the bottom, rather than as a tooltip on every greyed
           control. An admin who cannot promote somebody needs to know why. */}
+      <AccountDialog
+        open={dialog !== null}
+        user={dialog === 'new' ? null : dialog}
+        onClose={() => setDialog(null)}
+        onSaved={() => void load()}
+      />
+
       {me && !isSuperAdmin && (
         <p className="border-t border-slate-200/70 px-6 py-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
           You can move people between Student and Lecturer. Granting or revoking Admin is

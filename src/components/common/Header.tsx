@@ -124,7 +124,9 @@ export function Header() {
       <header className="z-20 flex-shrink-0 border-b border-white/60 bg-white/[0.72] shadow-sm shadow-blue-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/[0.72]">
         <div className="flex h-16 items-center justify-between gap-1.5 px-2 sm:gap-3 sm:px-4">
 
-          {/* Left: sidebar toggle + title */}
+          {/* Left: sidebar toggle + course picker. The session title and the
+              "Learn, Review" line used to sit here; the client replaced them
+              with the course dropdown, which selects and joins courses. */}
           <div className="flex items-center gap-1.5 min-w-0 sm:gap-3">
             <Button
               size="icon"
@@ -135,12 +137,6 @@ export function Header() {
             >
               <Menu className="h-4 w-4" />
             </Button>
-            <div className="min-w-0 hidden sm:block">
-              <h2 className="max-w-[220px] truncate text-sm font-semibold text-slate-950 dark:text-white">
-                {currentSession?.title || 'Meraki'}
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{MODE_LABELS.learn}, {MODE_LABELS.review}</p>
-            </div>
             <CourseSwitcher />
           </div>
 

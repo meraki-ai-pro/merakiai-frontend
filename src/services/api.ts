@@ -286,9 +286,9 @@ class ApiClient {
   // ─── Sessions ─────────────────────────────────────────────────────────────
 
   /** GET /sessions/ — list the authenticated user's sessions. */
-  listUserSessions(limit = 50, offset = 0) {
+  listUserSessions(limit = 50, offset = 0, archived = false) {
     return this.request<UserSessionsResponse>(
-      `${API_ENDPOINTS.SESSIONS_CREATE}?limit=${limit}&offset=${offset}`
+      `${API_ENDPOINTS.SESSIONS_CREATE}?limit=${limit}&offset=${offset}${archived ? '&archived=true' : ''}`
     );
   }
 
@@ -368,6 +368,20 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ title }),
     });
+  }
+
+  pinSession(sessionId: string, pinned: boolean) {
+    return this.request<{ session_id: string; pinned_at: string | null }>(
+      API_ENDPOINTS.SESSIONS_PIN(sessionId),
+      { method: 'PATCH', body: JSON.stringify({ pinned }) }
+    );
+  }
+
+  archiveSession(sessionId: string, archived: boolean) {
+    return this.request<{ session_id: string; archived_at: string | null }>(
+      API_ENDPOINTS.SESSIONS_ARCHIVE(sessionId),
+      { method: 'PATCH', body: JSON.stringify({ archived }) }
+    );
   }
 
   // ─── Lecturer ────────────────────────────────────────────────────────────

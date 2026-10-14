@@ -72,6 +72,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           courseId: session.course_id ?? undefined,
           startedAt: session.started_at,
           endedAt: session.ended_at,
+          pinnedAt: session.pinned_at ?? null,
         }));
 
         const backendIds = new Set(backendSessions.map((session) => session.id));

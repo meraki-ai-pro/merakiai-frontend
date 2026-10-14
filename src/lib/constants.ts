@@ -62,6 +62,8 @@ export const API_ENDPOINTS = {
   SESSIONS_GET: (id: string) => `/sessions/${id}`,
   SESSIONS_DELETE: (id: string) => `/sessions/${id}`,
   SESSIONS_TITLE: (id: string) => `/sessions/${id}/title`,
+  SESSIONS_PIN: (id: string) => `/sessions/${id}/pin`,
+  SESSIONS_ARCHIVE: (id: string) => `/sessions/${id}/archive`,
   SESSIONS_MODE: (id: string) => `/sessions/${id}/mode`,
   SESSIONS_VIDEO: (id: string) => `/sessions/${id}/video`,
   SESSIONS_CONVERSATIONS: (id: string) => `/sessions/${id}/conversations`,
@@ -116,13 +118,6 @@ export const MODE_LABELS: Record<TutorMode, string> = {
 /** Which visible mode a stored mode belongs to: scenarios live inside Review. */
 export function visibleMode(mode: string | null | undefined): 'learn' | 'review' {
   return mode === 'review' || mode === 'application' || mode === 'practice' ? 'review' : 'learn';
-}
-
-/** Label for a mode value from anywhere, including legacy 'practice' rows. */
-export function modeLabel(mode: string | null | undefined): string {
-  const key = (mode ?? '').toLowerCase();
-  if (key === 'practice') return MODE_LABELS.application; // pre-rename rows
-  return MODE_LABELS[key as TutorMode] ?? 'Learn';
 }
 
 // ─── Assessment (application) scenario types ─────────────────────────────────

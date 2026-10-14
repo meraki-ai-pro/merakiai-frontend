@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase';
 import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -158,9 +157,9 @@ export function ResetPasswordForm() {
 
       {/* New Password Field */}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="newPassword" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+        <label htmlFor="newPassword" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">
           New password
-        </Label>
+        </label>
         <div className="relative">
           <Input
             id="newPassword"
@@ -190,9 +189,9 @@ export function ResetPasswordForm() {
 
       {/* Confirm Password Field */}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="confirmPassword" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+        <label htmlFor="confirmPassword" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">
           Confirm password
-        </Label>
+        </label>
         <div className="relative">
           <Input
             id="confirmPassword"
