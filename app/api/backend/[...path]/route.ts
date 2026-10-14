@@ -5,7 +5,12 @@ import { NextRequest, NextResponse } from 'next/server';
 // free-tier browser interstitial. The skip header is added here for good
 // measure. Point NEXT_PUBLIC_API_BASE at "/api/backend" to route through this.
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const UPSTREAM_TIMEOUT_MS = 10_000;
+// Reads stay tightly bounded. Writes get longer: the slow ones are the AI
+// drafting calls (exam import, Intervention Studio practice papers and
+// mini-lessons) and uploads, which take 15-60s and were being cut off at 10s
+// and reported to the lecturer as "backend unavailable".
+const READ_TIMEOUT_MS = 10_000;
+const WRITE_TIMEOUT_MS = 120_000;
 
 async function forward(request: NextRequest, path: string[]): Promise<NextResponse> {
   const backendPath = path.join('/');
@@ -33,7 +38,7 @@ async function forward(request: NextRequest, path: string[]): Promise<NextRespon
       body,
       cache: 'no-store',
       redirect: 'manual',
-      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+      signal: AbortSignal.timeout(hasBody ? WRITE_TIMEOUT_MS : READ_TIMEOUT_MS),
     });
 
   let response: Response;

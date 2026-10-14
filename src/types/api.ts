@@ -100,6 +100,10 @@ export interface UserSessionSummary {
   message_count: number;
   started_at: string;
   ended_at: string | null;
+  /** Set when pinned (sql/018); pinned sessions sit at the top of the sidebar. */
+  pinned_at?: string | null;
+  /** Set when archived (sql/018); archived sessions only show on /dashboard/archived. */
+  archived_at?: string | null;
 }
 
 export interface UserSessionsResponse {
@@ -399,6 +403,8 @@ export interface WsResponseComplete {
   // (source "did_agent", streaming true) rather than a rendered MP4 clip.
   source?: string;
   streaming?: boolean;
+  /** Help-ladder rung of this answer: 0 concept, 1-4 hints, 5 full solution. */
+  help_level?: number | null;
 }
 
 export interface WsLearnResponse {

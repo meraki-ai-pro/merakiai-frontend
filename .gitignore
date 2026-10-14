@@ -10,8 +10,7 @@ out/
 tsconfig.tsbuildinfo
 next-env.d.ts
 
-# npm lockfile (this project uses pnpm)
-package-lock.json
+# Alternative package-manager lockfiles (this project uses npm)
 yarn.lock
 
 # Local env files

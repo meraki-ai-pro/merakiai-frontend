@@ -20,12 +20,12 @@ const EMPTY_STATE = {
     title: 'Ready to learn',
     subtitle: 'Ask a question to get started.',
   },
-  // 'application' is the backend mode value (UI label: "Assessment")
+  // 'application' is the wire value of Review's guided scenario
   application: {
     icon: FlaskConical,
     color: 'text-emerald-600 dark:text-emerald-200',
     bg: 'bg-emerald-100 ring-emerald-200 dark:bg-emerald-300/[0.12] dark:ring-emerald-300/[0.24]',
-    title: 'Assessment starting…',
+    title: 'Guided scenario starting…',
     subtitle: 'Your guided scenario will appear here in a moment.',
   },
   review: {
@@ -39,6 +39,26 @@ const EMPTY_STATE = {
 
 type EmptyStateKey = keyof typeof EMPTY_STATE;
 
+/**
+ * Under a hint (help-ladder rungs 1-4): ask for more help in one tap. The
+ * tutor climbs one rung per request; the full solution is always one tap
+ * away, because withholding it frustrates more than it teaches — the lecturer
+ * sees how often it is taken instead.
+ */
+function HelpLadderActions({ level, onAsk }: { level: number; onAsk: (text: string) => void }) {
+  const next = level >= 3 ? 'Show me the next step' : 'Give me another hint';
+  return (
+    <div className="mt-2 flex flex-wrap gap-2 pl-1" data-testid="help-ladder-actions">
+      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => onAsk(`I'm still stuck. ${next}.`)}>
+        {next}
+      </Button>
+      <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500" onClick={() => onAsk('Please show me the full worked solution.')}>
+        Show the full solution
+      </Button>
+    </div>
+  );
+}
+
 export function MessageList() {
   const messages            = useChatStore((s) => s.messages);
   const isLoadingMessage    = useChatStore((s) => s.isLoadingMessage);
@@ -48,7 +68,7 @@ export function MessageList() {
   const sessions           = useChatStore((s) => s.sessions);
   const activeModeSession  = useChatStore((s) => s.activeModeSession);
 
-  const { retryLastMessage } = useChat();
+  const { retryLastMessage, sendMessage } = useChat();
   const bottomRef = useRef<HTMLDivElement>(null);
   const latestAssistantRef = useRef<HTMLDivElement>(null);
   const previousStreamingRef = useRef(false);
@@ -124,6 +144,17 @@ export function MessageList() {
             ) : (
               <AIResponse message={message} />
             )}
+            {index === messages.length - 1 &&
+              !isLoadingMessage &&
+              !isStreamingResponse &&
+              message.mode === 'learn' &&
+              (message.helpLevel ?? 0) >= 1 &&
+              (message.helpLevel ?? 0) <= 4 && (
+                <HelpLadderActions
+                  level={message.helpLevel as number}
+                  onAsk={(text) => void sendMessage(text, 'learn')}
+                />
+              )}
           </div>
         ))}
 

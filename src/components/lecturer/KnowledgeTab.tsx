@@ -54,6 +54,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
   const [modes, setModes] = useState<TutorModeName[]>(['learn']);
   const [difficulty, setDifficulty] = useState<DifficultyValue>('basic');
   const [formats, setFormats] = useState<QuestionFormat[]>([]);
+  const [topic, setTopic] = useState('');
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -95,6 +96,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
       // apply, so sending them unconditionally would fail Learn-only uploads.
       ...(showsDifficulty ? { difficulty } : {}),
       ...(servesReview && formats.length ? { questionFormats: formats } : {}),
+      ...(topic.trim() ? { topic: topic.trim() } : {}),
     });
     setUploading(false);
 
@@ -114,6 +116,17 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
       return;
     }
     toast.success(next ? 'Published to students' : 'Hidden from students');
+    void load();
+  };
+
+  const retopic = async (file: KnowledgeFile) => {
+    const next = window.prompt('Topic for this file (student mastery is tracked under it)', file.topic ?? '');
+    if (next === null || next.trim() === (file.topic ?? '')) return;
+    const res = await apiClient.updateKnowledge(courseId, file.id, { topic: next.trim() });
+    if (!res.success) {
+      toast.error('Could not change the topic');
+      return;
+    }
     void load();
   };
 
@@ -235,6 +248,30 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
           </fieldset>
         )}
 
+        {/* Topic — the name mastery is tracked under. Review questions drawn
+            from this file are marked against it, so one name per topic matters
+            more than a precise one: the list offers the names already in use. */}
+        <label className="mt-5 block text-sm text-slate-600 dark:text-slate-300">
+          Topic
+          <input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            list="knowledge-topics"
+            placeholder="e.g. Limits"
+            data-testid="knowledge-topic"
+            className="mt-2 block w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
+          />
+          <datalist id="knowledge-topics">
+            {[...new Set(files.map((f) => f.topic).filter((t): t is string => !!t))].map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
+          <span className="mt-1 block text-xs text-slate-400">
+            Optional, but students&rsquo; Review answers only count towards topic mastery when
+            the course has topics to count them under.
+          </span>
+        </label>
+
         <input
           ref={inputRef}
           type="file"
@@ -282,6 +319,14 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
                         .map((m) => MODE_LABELS[m] ?? m)
                         .join(' · ')}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => void retopic(f)}
+                      className="underline decoration-dotted hover:text-slate-700 dark:hover:text-slate-200"
+                      title="Change topic"
+                    >
+                      {f.topic || 'No topic'}
+                    </button>
                     {f.difficulty ? (
                       <span className="capitalize">{f.difficulty}</span>
                     ) : null}

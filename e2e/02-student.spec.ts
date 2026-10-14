@@ -17,7 +17,7 @@ import {
  */
 test.describe.configure({ mode: 'serial' });
 
-test('student: enrol, learn, review, assessment, pre/post test, feedback', async ({ page }) => {
+test('student: enrol, learn, review, guided scenario, exam, feedback', async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const state = loadState();
   const inviteCode = state.inviteCode as string | undefined;
@@ -206,15 +206,15 @@ test('student: enrol, learn, review, assessment, pre/post test, feedback', async
     await caption(page, 'NOTE: review session could not be started on this run.');
   }
 
-  // ── 6. Assessment mode (wire value 'application') ─────────────────────────
-  // There is no scenario-topic step any more: the picker was removed, so the
-  // modal goes straight from "Start Assessment" to a difficulty and away.
-  await caption(page, 'Assessment mode: a guided real-world scenario.');
-  await page.getByRole('button', { name: /^assessment$/i }).first().click();
-  await page.waitForTimeout(4000);
+  // ── 6. Guided scenario (wire value 'application') — a Review format now ───
+  await caption(page, 'Review includes guided real-world scenarios.');
+  await page.getByRole('button', { name: /^review$/i }).first().click();
+  await page.waitForTimeout(2000);
 
-  const startAssessment = page.getByRole('button', { name: /start assessment/i }).first();
-  if (await startAssessment.count()) {
+  const scenarioFormat = page.getByRole('radio', { name: /guided scenario/i });
+  const startAssessment = page.getByRole('button', { name: /^start review/i }).first();
+  if ((await scenarioFormat.count()) && (await startAssessment.count())) {
+    await scenarioFormat.click();
     await startAssessment.click();
     await caption(page, 'Building the scenario from the case-study material.', 3000);
     await waitForAnswer(page, 200_000);
@@ -262,32 +262,37 @@ test('student: enrol, learn, review, assessment, pre/post test, feedback', async
   await page.waitForTimeout(4000);
   await caption(page, 'Feedback recorded against the session and the student.');
 
-  // ── 8. Assessment ─────────────────────────────────────────────────────────
-  await caption(page, 'Opening the assessments the lecturer published.');
+  // ── 8. Exam ───────────────────────────────────────────────────────────────
+  await caption(page, 'Opening the exams the lecturer published.');
   await page.getByTestId('nav-assessments').click();
   await page.waitForURL(/\/dashboard\/assessments/, { timeout: 30_000 });
 
-  const startBtn = page.getByTestId('start-assessment-pre');
+  const startBtn = page.getByTestId('start-assessment-test');
   await expect(startBtn).toBeVisible({ timeout: 30_000 });
-  await caption(page, 'The pre-test is available and not yet completed.');
+  await caption(page, 'The class test is open and not yet sat.');
   await startBtn.click();
+  await caption(page, 'Before starting: time allowed, and display options — text size, contrast, timer.');
+  await page.getByRole('button', { name: /^start$/i }).click();
 
-  const questions = page.getByTestId('assessment-question');
-  await expect(questions.first()).toBeVisible({ timeout: 30_000 });
-  const qCount = await questions.count();
-  await caption(page, `Sitting the pre-test — ${qCount} questions, one attempt only.`);
+  const question = page.getByTestId('assessment-question');
+  await expect(question).toBeVisible({ timeout: 30_000 });
+  await caption(page, 'One question per screen, with a navigator, flagging and read-aloud.');
 
   // Answer every question. The first option is correct for two of the three,
   // so the score is a real mark, not a contrived 100%.
-  for (let i = 0; i < qCount; i += 1) {
+  for (let i = 0; ; i += 1) {
     await page.getByTestId(`answer-${i}-0`).check();
     await page.waitForTimeout(600);
+    const next = page.getByRole('button', { name: /^next$/i });
+    if (!(await next.count())) break;
+    await next.click();
   }
   await page.screenshot({ path: 'e2e-results/shots/assessment.png' });
+  await page.getByRole('button', { name: /review answers/i }).click();
   await page.getByTestId('submit-assessment').click();
 
   await expect(page.getByTestId('assessment-result')).toBeVisible({ timeout: 60_000 });
-  await caption(page, 'Scored server-side. No per-question breakdown, by design.');
+  await caption(page, 'Submitted. Marks are released once the lecturer has checked them.');
   await page.screenshot({ path: 'e2e-results/shots/assessment-result.png' });
 
   await expectNoAppCrash(page);

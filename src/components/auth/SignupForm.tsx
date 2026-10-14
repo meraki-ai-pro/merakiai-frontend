@@ -7,16 +7,11 @@ import { useUserStore } from '@/store/userStore';
 import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const SELECT_CLASS =
+  'h-12 w-full rounded-2xl border border-slate-200 bg-transparent px-4 text-sm disabled:opacity-60 dark:border-white/[0.1] dark:bg-white/[0.08] dark:[color-scheme:dark]';
 
 interface CountryOption {
   code: string;
@@ -200,7 +195,7 @@ export function SignupForm() {
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="firstName" className="text-xs font-semibold text-slate-700 dark:text-slate-200">First name</Label>
+            <label htmlFor="firstName" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">First name</label>
             <Input
               id="firstName" type="text" placeholder="Ama"
               value={firstName} onChange={(e) => { setFirstName(e.target.value); setError(null); }}
@@ -210,7 +205,7 @@ export function SignupForm() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="lastName" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Last name</Label>
+            <label htmlFor="lastName" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Last name</label>
             <Input
               id="lastName" type="text" placeholder="Mensah"
               value={lastName} onChange={(e) => { setLastName(e.target.value); setError(null); }}
@@ -226,7 +221,7 @@ export function SignupForm() {
           School
         </p>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="universityName" className="text-xs font-semibold text-slate-700 dark:text-slate-200">University name</Label>
+          <label htmlFor="universityName" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">University name</label>
           <Input
             id="universityName" type="text" placeholder="University of Ghana"
             value={universityName} onChange={(e) => { setUniversityName(e.target.value); setError(null); }}
@@ -237,26 +232,26 @@ export function SignupForm() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="country" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Country</Label>
-            <Select value={country} onValueChange={handleCountryChange} disabled={isLoading || isLoadingCountries} required>
-              <SelectTrigger
-                id="country"
-                className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 dark:border-white/[0.1] dark:bg-white/[0.08]"
-              >
-                <SelectValue placeholder={isLoadingCountries ? 'Loading countries...' : 'Select country'} />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {sortedCountries.map((item) => (
-                  <SelectItem key={item.code} value={item.name}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label htmlFor="country" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Country</label>
+            <select
+              id="country"
+              value={country}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              disabled={isLoading || isLoadingCountries}
+              required
+              className={SELECT_CLASS}
+            >
+              <option value="" disabled>
+                {isLoadingCountries ? 'Loading countries...' : 'Select country'}
+              </option>
+              {sortedCountries.map((item) => (
+                <option key={item.code} value={item.name}>{item.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="region" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Region</Label>
+            <label htmlFor="region" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Region</label>
             {region ? (
               <Input
                 id="region" type="text"
@@ -265,19 +260,19 @@ export function SignupForm() {
                 className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-slate-600 disabled:opacity-100 dark:border-white/[0.1] dark:bg-white/[0.05] dark:text-slate-300"
               />
             ) : (
-              <Select value={region} onValueChange={(value) => { setRegion(value); setError(null); }} disabled={isLoading} required>
-                <SelectTrigger
-                  id="region"
-                  className="h-12 rounded-2xl border-slate-200 bg-white/[0.08]0 px-4 dark:border-white/[0.1] dark:bg-white/[0.08]"
-                >
-                  <SelectValue placeholder="Select region" />
-                </SelectTrigger>
-                <SelectContent>
-                  {regionOptions.map((item) => (
-                    <SelectItem key={item} value={item}>{item}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                id="region"
+                value={region}
+                onChange={(e) => { setRegion(e.target.value); setError(null); }}
+                disabled={isLoading}
+                required
+                className={SELECT_CLASS}
+              >
+                <option value="" disabled>Select region</option>
+                {regionOptions.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
             )}
           </div>
         </div>
@@ -288,7 +283,7 @@ export function SignupForm() {
           Account
         </p>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Email address</Label>
+          <label htmlFor="email" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Email address</label>
           <Input
             id="email" type="email" placeholder="you@example.com"
             value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }}
@@ -299,7 +294,7 @@ export function SignupForm() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Password</Label>
+            <label htmlFor="password" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Password</label>
             <div className="relative">
               <Input
                 id="password" type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters"
@@ -321,7 +316,7 @@ export function SignupForm() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="confirmPassword" className="text-xs font-semibold text-slate-700 dark:text-slate-200">Confirm password</Label>
+            <label htmlFor="confirmPassword" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">Confirm password</label>
             <Input
               id="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters"
               value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}

@@ -6,6 +6,8 @@
  * words a lecturer would actually say, so the narration matches the board.
  */
 
+import { stripCitationMarkers } from './citations';
+
 const REPLACEMENTS: [RegExp, string][] = [
   // Structures first, so their arguments are still intact.
   [/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, ' $1 over $2 '],
@@ -89,7 +91,9 @@ function latexToWords(latex: string): string {
  * out, and markdown decoration is dropped.
  */
 export function toSpokenText(markdown: string): string {
-  let text = markdown;
+  // Citations stay in the visible Markdown, but are not part of the lesson's
+  // spoken content. This covers hosted audio and browser-speech fallback.
+  let text = stripCitationMarkers(markdown);
 
   // Fenced code is not narration material.
   text = text.replace(/```[\s\S]*?```/g, ' ');

@@ -8,7 +8,6 @@ import { apiClient } from '@/services/api';
 import { hydrateSupabaseSession, loginMfaRequired, verifyLoginChallenge } from '@/lib/mfa';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -118,7 +117,7 @@ export function LoginForm() {
           </div>
           <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Two-factor verification</h2>
           <p className="max-w-xs text-xs text-slate-500 dark:text-slate-400">
-            Enter the 6-digit code from your authenticator app to finish signing in.
+            Enter the 6-digit code from Google Authenticator or your authenticator app to finish signing in.
           </p>
         </div>
 
@@ -179,9 +178,9 @@ export function LoginForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+        <label htmlFor="email" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">
           Email address
-        </Label>
+        </label>
         <Input
           id="email"
           type="email"
@@ -197,9 +196,9 @@ export function LoginForm() {
 
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+          <label htmlFor="password" className="leading-none text-xs font-semibold text-slate-700 dark:text-slate-200">
             Password
-          </Label>
+          </label>
           <Link href="/auth/forgot-password" className="text-xs font-semibold text-blue-700 hover:underline dark:text-cyan-200">
             Forgot password?
           </Link>

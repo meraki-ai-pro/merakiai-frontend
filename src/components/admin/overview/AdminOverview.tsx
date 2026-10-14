@@ -71,8 +71,8 @@ function ModeBadge({ mode }: { mode: string }) {
   const map: Record<string, { icon: React.ElementType; color: string; bg: string; label: string }> = {
     learn:       { icon: BookOpen,       color: 'text-blue-400',    bg: 'bg-blue-400/10',    label: 'learn' },
     // 'practice' is the pre-rename wire value and still appears on old rows.
-    application: { icon: FlaskConical,   color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'assessment' },
-    practice:    { icon: FlaskConical,   color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'assessment' },
+    application: { icon: FlaskConical,   color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'scenario' },
+    practice:    { icon: FlaskConical,   color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'scenario' },
     review:      { icon: ClipboardCheck, color: 'text-amber-400',   bg: 'bg-amber-400/10',   label: 'review' },
   };
   const cfg = map[mode] ?? { icon: Activity, color: 'text-slate-500 dark:text-slate-400', bg: 'bg-white/5', label: mode };

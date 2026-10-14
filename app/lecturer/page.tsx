@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { BookOpen, FileText, Plus, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, FileText, Plus, Users } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import type { AcademicLevel, AcademicLevelOption, LecturerCourse } from '@/types/lecturer';
 
@@ -37,9 +37,12 @@ export default function LecturerHome() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Your courses</h1>
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-cyan-300">
+            Instructor workspace
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">Your courses</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {courses.length === 0
               ? 'Create a course to upload your notes and invite students.'
@@ -49,7 +52,7 @@ export default function LecturerHome() {
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" /> New course
         </button>
@@ -83,10 +86,19 @@ function CourseCard({ course }: { course: LecturerCourse }) {
   return (
     <Link
       href={`/lecturer/${course.id}`}
-      className="block rounded-xl border border-slate-200 bg-white p-5 transition hover:border-blue-400 hover:shadow-md dark:border-white/10 dark:bg-white/5"
+      className="group relative block overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg dark:border-white/10 dark:bg-white/5 dark:hover:border-cyan-400/40"
     >
-      <h2 className="truncate font-semibold text-slate-900 dark:text-white">{course.name}</h2>
-      <p className="mt-0.5 truncate font-mono text-xs text-slate-400">{course.id}</p>
+      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 to-cyan-400" aria-hidden />
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 dark:bg-cyan-400/10 dark:text-cyan-200">
+          <BookOpen className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate font-semibold text-slate-900 dark:text-white">{course.name}</h2>
+          <p className="mt-0.5 truncate font-mono text-xs text-slate-400">{course.id}</p>
+        </div>
+        <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-600 dark:group-hover:text-cyan-300" />
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">
         <span className="flex items-center gap-1.5">

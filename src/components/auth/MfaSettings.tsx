@@ -129,7 +129,7 @@ export function MfaSettings() {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-xs text-muted-foreground">
-          Scan this QR code with your authenticator app (or enter the key manually), then enter the 6-digit code.
+          Scan this QR code with Google Authenticator or any authenticator app (or enter the key manually), then enter the 6-digit code.
         </p>
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
           {/* supabase returns an SVG data URI */}
@@ -180,8 +180,8 @@ export function MfaSettings() {
           </p>
           <p className="text-xs text-muted-foreground">
             {enabled
-              ? 'A code from your authenticator app is required at sign-in.'
-              : 'Add an extra layer of security with an authenticator app.'}
+              ? 'A code from your authenticator app (Google Authenticator or any other) is required at sign-in.'
+              : 'Add an extra layer of security. Use Google Authenticator or any authenticator app.'}
           </p>
         </div>
       </div>

@@ -1,9 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useChatStore, newId } from '@/store/chatStore';
-import { Trash2, Pencil, Check, X, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Trash2, Pencil, Check, X, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2, MoreVertical, Pin, PinOff, Archive } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/api';
@@ -22,6 +21,20 @@ interface ConversationListProps {
   searchQuery?: string;
 }
 
+const RELATIVE = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['year', 31_536_000], ['month', 2_592_000], ['day', 86_400], ['hour', 3_600], ['minute', 60],
+];
+
+/** "3 hours ago", "yesterday", "now" — the largest unit that fits. */
+function timeAgoLabel(date: Date): string {
+  const seconds = (date.getTime() - Date.now()) / 1000;
+  for (const [unit, size] of UNITS) {
+    if (Math.abs(seconds) >= size) return RELATIVE.format(Math.round(seconds / size), unit);
+  }
+  return RELATIVE.format(0, 'second');
+}
+
 export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const router             = useRouter();
   const sessions          = useChatStore((s) => s.sessions);
@@ -36,6 +49,42 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
+  // The ⋮ menu. Fixed-positioned from the button's rect: the list scrolls and
+  // each row clips its overflow, so an in-row dropdown would be cut off.
+  const [menu, setMenu] = useState<{ id: string; top: number; left: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Element;
+      // A ⋮ button handles its own toggle; closing here would make it reopen.
+      if (!menuRef.current?.contains(target) && !target.closest?.('[aria-haspopup="menu"]')) close();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    menuRef.current?.querySelector('button')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [menu]);
+
+  const openMenu = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (menu?.id === id) return setMenu(null);
+    const r = e.currentTarget.getBoundingClientRect();
+    const MENU_W = 160, MENU_H = 176;
+    // Open upwards when there is no room below (the last rows of the list).
+    const top = r.bottom + 4 + MENU_H > window.innerHeight ? r.top - 4 - MENU_H : r.bottom + 4;
+    setMenu({ id, top, left: Math.max(8, r.right - MENU_W) });
+  };
 
   const handleSelect = async (id: string) => {
     router.push('/dashboard');
@@ -97,6 +146,29 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
     toast.success('Session deleted');
   };
 
+  const togglePin = async (id: string) => {
+    const pinned = !sessions.find((s) => s.id === id)?.pinnedAt;
+    const response = await apiClient.pinSession(id, pinned);
+    if (!response.success) {
+      toast.error(response.error?.message ?? 'Could not pin session');
+      return;
+    }
+    updateSession(id, { pinnedAt: response.data?.pinned_at ?? null });
+  };
+
+  // Archived sessions leave the sidebar and live on /dashboard/archived, where
+  // they can be restored. Nothing is deleted.
+  const archive = async (id: string) => {
+    const response = await apiClient.archiveSession(id, true);
+    if (!response.success) {
+      toast.error(response.error?.message ?? 'Could not archive session');
+      return;
+    }
+    loadedSessionsRef.current.delete(id);
+    deleteSession(id);
+    toast.success('Session archived');
+  };
+
   const startRename = (session: { id: string; title: string }, e: React.MouseEvent) => {
     e.stopPropagation();
     setRenamingSessionId(session.id);
@@ -131,9 +203,17 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   };
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredSessions = normalizedQuery
+  const matching = normalizedQuery
     ? sessions.filter((session) => session.title.toLowerCase().includes(normalizedQuery))
     : sessions;
+  // Pinned first (most recently pinned on top), then everything else as before.
+  const pinned = matching
+    .filter((s) => s.pinnedAt)
+    .sort((a, b) => (b.pinnedAt ?? '').localeCompare(a.pinnedAt ?? ''));
+  const filteredSessions = [...pinned, ...matching.filter((s) => !s.pinnedAt)];
+  const sectionLabel = (index: number) =>
+    index === 0 ? (pinned.length ? 'Pinned' : 'Recent') : index === pinned.length ? 'Recent' : null;
+  const menuSession = menu ? sessions.find((s) => s.id === menu.id) : undefined;
 
   if (!sessionsLoaded && sessions.length === 0) {
     return (
@@ -163,16 +243,23 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
         </div>
       )}
 
-      {filteredSessions.map((session) => {
+      {filteredSessions.map((session, index) => {
+        const label = sectionLabel(index);
         const isActive = session.id === currentSessionId;
         const isDeleting = deletingSessionIds.has(session.id);
         const isRenamingThis = renamingSessionId === session.id;
         const Icon     = modeIcon[(session.mode as ModeKey)] ?? BookOpen;
-        const timeAgo  = formatDistanceToNow(new Date(session.createdAt), { addSuffix: true });
+        const timeAgo  = timeAgoLabel(new Date(session.createdAt));
 
         return (
+          <Fragment key={session.id}>
+          {label && (
+            <p className="mt-1 flex items-center gap-1 px-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              {label === 'Pinned' && <Pin className="h-3 w-3" aria-hidden />}
+              {label}
+            </p>
+          )}
           <div
-            key={session.id}
             role="button"
             tabIndex={0}
             onClick={() => !isRenamingThis && void handleSelect(session.id)}
@@ -197,7 +284,12 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
               Fixed grid columns keep the destructive action available even when
               the session title is very long.
             */}
-            <div className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)_4.25rem] items-center gap-2">
+            <div
+              className={cn(
+                'grid min-w-0 items-center gap-2',
+                isRenamingThis ? 'grid-cols-[1rem_minmax(0,1fr)_4.25rem]' : 'grid-cols-[1rem_minmax(0,1fr)_2rem]',
+              )}
+            >
               {/* 1 — Mode icon */}
               <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-blue-600 dark:text-cyan-200' : 'text-slate-400')} />
 
@@ -258,43 +350,92 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-self-end gap-1">
-                  <button
-                    onClick={(e) => startRename(session, e)}
-                    onFocus={(e) => e.stopPropagation()}
-                    aria-label="Rename session"
-                    title="Rename session"
-                    className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 opacity-70 transition-all hover:bg-blue-500/[0.12] hover:text-blue-600 hover:opacity-100 focus:bg-blue-500/[0.12] focus:text-blue-600 focus:opacity-100 focus:outline-none dark:text-slate-400 dark:hover:text-cyan-300 dark:focus:text-cyan-300"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => handleDelete(session.id, e)}
-                    onFocus={(e) => e.stopPropagation()}
-                    disabled={isDeleting}
-                    aria-label="Delete session"
-                    title="Delete session"
-                    className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-xl',
-                      'text-slate-500 opacity-70 transition-all',
-                      'hover:bg-red-500/[0.12] hover:text-red-600 hover:opacity-100',
-                      'focus:bg-red-500/[0.12] focus:text-red-600 focus:opacity-100 focus:outline-none',
-                      'disabled:cursor-wait disabled:opacity-60',
-                      'dark:text-slate-400 dark:hover:text-red-300 dark:focus:text-red-300'
-                    )}
-                  >
-                    {isDeleting ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => openMenu(session.id, e)}
+                  onFocus={(e) => e.stopPropagation()}
+                  disabled={isDeleting}
+                  aria-label={`Options for ${session.title}`}
+                  aria-haspopup="menu"
+                  aria-expanded={menu?.id === session.id}
+                  title="Rename, pin, archive or delete"
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center justify-self-end rounded-xl',
+                    'text-slate-500 opacity-70 transition-all hover:bg-slate-950/[0.06] hover:text-slate-900 hover:opacity-100',
+                    'focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300',
+                    'disabled:cursor-wait dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white',
+                    menu?.id === session.id && 'bg-slate-950/[0.06] opacity-100 dark:bg-white/10',
+                  )}
+                >
+                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
+                </button>
               )}
             </div>
           </div>
+          </Fragment>
         );
       })}
+
+      {menu && (
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{ top: menu.top, left: menu.left }}
+          className="fixed z-50 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-blue-950/10 dark:border-white/10 dark:bg-slate-900"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              const session = sessions.find((x) => x.id === menu.id);
+              setMenu(null);
+              if (session) startRename(session, e);
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-200 dark:hover:bg-white/10 dark:focus:bg-white/10"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Rename
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const id = menu.id;
+              setMenu(null);
+              void togglePin(id);
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-200 dark:hover:bg-white/10 dark:focus:bg-white/10"
+          >
+            {menuSession?.pinnedAt ? (
+              <><PinOff className="h-3.5 w-3.5" /> Unpin</>
+            ) : (
+              <><Pin className="h-3.5 w-3.5" /> Pin</>
+            )}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const id = menu.id;
+              setMenu(null);
+              void archive(id);
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-200 dark:hover:bg-white/10 dark:focus:bg-white/10"
+          >
+            <Archive className="h-3.5 w-3.5" /> Archive
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              const id = menu.id;
+              setMenu(null);
+              void handleDelete(id, e);
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none dark:text-red-300 dark:hover:bg-red-500/10 dark:focus:bg-red-500/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }

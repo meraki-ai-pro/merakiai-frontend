@@ -31,12 +31,12 @@ const modeCards = [
   },
   {
     icon: FlaskConical,
-    label: 'Assessment',
+    label: 'Guided scenarios',
     accent: 'text-emerald-200',
     bg: 'bg-emerald-400/[0.15]',
-    title: 'Turn lessons into guided assessments',
-    copy: 'Assessment mode turns notes, documents, and course content into active exercises. Meraki asks, checks, and coaches you through the ideas until they start to stick.',
-    bullets: ['Guided assessment scenarios', 'Step-by-step scored feedback', 'Course-aware questions'],
+    title: 'Turn lessons into guided scenarios',
+    copy: 'Review includes guided scenarios that turn notes, documents, and course content into active exercises. Meraki asks, checks, and coaches you through the ideas until they start to stick.',
+    bullets: ['Real-world scenarios', 'Step-by-step scored feedback', 'Course-aware questions'],
   },
   {
     icon: BookOpenCheck,
@@ -109,7 +109,7 @@ const structuredData = {
       operatingSystem: 'Web',
       url: 'https://www.merakiai.online',
       description:
-        'Adaptive AI tutoring with Learn, Review, and Assessment modes, voice questions, and tutor-style video lessons.',
+        'Adaptive AI tutoring with Learn and Review modes, voice questions, and tutor-style video lessons.',
     },
   ],
 }
@@ -178,7 +178,7 @@ export default function Home() {
               {/* <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-sm font-semibold text-blue-950 shadow-lg shadow-blue-950/[0.08] backdrop-blur dark:border-cyan-200/[0.3] dark:bg-cyan-100/10 dark:text-cyan-50 dark:shadow-cyan-950/[0.2]">
                 <MerakiLogo variant="color" className="h-5 w-5 dark:hidden" decorative />
                 <MerakiLogo variant="white" className="hidden h-5 w-5 dark:block" decorative />
-                AI tutor for Learn, Review, and Assessment
+                AI tutor for Learn and Review
               </div> */}
 
               <h1 className="mt-7 max-w-4xl text-balance text-5xl font-semibold leading-[1.03] text-slate-950 dark:text-white sm:text-6xl lg:text-7xl">
@@ -302,7 +302,7 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-2">
               {[
                 { icon: MessageSquare, label: 'Learn', value: 'Explain concepts and answer follow-ups' },
-                { icon: FlaskConical, label: 'Assessment', value: 'Work through guided exercises' },
+                { icon: FlaskConical, label: 'Scenarios', value: 'Work through guided exercises in Review' },
                 { icon: BookOpenCheck, label: 'Review', value: 'Test recall and exam readiness' },
                 { icon: Video, label: 'Video', value: 'Use avatar answers when visual delivery helps' },
               ].map((item) => (

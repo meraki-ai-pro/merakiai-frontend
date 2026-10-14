@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { AudioLines, Mic, Loader2 } from 'lucide-react';
+import { AudioLines, CloudUpload, Globe, Mic, Loader2 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { apiClient } from '@/services/api';
 import toast from 'react-hot-toast';
@@ -304,7 +304,11 @@ export function VoiceInput({ onRecordingComplete, onInterimTranscript, disabled 
     if (recordingState !== 'idle') return;
     const newMode = mode === 'speech' ? 'upload' : 'speech';
     setMode(newMode);
-    toast.success(`Switched to ${newMode === 'speech' ? 'browser' : 'upload'} mode`);
+    toast.success(
+      newMode === 'speech'
+        ? 'Voice typing: live in your browser'
+        : 'Voice typing: record, then transcribe on our server',
+    );
   };
 
   const formatDuration = (s: number) =>
@@ -346,15 +350,26 @@ export function VoiceInput({ onRecordingComplete, onInterimTranscript, disabled 
   // ─── Idle state ────────────────────────────────────────────────────────────
   return (
     <div className="flex items-center gap-1">
-      {/* Mode indicator (only show if speech is supported so user can toggle) */}
+      {/* How voice is turned into text. Was the bare word "browser"/"upload",
+          which students read as a file-upload button. Only shown where the
+          browser can do live speech recognition, i.e. where there is a choice. */}
       {isSpeechSupported && (
         <button
           onClick={toggleMode}
           disabled={disabled}
-          className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors px-1"
-          title={`Switch to ${mode === 'speech' ? 'upload' : 'browser'} mode`}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/70 transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-40"
+          aria-label={
+            mode === 'speech'
+              ? 'Voice typing works live in your browser. Switch to server transcription'
+              : 'Voice typing records, then transcribes on our server. Switch to live browser typing'
+          }
+          title={
+            mode === 'speech'
+              ? 'Voice typing: live in your browser — click to record and transcribe on our server instead'
+              : 'Voice typing: record, then transcribe on our server — click to type live in your browser instead'
+          }
         >
-          {mode === 'speech' ? 'browser' : 'upload'}
+          {mode === 'speech' ? <Globe className="h-4 w-4" /> : <CloudUpload className="h-4 w-4" />}
         </button>
       )}
       

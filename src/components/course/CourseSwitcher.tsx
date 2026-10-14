@@ -71,12 +71,12 @@ export function CourseSwitcher() {
               className="flex max-w-[15rem] items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-blue-50 hover:text-blue-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-cyan-300/[0.08] sm:rounded-2xl sm:px-3"
             >
               <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="hidden truncate sm:inline">
+              <span className="max-w-[7.5rem] truncate sm:max-w-none">
                 {loading && !selected ? 'Loading…' : (selected?.name ?? 'Join a course')}
               </span>
               <ChevronDown
                 className={cn(
-                  'hidden h-3.5 w-3.5 flex-shrink-0 transition-transform sm:inline',
+                  'h-3.5 w-3.5 flex-shrink-0 transition-transform',
                   open && 'rotate-180'
                 )}
               />

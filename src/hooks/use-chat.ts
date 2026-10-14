@@ -85,10 +85,9 @@ const REVIEW_LABELS = Object.fromEntries(
 /**
  * Conversation title for a mode session.
  *
- * Assessment sessions no longer carry a topic, so the title is just
- * "Assessment". Sessions started before the picker was removed still have one
- * and keep showing it — a conversation must not silently rename itself in the
- * sidebar because we shipped.
+ * A guided scenario is a Review format, so it is titled like the others:
+ * "Review — Guided scenario". Sessions started before the topic picker was
+ * removed still carry a topic and keep showing it.
  */
 function getModeSessionTitle(
   mode: "application" | "review",
@@ -99,8 +98,8 @@ function getModeSessionTitle(
   }
   const legacyTopic = LEGACY_SCENARIO_TYPE_LABELS[sessionType];
   return legacyTopic && sessionType !== "general"
-    ? `${MODE_LABELS.application} — ${legacyTopic}`
-    : MODE_LABELS.application;
+    ? `${MODE_LABELS.review} — ${MODE_LABELS.application}: ${legacyTopic}`
+    : `${MODE_LABELS.review} — ${MODE_LABELS.application}`;
 }
 
 // ─── Subtitle helper ──────────────────────────────────────────────────────────
@@ -479,6 +478,12 @@ export function useChat() {
         void handleResponseComplete(msg as WsResponseComplete);
         return;
       }
+      if (t === "session_title") {
+        // A short model-written name replaces the first-message placeholder.
+        const m = msg as unknown as { session_id: string; title: string };
+        useChatStore.getState().updateSession(m.session_id, { title: m.title });
+        return;
+      }
       // Assessment/Review typewriter events. Unlike Learn, a single turn can
       // include more than one of these back-to-back (e.g. evaluation
       // feedback, then the next question) before the terminal mode push
@@ -627,9 +632,9 @@ export function useChat() {
     const { response, response_format, video_url, audio_url, subtitles_url } =
       msg;
 
-    // Real-time D-ID avatar path: the answer is being spoken live by the
-    // persistent AvatarStage over WebRTC, so there is no MP4 to attach. Render
-    // the message as normal text; the avatar is a separate, persistent surface.
+    // Real-time D-ID avatar path (retired from the client: no live stream is
+    // opened any more). Only a stream cached server-side before that change
+    // can still produce it — there is no MP4 to attach, so render as text.
     const isRealtimeAvatar =
       msg.streaming === true || msg.source === "did_agent";
 
@@ -655,6 +660,7 @@ export function useChat() {
       // Prefer the terminal push (authoritative, and present even if the
       // earlier `sources` event was missed by a mid-turn reconnect).
       sources: msg.sources?.length ? msg.sources : store.streamingSources,
+      helpLevel: msg.help_level ?? null,
       timestamp: new Date(),
     };
 
@@ -1303,6 +1309,13 @@ export function useChat() {
 
       await ensureVideoPreference(sessionId, mode);
 
+      // An answer that has fully arrived but is still being revealed lives in
+      // pendingFinals until the reveal catches up. Sending again clears the
+      // stream below, which used to drop it from the conversation (a long
+      // board answer takes 20s+ to reveal). Commit it first, before the new
+      // question, so it stays and stays in order.
+      useChatStore.getState().commitPendingFinals();
+
       if (!isRetry) {
         addMessage({
           id: newId(),
@@ -1576,6 +1589,9 @@ export function useChat() {
   const sendModeMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || !activeModeSession || !currentSessionId) return;
+
+      // As in sendMessage: keep a still-revealing evaluation or question.
+      useChatStore.getState().commitPendingFinals();
 
       addMessage({
         id: newId(),

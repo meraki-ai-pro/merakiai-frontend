@@ -12,7 +12,10 @@ const contentSecurityPolicy = [
   "media-src 'self' data: blob: https:",
   "worker-src 'self' blob:",
   "frame-src 'self' https:",
-  'upgrade-insecure-requests',
+  // Production only. Under `next dev` on http://localhost it turned Next's
+  // trailing-slash redirect for /api/backend/sessions/ into an https request
+  // that cannot connect, so no session could be listed or created locally.
+  ...(process.env.NODE_ENV === 'production' ? ['upgrade-insecure-requests'] : []),
 ].join('; ')
 
 /** @type {import('next').NextConfig} */

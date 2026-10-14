@@ -177,7 +177,7 @@ function AdminSidebar({
 }
 
 function AdminTopbar({ sidebarWidth }: { sidebarWidth: number }) {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme: theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const pathname = usePathname();

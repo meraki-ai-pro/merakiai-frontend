@@ -16,9 +16,27 @@ export interface AdminUser {
   first_name: string | null;
   last_name: string | null;
   university_name: string | null;
+  region?: string | null;
   country: string | null;
   created_at: string;
+  /** Set when a super admin soft-deleted the account (sql/016). */
+  deleted_at?: string | null;
 }
+
+/** POST /admin/users — super admins only. */
+export interface AdminUserCreate {
+  email: string;
+  password: string;
+  role: AdminRole;
+  first_name: string;
+  last_name: string;
+  university_name?: string;
+  region?: string;
+  country?: string;
+}
+
+/** PATCH /admin/users/{id} — only the fields sent change. */
+export type AdminUserUpdate = Partial<Omit<AdminUserCreate, 'role'>>;
 
 /**
  * Who may hand out which role. Mirrors _ASSIGNABLE_BY in
@@ -292,18 +310,15 @@ class AdminApiClient {
   }
 
   // ─── Users ───────────────────────────────────────────────────────────────
-  getUsers(opts: { page?: number; pageSize?: number; role?: string; search?: string } = {}) {
+  getUsers(opts: { page?: number; pageSize?: number; role?: string; search?: string; includeDeleted?: boolean } = {}) {
     const q = new URLSearchParams({
       page: String(opts.page ?? 1),
       page_size: String(Math.min(opts.pageSize ?? 100, 100)), // backend caps page_size at 100
     });
     if (opts.role) q.set('role', opts.role);
     if (opts.search) q.set('search', opts.search);
+    if (opts.includeDeleted) q.set('include_deleted', 'true');
     return this.paginated<AdminUser>(`/admin/users?${q.toString()}`, 'users');
-  }
-
-  getUserById(userId: string) {
-    return this.request<AdminUser>(`/admin/users/${userId}`);
   }
 
   /**
@@ -317,6 +332,37 @@ class AdminApiClient {
     return this.request<{ status: string; user_id: string; new_role: string }>(
       `/admin/users/${userId}/role`,
       { method: 'PATCH', body: JSON.stringify({ role }) }
+    );
+  }
+
+  /** Soft delete — super admins only. The account is banned, never erased. */
+  deleteUser(userId: string) {
+    return this.request<{ status: string; user_id: string; deleted_at: string }>(
+      `/admin/users/${userId}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  restoreUser(userId: string) {
+    return this.request<{ status: string; user_id: string }>(
+      `/admin/users/${userId}/restore`,
+      { method: 'POST' }
+    );
+  }
+
+  /** Create an account that can sign in straight away. Super admins only. */
+  createUser(body: AdminUserCreate) {
+    return this.request<{ status: string; user_id: string; email: string; role: string }>(
+      '/admin/users',
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+  }
+
+  /** Edit details, email or password. Role changes go through updateUserRole. */
+  updateUser(userId: string, body: AdminUserUpdate) {
+    return this.request<{ status: string; user_id: string }>(
+      `/admin/users/${userId}`,
+      { method: 'PATCH', body: JSON.stringify(body) }
     );
   }
 

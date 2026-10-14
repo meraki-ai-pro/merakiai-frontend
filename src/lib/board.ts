@@ -66,34 +66,46 @@ const CONCEPT_KEY_RE = /^[a-z0-9][a-z0-9-]{0,118}[a-z0-9]$/i;
 
 /** True when the text uses board syntax at all. */
 export function hasBoard(text: string): boolean {
-  return /^:::\s*(slide|plot|video)\b/m.test(text);
+  // A video fence alone does not make a board: with the Lesson Board off, a
+  // plain Learn answer can still carry the lecturer's video (splitVideoFences).
+  return /^:::\s*(slide|plot)\b/m.test(text);
 }
 
+export type AnswerPart = { markdown: string } | { video: string };
+
 /**
- * Strip board fences, leaving plain markdown.
+ * A plain answer split around its `::: video <key>` fences.
  *
- * Used for the chat transcript and for narration, so a student reading (or
- * hearing) the answer never encounters the markup.
+ * A fence counts only once its closing `:::` has arrived. While the answer is
+ * still streaming, `::: video number-li` is half a key, and resolving it would
+ * flash "no video" before the real key lands — so an unclosed fence is hidden,
+ * not guessed at. Stray `:::` lines are dropped for the same reason.
  */
-export function stripBoardSyntax(text: string): string {
-  const out: string[] = [];
-  let inPlot = false;
+export function splitVideoFences(text: string): AnswerPart[] {
+  const parts: AnswerPart[] = [];
+  const lines = text.split('\n');
+  let buffer: string[] = [];
+  const flush = () => {
+    const markdown = buffer.join('\n').trim();
+    if (markdown) parts.push({ markdown });
+    buffer = [];
+  };
 
-  for (const line of text.split('\n')) {
-    const open = OPEN_RE.exec(line.trim());
+  for (let i = 0; i < lines.length; i++) {
+    const open = lines[i].match(/^:::\s*video\s+(\S+)\s*$/);
     if (open) {
-      inPlot = open[1] === 'plot';
-      if (open[1] === 'slide' && open[2].trim()) out.push(`### ${open[2].trim()}`);
+      if (/^:::\s*$/.test(lines[i + 1] ?? '')) {
+        flush();
+        parts.push({ video: open[1] });
+        i++; // the closing fence
+      }
       continue;
     }
-    if (CLOSE_RE.test(line.trim())) {
-      inPlot = false;
-      continue;
-    }
-    if (!inPlot) out.push(line);
+    if (/^:::\s*$/.test(lines[i])) continue;
+    buffer.push(lines[i]);
   }
-
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  flush();
+  return parts;
 }
 
 function parsePlot(raw: string, fallbackTitle: string): PlotSpec | undefined {

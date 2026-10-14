@@ -6,7 +6,6 @@ import { Subtitle } from '@/types';
 import { SubtitleDisplay } from './SubtitleDisplay';
 import { Play, Pause, Volume2, VolumeX, Maximize, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -80,16 +79,19 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
       setCurrentSubtitle(current || null);
     };
 
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
     video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('play', () => setIsPlaying(true));
-    video.addEventListener('pause', () => setIsPlaying(false));
-    video.addEventListener('ended', () => setIsPlaying(false));
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handlePause);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('play', () => setIsPlaying(true));
-      video.removeEventListener('pause', () => setIsPlaying(false));
-      video.removeEventListener('ended', () => setIsPlaying(false));
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handlePause);
     };
   }, [subtitles]);
 
@@ -226,12 +228,15 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
           <span className="text-xs text-white/90 tabular-nums min-w-[40px]">
             {formatTime(currentTime)}
           </span>
-          <Slider
-            value={[currentTime]}
+          <input
+            type="range"
+            aria-label="Seek"
+            value={currentTime}
+            min={0}
             max={videoDuration}
             step={100}
-            onValueChange={handleTimelineChange}
-            className="flex-1"
+            onChange={(e) => handleTimelineChange([Number(e.target.value)])}
+            className="flex-1 accent-white"
           />
           <span className="text-xs text-white/90 tabular-nums min-w-[40px] text-right">
             {formatTime(videoDuration)}
@@ -246,6 +251,7 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
               size="sm"
               variant="ghost"
               onClick={handlePlayPause}
+              aria-label={isPlaying ? 'Pause video' : 'Play video'}
               className="h-8 w-8 text-white hover:bg-white/20"
             >
               {isPlaying ? (
@@ -260,6 +266,7 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
               size="sm"
               variant="ghost"
               onClick={handleMute}
+              aria-label={isMuted ? 'Unmute video' : 'Mute video'}
               className="h-8 w-8 text-white hover:bg-white/20"
             >
               {isMuted ? (
@@ -269,12 +276,15 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
               )}
             </Button>
 
-            <Slider
-              value={[isMuted ? 0 : volume]}
+            <input
+              type="range"
+              aria-label="Volume"
+              value={isMuted ? 0 : volume}
+              min={0}
               max={1}
               step={0.05}
-              onValueChange={handleVolumeChange}
-              className="w-20"
+              onChange={(e) => handleVolumeChange([Number(e.target.value)])}
+              className="w-20 accent-white"
             />
           </div>
 
@@ -283,6 +293,7 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
             size="sm"
             variant="ghost"
             onClick={handleFullscreen}
+            aria-label="Open video fullscreen"
             className="h-8 w-8 text-white hover:bg-white/20"
           >
             <Maximize className="h-4 w-4" />

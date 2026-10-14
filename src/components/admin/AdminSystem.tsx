@@ -237,7 +237,7 @@ export function AdminSystem() {
           <div className="space-y-0.5">
             <ServiceRow label="Provider" value="D-ID API" />
             <ServiceRow label="Fallback provider" value="Tavus" status="fallback" />
-            <ServiceRow label="Mode support" value="Learn + Assessment only" />
+            <ServiceRow label="Mode support" value="Learn only" />
             <ServiceRow label="Review mode" value="Text only (enforced)" status="inactive" />
             <ServiceRow label="Avatar — Amy" value="Female presenter" />
             <ServiceRow label="Avatar — Josh" value="Male presenter" />
@@ -277,7 +277,7 @@ export function AdminSystem() {
             <ServiceRow label="Embeddings" value="OpenAI text-embedding" />
             <ServiceRow label="Vector store" value="Pinecone (mode namespaces)" />
             <ServiceRow label="Learn mode" value="/rag/turn endpoint" />
-            <ServiceRow label="Assessment mode" value="/mode-sessions (application)" />
+            <ServiceRow label="Review — scenarios" value="/mode-sessions (application)" />
             <ServiceRow label="Review mode" value="/mode-sessions (review)" />
             <ServiceRow label="Review types" value="MCQ, Fill-blank, Short Answer" />
           </div>

@@ -241,6 +241,8 @@ export interface MasterySummary {
   bands?: Record<MasteryBand, number>;
   weakest_topics?: { topic: string; mean: number; students: number }[];
   strongest_topics?: { topic: string; mean: number; students: number }[];
+  /** Every topic, weakest first. */
+  topics?: { topic: string; mean: number; students: number }[];
 }
 
 export interface EngagementSummary {
@@ -258,12 +260,17 @@ export interface EngagementSummary {
 export interface TimeOnTask {
   measured: boolean;
   reason?: string;
-  completed_sessions?: number;
-  open_sessions?: number;
+  /** Sessions with at least two messages — the ones a duration can be measured for. */
+  sessions?: number;
+  single_message_sessions?: number;
+  /** A gap between messages longer than this counts as this many minutes. */
+  break_minutes?: number;
   total_minutes?: number;
   mean_minutes?: number;
   /** Reported next to the mean because the distribution is badly skewed. */
   median_minutes?: number;
+  /** Measured sessions by minutes of activity. */
+  histogram?: { bucket: string; sessions: number }[];
 }
 
 export interface CourseAnalytics {
@@ -286,8 +293,95 @@ export interface CourseAnalytics {
   mastery: MasterySummary;
   engagement: EngagementSummary;
   time_on_task: TimeOnTask;
+  /** Last 30 days, oldest first, every day present. */
+  activity?: { date: string; sessions: number; students: number }[];
   /** Metrics not yet instrumented - shown as "not yet measured", never 0. */
   unavailable: string[];
+}
+
+/** GET /analytics/attention — students the lecturer should act on, and why. */
+export type AttentionKind = 'declining' | 'dependency' | 'disengaged' | 'stuck';
+
+export interface AttentionStudent {
+  student_id: string;
+  name: string | null;
+  email: string | null;
+  /** Most urgent first. */
+  flags: { kind: AttentionKind; reason: string; topic?: string }[];
+}
+
+export interface StudentRef {
+  student_id: string;
+  name: string | null;
+  email: string | null;
+}
+
+/** GET /analytics/tutor-activity — what the AI tutor did for the class. */
+export interface TutorActivity {
+  days: number;
+  counts: {
+    concept_explanations: number;
+    socratic_prompts: number;
+    concept_cues: number;
+    structural_hints: number;
+    partial_steps: number;
+    worked_solutions: number;
+    solutions_requested: number;
+    misconceptions_detected: number;
+  };
+  /** Sessions where a full solution came unasked, before any hint. */
+  sessions_skipping_ladder: number;
+  frequent_requesters: (StudentRef & { requests: number })[];
+}
+
+/** GET /analytics/misconceptions — wrong beliefs shared across students. */
+export interface MisconceptionRadar {
+  days: number;
+  misconceptions: {
+    topic: string | null;
+    label: string;
+    students: number;
+    occurrences: number;
+    first_seen: string | null;
+    last_seen: string | null;
+    emerging: boolean;
+    students_list: StudentRef[];
+  }[];
+  /** Misconceptions seen in only one student so far. */
+  individual: number;
+}
+
+export type TimelineKind =
+  | 'started' | 'mastered' | 'slipped' | 'recovered' | 'struggling'
+  | 'misconception' | 'tutoring' | 'exam';
+
+/** GET /analytics/students/{id}/timeline */
+export interface StudentTimeline {
+  student: StudentRef;
+  mastery: { topic: string; mastery_score: number; attempts_count: number; band: MasteryBand }[];
+  timeline: { at: string; kind: TimelineKind; text: string; topic?: string | null }[];
+}
+
+/** Intervention Studio — what the lecturer is acting on. */
+export interface InterventionFocus {
+  topic: string;
+  misconception?: string | null;
+  students: StudentRef[];
+}
+
+export type PracticeFormat = 'practice' | 'diagnostic' | 'retrieval';
+
+/** Request body shared by the studio endpoints. */
+export interface InterventionBody {
+  topic: string;
+  misconception?: string | null;
+  student_ids: string[];
+}
+
+export interface InterventionOption {
+  action: PracticeFormat | 'mini_lesson' | 'in_person';
+  title: string;
+  why: string;
 }
 
 export interface CourseMastery {
@@ -365,4 +459,24 @@ export interface RenderRequestBody {
   archetype?: string | null;
   topic?: string | null;
   subject?: string | null;
+}
+
+/** GET /assessments/course/{id}/summary — one row per exam. Percent fields are
+ *  absent until someone has sat the paper: never shown as 0. */
+export interface ExamSummary {
+  id: string;
+  title: string;
+  kind: string;
+  is_published: boolean;
+  results_released: boolean;
+  question_count: number;
+  total_points: number;
+  responses: number;
+  mean_percent?: number;
+  median_percent?: number;
+  highest_percent?: number;
+  lowest_percent?: number;
+  pass_rate?: number;
+  pending_review: number;
+  distribution: { band: string; students: number }[];
 }
