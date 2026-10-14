@@ -236,10 +236,10 @@ class ApiClient {
   }
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
-  async login(email: string, password: string) {
+  async login(email: string, password: string, captchaToken?: string) {
     const res = await this.request<LoginResponse>(API_ENDPOINTS.AUTH_LOGIN, {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, captcha_token: captchaToken }),
       skipAuth: true,
     });
     if (res.success && res.data?.access_token) {
@@ -256,12 +256,12 @@ class ApiClient {
     });
   }
 
-  async forgotPassword(email: string, redirectTo?: string) {
+  async forgotPassword(email: string, redirectTo?: string, captchaToken?: string) {
     return this.request<{ status: string; message: string }>(
       API_ENDPOINTS.AUTH_FORGOT_PASSWORD,
       {
         method: 'POST',
-        body: JSON.stringify({ email, redirect_to: redirectTo }),
+        body: JSON.stringify({ email, redirect_to: redirectTo, captcha_token: captchaToken }),
         skipAuth: true,
       }
     );

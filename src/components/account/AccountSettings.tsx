@@ -25,6 +25,7 @@ import toast from 'react-hot-toast';
 import { KeyRound, Loader2, UserRound } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { useUserStore } from '@/store/userStore';
+import { HCaptcha, HCAPTCHA_SITE_KEY } from '@/components/auth/HCaptcha';
 import type { UpdateProfileRequest, UserProfileResponse } from '@/types';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -200,10 +201,15 @@ function PasswordSection({ forcePasswordChange }: { forcePasswordChange: boolean
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
+  // Checking the current password is a sign-in, which Supabase protects
+  // with the captcha once it is switched on.
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const tooShort = next.length > 0 && next.length < MIN_PASSWORD_LENGTH;
   const mismatch = confirm.length > 0 && next !== confirm;
-  const ready = current && next.length >= MIN_PASSWORD_LENGTH && next === confirm;
+  const ready =
+    current && next.length >= MIN_PASSWORD_LENGTH && next === confirm && (!HCAPTCHA_SITE_KEY || !!captcha);
 
   const submit = async () => {
     if (!ready) return;
@@ -211,11 +217,13 @@ function PasswordSection({ forcePasswordChange }: { forcePasswordChange: boolean
     const res = await apiClient.changePassword({
       current_password: current,
       new_password: next,
+      captcha_token: captcha ?? undefined,
     });
     setBusy(false);
 
     if (!res.success) {
       toast.error(res.error?.message ?? 'Could not change your password.');
+      setCaptchaReset((n) => n + 1);
       return;
     }
 
@@ -286,6 +294,12 @@ function PasswordSection({ forcePasswordChange }: { forcePasswordChange: boolean
         <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
           The two new passwords do not match.
         </p>
+      )}
+
+      {HCAPTCHA_SITE_KEY && (
+        <div className="mt-4 flex justify-start">
+          <HCaptcha onToken={setCaptcha} resetKey={captchaReset} />
+        </div>
       )}
 
       <button

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { HCaptcha, HCAPTCHA_SITE_KEY } from './HCaptcha';
 
 const SELECT_CLASS =
   'h-12 w-full rounded-2xl border border-slate-200 bg-transparent px-4 text-sm disabled:opacity-60 dark:border-white/[0.1] dark:bg-white/[0.08] dark:[color-scheme:dark]';
@@ -56,6 +57,8 @@ export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   const passwordsMatch = password === confirmPassword;
@@ -138,6 +141,7 @@ export function SignupForm() {
       university_name: universityName.trim(),
       region,
       country,
+      captcha_token: captcha ?? undefined,
     });
 
     if (res.success && res.data) {
@@ -155,6 +159,7 @@ export function SignupForm() {
     } else {
       setError(res.error?.message ?? 'Could not create account. Please try again.');
       setIsLoading(false);
+      setCaptchaReset((n) => n + 1);
     }
   };
 
@@ -330,9 +335,11 @@ export function SignupForm() {
         </div>
       </div>
 
+      <HCaptcha onToken={setCaptcha} resetKey={captchaReset} />
+
       <Button
         type="submit"
-        disabled={isLoading || !requiredFieldsComplete || !passwordsMatch || !passwordStrong}
+        disabled={isLoading || !requiredFieldsComplete || !passwordsMatch || !passwordStrong || (!!HCAPTCHA_SITE_KEY && !captcha)}
         className="mt-2 h-12 rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/[0.22] hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
       >
         {isLoading ? (

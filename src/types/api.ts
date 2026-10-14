@@ -41,6 +41,8 @@ export interface SignupRequest {
   university_name: string;
   region: string;
   country: string;
+  /** hCaptcha token; forwarded to Supabase Auth, which verifies it. */
+  captcha_token?: string;
 }
 
 // ─── RAG/Chat (Learn mode) ────────────────────────────────────────────────────
@@ -191,6 +193,8 @@ export interface UpdateProfileRequest {
 export interface ChangePasswordRequest {
   current_password: string;
   new_password: string;
+  /** Re-checking the current password is a sign-in, so it needs a captcha too. */
+  captcha_token?: string;
 }
 
 export interface AvatarSelectRequest {

@@ -6,12 +6,15 @@ import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { HCaptcha, HCAPTCHA_SITE_KEY } from './HCaptcha';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,12 +24,13 @@ export function ForgotPasswordForm() {
     setError(null);
 
     const redirectTo = `${window.location.origin}/auth/reset-password`;
-    const res = await apiClient.forgotPassword(email.trim(), redirectTo);
+    const res = await apiClient.forgotPassword(email.trim(), redirectTo, captcha ?? undefined);
 
     if (res.success) {
       setSent(true);
     } else {
       setError(res.error?.message ?? 'Failed to send reset email. Please try again.');
+      setCaptchaReset((n) => n + 1);
     }
 
     setIsLoading(false);
@@ -81,9 +85,11 @@ export function ForgotPasswordForm() {
         />
       </div>
 
+      <HCaptcha onToken={setCaptcha} resetKey={captchaReset} />
+
       <Button
         type="submit"
-        disabled={isLoading || !email}
+        disabled={isLoading || !email || (!!HCAPTCHA_SITE_KEY && !captcha)}
         className="mt-2 h-12 rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/[0.22] hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
       >
         {isLoading ? (

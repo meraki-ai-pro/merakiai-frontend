@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { HCaptcha, HCAPTCHA_SITE_KEY } from './HCaptcha';
 
 export function LoginForm() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   // ── MFA step-up ──────────────────────────────────────────────────────────
   const [mfaStep, setMfaStep] = useState(false);
@@ -63,11 +66,13 @@ export function LoginForm() {
     setError(null);
 
     // Step 1 — authenticate against the backend
-    const res = await apiClient.login(email.trim(), password);
+    const res = await apiClient.login(email.trim(), password, captcha ?? undefined);
 
     if (!res.success || !res.data) {
       setError(res.error?.message ?? 'Login failed. Please check your credentials.');
       setIsLoading(false);
+      // hCaptcha tokens are single-use; the next attempt needs a fresh one.
+      setCaptchaReset((n) => n + 1);
       return;
     }
 
@@ -227,9 +232,11 @@ export function LoginForm() {
         </div>
       </div>
 
+      <HCaptcha onToken={setCaptcha} resetKey={captchaReset} />
+
       <Button
         type="submit"
-        disabled={isLoading || !email || !password}
+        disabled={isLoading || !email || !password || (!!HCAPTCHA_SITE_KEY && !captcha)}
         className="mt-2 h-12 rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/[0.22] hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
       >
         {isLoading ? (

@@ -4,8 +4,10 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
+  // hCaptcha (auth forms) loads its script and styles from its own domains;
+  // its challenge iframe and API calls are already covered by https: below.
+  "script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com",
+  "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https: wss:",
