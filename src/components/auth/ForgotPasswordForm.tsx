@@ -6,7 +6,7 @@ import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
-import { HCaptcha, HCAPTCHA_SITE_KEY } from './HCaptcha';
+import { Turnstile, TURNSTILE_SITE_KEY } from './Turnstile';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -85,11 +85,11 @@ export function ForgotPasswordForm() {
         />
       </div>
 
-      <HCaptcha onToken={setCaptcha} resetKey={captchaReset} />
+      <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
 
       <Button
         type="submit"
-        disabled={isLoading || !email || (!!HCAPTCHA_SITE_KEY && !captcha)}
+        disabled={isLoading || !email || (!!TURNSTILE_SITE_KEY && !captcha)}
         className="mt-2 h-12 rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/[0.22] hover:bg-blue-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
       >
         {isLoading ? (

@@ -25,7 +25,7 @@ import toast from 'react-hot-toast';
 import { KeyRound, Loader2, UserRound } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { useUserStore } from '@/store/userStore';
-import { HCaptcha, HCAPTCHA_SITE_KEY } from '@/components/auth/HCaptcha';
+import { Turnstile, TURNSTILE_SITE_KEY } from '@/components/auth/Turnstile';
 import type { UpdateProfileRequest, UserProfileResponse } from '@/types';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -209,7 +209,7 @@ function PasswordSection({ forcePasswordChange }: { forcePasswordChange: boolean
   const tooShort = next.length > 0 && next.length < MIN_PASSWORD_LENGTH;
   const mismatch = confirm.length > 0 && next !== confirm;
   const ready =
-    current && next.length >= MIN_PASSWORD_LENGTH && next === confirm && (!HCAPTCHA_SITE_KEY || !!captcha);
+    current && next.length >= MIN_PASSWORD_LENGTH && next === confirm && (!TURNSTILE_SITE_KEY || !!captcha);
 
   const submit = async () => {
     if (!ready) return;
@@ -296,9 +296,9 @@ function PasswordSection({ forcePasswordChange }: { forcePasswordChange: boolean
         </p>
       )}
 
-      {HCAPTCHA_SITE_KEY && (
+      {TURNSTILE_SITE_KEY && (
         <div className="mt-4 flex justify-start">
-          <HCaptcha onToken={setCaptcha} resetKey={captchaReset} />
+          <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
         </div>
       )}
 

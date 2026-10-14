@@ -41,7 +41,7 @@ export interface SignupRequest {
   university_name: string;
   region: string;
   country: string;
-  /** hCaptcha token; forwarded to Supabase Auth, which verifies it. */
+  /** Turnstile captcha token; forwarded to Supabase Auth, which verifies it. */
   captcha_token?: string;
 }
 
