@@ -158,5 +158,5 @@ export interface Accommodation {
   student_id: string;
   name: string | null;
   email: string | null;
-  extra_time_percent: number;
+  extra_time_minutes: number;
 }

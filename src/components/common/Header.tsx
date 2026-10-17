@@ -13,6 +13,7 @@ import { useChat } from '@/hooks/use-chat';
 import { ModeSelector } from '@/components/mode/ModeSelector';
 import { CourseSwitcher } from '@/components/course/CourseSwitcher';
 import { FeedbackButton } from '@/components/feedback/FeedbackDialog';
+import { SessionPdfButton } from '@/components/chat/SessionPdf';
 import { AvatarToggle } from '@/components/common/AvatarSelector';
 import {
   Tooltip,
@@ -255,6 +256,8 @@ export function Header() {
                 {currentSession.messageCount || 0} msgs
               </span>
             )}
+
+            {currentSession && <SessionPdfButton />}
 
             <FeedbackButton />
 

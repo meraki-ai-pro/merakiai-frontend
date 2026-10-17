@@ -685,7 +685,7 @@ function ExamsPanel({
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500 dark:border-white/10">
                   <th className="py-2 pr-4">Exam</th>
-                  <th className="py-2 pr-4">Sat</th>
+                  <th className="py-2 pr-4" title="Students who have taken this exam">Taken</th>
                   <th className="py-2 pr-4">Average</th>
                   <th className="py-2 pr-4">Median</th>
                   <th className="py-2 pr-4">High / low</th>

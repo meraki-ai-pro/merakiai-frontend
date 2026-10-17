@@ -451,6 +451,37 @@ class ApiClient {
     );
   }
 
+  /** A lecture video: `filename` to upload one (returns a signed upload token), or `link`. */
+  addVideo(
+    courseId: string,
+    body: {
+      filename?: string;
+      link?: string;
+      target_modes: string[];
+      difficulty?: string;
+      topic?: string;
+    }
+  ) {
+    return this.request<{ document_id: string; status: string; bucket?: string; path?: string; token?: string }>(
+      `/lecturer/courses/${courseId}/knowledge/videos`,
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+  }
+
+  videoUploaded(courseId: string, documentId: string) {
+    return this.request<{ document_id: string; status: string }>(
+      `/lecturer/courses/${courseId}/knowledge/${documentId}/video-uploaded`,
+      { method: 'POST' }
+    );
+  }
+
+  /** A lecture video cited as a source, opened at `seconds`. */
+  watchVideoSource(courseId: string, documentId: string, seconds: number) {
+    return this.request<{ url: string }>(
+      `/render/watch/${courseId}/${documentId}?t=${Math.max(0, Math.floor(seconds))}`
+    );
+  }
+
   updateKnowledge(courseId: string, documentId: string, body: KnowledgePatch) {
     return this.request<{ document_id: string }>(
       `/lecturer/courses/${courseId}/knowledge/${documentId}`,
@@ -811,6 +842,7 @@ class ApiClient {
     title: string;
     instructions?: string | null;
     time_limit_minutes?: number | null;
+    target_student_ids?: string[];
     opens_at?: string | null;
     closes_at?: string | null;
   }) {
@@ -825,6 +857,8 @@ class ApiClient {
     payload: Partial<Pick<Assessment, 'title' | 'instructions' | 'time_limit_minutes' | 'opens_at' | 'closes_at'>> & {
       untimed?: boolean;
       clear_window?: boolean;
+      /** [] = the whole course again. */
+      target_student_ids?: string[];
     }
   ) {
     return this.request<{ status: string; assessment: Assessment }>(`/assessments/${assessmentId}`, {
@@ -931,16 +965,16 @@ class ApiClient {
     );
   }
 
-  setExtraTime(courseId: string, studentId: string, extraTimePercent: number) {
+  setExtraTime(courseId: string, studentId: string, extraTimeMinutes: number) {
     return this.request<{ status: string }>(
       `/assessments/course/${courseId}/accommodations/${studentId}`,
-      { method: 'PUT', body: JSON.stringify({ extra_time_percent: extraTimePercent }) }
+      { method: 'PUT', body: JSON.stringify({ extra_time_minutes: extraTimeMinutes }) }
     );
   }
 
   /** GET /assessments/available/{course} — the exams this student may sit. */
   listAvailableAssessments(courseId: string) {
-    return this.request<{ assessments: AvailableAssessment[]; extra_time_percent: number }>(
+    return this.request<{ assessments: AvailableAssessment[]; extra_time_minutes: number }>(
       `/assessments/available/${courseId}`
     );
   }

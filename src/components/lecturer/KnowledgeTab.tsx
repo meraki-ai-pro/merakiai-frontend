@@ -10,8 +10,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, FlaskConical, Trash2, Upload } from 'lucide-react';
+import { Eye, EyeOff, FlaskConical, Link2, Trash2, Upload } from 'lucide-react';
 import { apiClient } from '@/services/api';
+import { supabase } from '@/lib/supabase';
 import { DIFFICULTY_VALUES, MODE_LABELS, QUESTION_FORMATS } from '@/lib/constants';
 import type {
   DifficultyValue,
@@ -48,6 +49,8 @@ const DIFFICULTY_HELP: Record<'review' | 'application', string> = {
   application: 'How demanding the scenarios generated from this file should be.',
 };
 
+const VIDEO_EXT = /\.(mp4|webm|mov)$/i;
+
 export function KnowledgeTab({ courseId }: { courseId: string }) {
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,11 +86,52 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
     return () => clearInterval(t);
   }, [files, load]);
 
+  // Lecture videos skip the API: the browser uploads straight to storage with a
+  // signed token (no 50 MB request cap), then the server transcribes them.
+  const addVideo = async (file: File | null, link?: string) => {
+    setUploading(true);
+    const res = await apiClient.addVideo(courseId, {
+      ...(file ? { filename: file.name } : { link }),
+      target_modes: modes,
+      ...(showsDifficulty ? { difficulty } : {}),
+      ...(topic.trim() ? { topic: topic.trim() } : {}),
+    });
+    if (!res.success || !res.data) {
+      setUploading(false);
+      return void toast.error(res.error?.message ?? 'Could not add the video');
+    }
+    if (file && res.data.bucket && res.data.path && res.data.token) {
+      const put = await supabase.storage
+        .from(res.data.bucket)
+        .uploadToSignedUrl(res.data.path, res.data.token, file, { contentType: file.type || undefined });
+      const done = put.error ? null : await apiClient.videoUploaded(courseId, res.data.document_id);
+      if (!done?.success) {
+        // Otherwise the row sits in "processing" for ever, waiting for a file.
+        await apiClient.deleteKnowledge(courseId, res.data.document_id);
+        setUploading(false);
+        void load();
+        return void toast.error(put.error?.message ?? done?.error?.message ?? 'Video upload failed');
+      }
+    }
+    setUploading(false);
+    toast.success('Video added as a draft — it is being transcribed; publish it when ready');
+    void load();
+  };
+
+  const addVideoLink = () => {
+    if (modes.length === 0) return void toast.error('Choose at least one mode this video should serve');
+    const link = window.prompt('Link to the lecture video (YouTube or a direct video link)')?.trim();
+    if (!link) return;
+    if (!/^https:\/\//.test(link)) return void toast.error('The link must start with https://');
+    void addVideo(null, link);
+  };
+
   const upload = async (file: File) => {
     if (modes.length === 0) {
       toast.error('Choose at least one mode this file should serve');
       return;
     }
+    if (VIDEO_EXT.test(file.name)) return void addVideo(file);
     setUploading(true);
     const res = await apiClient.uploadKnowledge(courseId, file, {
       targetModes: modes,
@@ -148,8 +192,10 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
         <h2 className="font-medium text-slate-900 dark:text-white">Upload teaching material</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          PDF, Word or PowerPoint. Speaker notes in a deck are ingested too. Uploads
-          start as drafts — students cannot see them until you publish.
+          PDF, Word, PowerPoint or a lecture video (MP4, WebM, MOV, or a YouTube link).
+          Speaker notes in a deck are ingested too; a video&rsquo;s speech is transcribed, and
+          students can open it at the moment an answer cites. Uploads start as drafts —
+          students cannot see them until you publish.
         </p>
 
         <fieldset className="mt-4">
@@ -275,7 +321,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.docx,.doc,.pptx"
+          accept=".pdf,.docx,.doc,.pptx,.mp4,.webm,.mov"
           hidden
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -289,7 +335,16 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
           disabled={uploading}
           className="mt-4 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
         >
-          <Upload className="h-4 w-4" /> {uploading ? 'Uploading…' : 'Choose file'}
+          <Upload className="h-4 w-4" /> {uploading ? 'Uploading… (videos can take a few minutes)' : 'Choose file'}
+        </button>
+        <button
+          type="button"
+          onClick={addVideoLink}
+          disabled={uploading}
+          data-testid="add-video-link"
+          className="mt-2 flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+        >
+          <Link2 className="h-4 w-4" /> Add a video link
         </button>
       </section>
 

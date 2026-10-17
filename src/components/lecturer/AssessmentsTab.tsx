@@ -109,7 +109,7 @@ export function AssessmentsTab({ courseId }: { courseId: string }) {
         ) : (
           <ul className="space-y-3">
             {exams.map((a) => (
-              <ExamRow key={a.id} exam={a} expanded={openId === a.id} onToggle={() => setOpenId(openId === a.id ? null : a.id)} onChanged={load} />
+              <ExamRow key={a.id} courseId={courseId} exam={a} expanded={openId === a.id} onToggle={() => setOpenId(openId === a.id ? null : a.id)} onChanged={load} />
             ))}
           </ul>
         )}
@@ -130,6 +130,7 @@ function CreateExamForm({ courseId, onCreated }: { courseId: string; onCreated: 
   const [minutes, setMinutes] = useState('');
   const [opensAt, setOpensAt] = useState('');
   const [closesAt, setClosesAt] = useState('');
+  const [targets, setTargets] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
@@ -141,6 +142,7 @@ function CreateExamForm({ courseId, onCreated }: { courseId: string; onCreated: 
       title: title.trim(),
       instructions: instructions.trim() || null,
       time_limit_minutes: minutes ? Number(minutes) : null,
+      target_student_ids: targets,
       opens_at: fromLocalInput(opensAt),
       closes_at: fromLocalInput(closesAt),
     });
@@ -185,6 +187,7 @@ function CreateExamForm({ courseId, onCreated }: { courseId: string; onCreated: 
         <span className="text-slate-600 dark:text-slate-300">Instructions (optional)</span>
         <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={2} placeholder="Answer ALL questions. Calculators are permitted." className={input} />
       </label>
+      <StudentPicker courseId={courseId} value={targets} onChange={setTargets} />
       <div>
         <button type="button" onClick={() => void submit()} disabled={busy || !title.trim()} data-testid="create-assessment-submit" className={primary}>
           {busy && <Loader2 className="h-4 w-4 animate-spin" />} Create exam
@@ -196,7 +199,7 @@ function CreateExamForm({ courseId, onCreated }: { courseId: string; onCreated: 
 
 // ── One paper ───────────────────────────────────────────────────────────────
 
-function ExamRow({ exam, expanded, onToggle, onChanged }: { exam: Assessment; expanded: boolean; onToggle: () => void; onChanged: () => void }) {
+function ExamRow({ courseId, exam, expanded, onToggle, onChanged }: { courseId: string; exam: Assessment; expanded: boolean; onToggle: () => void; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
 
   const publish = async () => {
@@ -237,7 +240,7 @@ function ExamRow({ exam, expanded, onToggle, onChanged }: { exam: Assessment; ex
 
       {expanded && (
         <div className="space-y-6 border-t border-slate-200 p-4 dark:border-white/10">
-          <SettingsPanel exam={exam} onSaved={onChanged} />
+          <SettingsPanel courseId={courseId} exam={exam} onSaved={onChanged} />
           {exam.is_published ? (
             <>
               <QuestionList examId={exam.id} editable={false} refreshKey={0} onChanged={onChanged} />
@@ -252,7 +255,8 @@ function ExamRow({ exam, expanded, onToggle, onChanged }: { exam: Assessment; ex
   );
 }
 
-function SettingsPanel({ exam, onSaved }: { exam: Assessment; onSaved: () => void }) {
+function SettingsPanel({ courseId, exam, onSaved }: { courseId: string; exam: Assessment; onSaved: () => void }) {
+  const [targets, setTargets] = useState<string[]>(exam.target_student_ids ?? []);
   const [minutes, setMinutes] = useState(exam.time_limit_minutes ? String(exam.time_limit_minutes) : '');
   const [opensAt, setOpensAt] = useState(toLocalInput(exam.opens_at));
   const [closesAt, setClosesAt] = useState(toLocalInput(exam.closes_at));
@@ -265,16 +269,17 @@ function SettingsPanel({ exam, onSaved }: { exam: Assessment; onSaved: () => voi
       ...(opensAt || closesAt
         ? { opens_at: fromLocalInput(opensAt), closes_at: fromLocalInput(closesAt) }
         : { clear_window: true }),
+      target_student_ids: targets,
     });
     setBusy(false);
     if (!res.success) return void toast.error(res.error?.message ?? 'Could not save');
-    toast.success('Timing saved');
+    toast.success('Settings saved');
     onSaved();
   };
 
   return (
     <div>
-      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-medium"><Clock className="h-4 w-4" /> Timing</h3>
+      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-medium"><Clock className="h-4 w-4" /> Timing and students</h3>
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-sm">
           <span className="text-slate-600 dark:text-slate-300">Minutes</span>
@@ -289,10 +294,53 @@ function SettingsPanel({ exam, onSaved }: { exam: Assessment; onSaved: () => voi
           <input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className={input} />
         </label>
         <button type="button" onClick={() => void save()} disabled={busy} className={quiet}>
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Save timing
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Save
         </button>
       </div>
+      <div className="mt-3">
+        <StudentPicker courseId={courseId} value={targets} onChange={setTargets} />
+      </div>
     </div>
+  );
+}
+
+/** Everyone on the course (empty list), or only the students ticked here. */
+function StudentPicker({ courseId, value, onChange }: { courseId: string; value: string[]; onChange: (ids: string[]) => void }) {
+  const [chosen, setChosen] = useState(value.length > 0);
+  const [students, setStudents] = useState<Accommodation[] | null>(null);
+
+  useEffect(() => {
+    if (!chosen || students) return;
+    void apiClient.listAccommodations(courseId).then((res) => setStudents(res?.data?.students ?? []));
+  }, [chosen, students, courseId]);
+
+  const pick = (everyone: boolean) => {
+    setChosen(!everyone);
+    if (everyone) onChange([]);
+  };
+  const toggle = (id: string) => onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id]);
+
+  return (
+    <fieldset className="text-sm">
+      <legend className="text-slate-600 dark:text-slate-300">Who sits this exam</legend>
+      <div className="mt-1 flex flex-wrap gap-4">
+        <label className="flex items-center gap-1.5"><input type="radio" checked={!chosen} onChange={() => pick(true)} /> Everyone on the course</label>
+        <label className="flex items-center gap-1.5"><input type="radio" checked={chosen} onChange={() => pick(false)} data-testid="exam-chosen-students" /> Chosen students</label>
+      </div>
+      {chosen && (
+        students === null ? <p className="mt-2 text-slate-500">Loading students…</p> : students.length === 0 ? <p className="mt-2 text-slate-500">No enrolled students.</p> : (
+          <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-white/10">
+            {students.map((s) => (
+              <label key={s.student_id} className="flex items-center gap-2 py-1">
+                <input type="checkbox" checked={value.includes(s.student_id)} onChange={() => toggle(s.student_id)} />
+                <span className="truncate">{s.name ?? s.email}</span>
+              </label>
+            ))}
+            <p className="mt-1 text-xs text-slate-500">{value.length ? `${value.length} chosen — only they will see this exam.` : 'Tick at least one student, or choose everyone.'}</p>
+          </div>
+        )
+      )}
+    </fieldset>
   );
 }
 
@@ -683,11 +731,12 @@ function AccommodationsPanel({ courseId }: { courseId: string }) {
     });
   }, [open, students, courseId]);
 
-  const set = async (s: Accommodation, pct: number) => {
-    const res = await apiClient.setExtraTime(courseId, s.student_id, pct);
+  const set = async (s: Accommodation, minutes: number) => {
+    if (!Number.isInteger(minutes) || minutes < 0 || minutes > 600 || minutes === s.extra_time_minutes) return;
+    const res = await apiClient.setExtraTime(courseId, s.student_id, minutes);
     if (!res.success) return void toast.error(res.error?.message ?? 'Could not save');
-    setStudents((prev) => prev?.map((x) => (x.student_id === s.student_id ? { ...x, extra_time_percent: pct } : x)) ?? null);
-    toast.success(`${s.name ?? s.email}: ${pct ? `+${pct}% time` : 'standard time'}`);
+    setStudents((prev) => prev?.map((x) => (x.student_id === s.student_id ? { ...x, extra_time_minutes: minutes } : x)) ?? null);
+    toast.success(`${s.name ?? s.email}: ${minutes ? `+${minutes} min` : 'standard time'}`);
   };
 
   return (
@@ -695,7 +744,7 @@ function AccommodationsPanel({ courseId }: { courseId: string }) {
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center justify-between text-left">
         <span>
           <span className="flex items-center gap-2 font-medium"><Users className="h-4 w-4" /> Extra time</span>
-          <span className="text-sm text-slate-500">Accessibility arrangements: extra time applies to every timed exam on this course.</span>
+          <span className="text-sm text-slate-500">Accessibility arrangements: these extra minutes are added to every timed exam on this course.</span>
         </span>
         <span className="text-xs text-blue-600 dark:text-cyan-300">{open ? 'Hide' : 'Manage'}</span>
       </button>
@@ -705,9 +754,17 @@ function AccommodationsPanel({ courseId }: { courseId: string }) {
             {students.map((s) => (
               <li key={s.student_id} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span className="min-w-0 truncate">{s.name ?? s.email}</span>
-                <select value={s.extra_time_percent} onChange={(e) => void set(s, Number(e.target.value))} aria-label={`Extra time for ${s.name ?? s.email}`} className="rounded-lg border border-slate-300 px-2 py-1 dark:border-white/15 dark:bg-slate-900">
-                  {[0, 25, 50, 100].map((p) => <option key={p} value={p}>{p ? `+${p}%` : 'Standard'}</option>)}
-                </select>
+                <label className="flex items-center gap-1.5 text-slate-500">
+                  +
+                  <input
+                    type="number" min={0} max={600} step={5} defaultValue={s.extra_time_minutes}
+                    onBlur={(e) => void set(s, Number(e.target.value))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                    aria-label={`Extra minutes for ${s.name ?? s.email}`}
+                    className="w-20 rounded-lg border border-slate-300 px-2 py-1 text-slate-900 dark:border-white/15 dark:bg-slate-900 dark:text-white"
+                  />
+                  min
+                </label>
               </li>
             ))}
           </ul>

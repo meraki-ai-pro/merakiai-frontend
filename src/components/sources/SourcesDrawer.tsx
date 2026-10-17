@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { FileText, Sigma, X } from 'lucide-react';
+import { FileText, PlayCircle, Sigma, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { apiClient } from '@/services/api';
 import { useChatStore } from '@/store/chatStore';
 import { MarkdownRenderer } from '@/components/common/MarkdownRenderer';
 import type { RetrievedSource } from '@/types/api';
@@ -120,6 +122,8 @@ export function SourcesDrawer() {
                   <MarkdownRenderer content={source.text} />
                 </div>
 
+                <WatchFrom source={source} />
+
                 {source.heading_path.length > 0 && (
                   <p className="mt-2 truncate text-[11px] text-slate-400 dark:text-slate-500">
                     {source.heading_path.join(' › ')}
@@ -138,5 +142,38 @@ export function SourcesDrawer() {
         </footer>
       </aside>
     </div>
+  );
+}
+
+/**
+ * A passage from a lecture video carries its time span as its section title
+ * ("Video 12:00 – 14:00", set at ingestion), so the student can open the video
+ * at that moment. Anything else renders nothing.
+ */
+function WatchFrom({ source }: { source: RetrievedSource }) {
+  const courseId = useChatStore((s) => s.sessions.find((x) => x.id === s.currentSessionId)?.courseId);
+  const m = /^Video ((?:\d+:)?\d+:\d{2})/.exec(source.section_title ?? '');
+  if (!m || !courseId || !source.document_id) return null;
+  const seconds = m[1].split(':').reduce((total, part) => total * 60 + Number(part), 0);
+
+  const open = async () => {
+    // Opened before the await so the browser treats it as the click's own popup.
+    const tab = window.open('', '_blank');
+    const res = await apiClient.watchVideoSource(courseId, source.document_id!, seconds);
+    if (!res.success || !res.data) {
+      tab?.close();
+      return void toast.error(res.error?.message ?? 'Could not open the video');
+    }
+    if (tab) tab.location.href = res.data.url;
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => void open()}
+      className="mt-2 flex items-center gap-1.5 rounded-lg border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-cyan-300/30 dark:text-cyan-200 dark:hover:bg-cyan-300/10"
+    >
+      <PlayCircle className="h-3.5 w-3.5" aria-hidden /> Watch from {m[1]}
+    </button>
   );
 }

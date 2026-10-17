@@ -111,7 +111,7 @@ export function AssessmentRunner() {
     setLoading(true);
     const res = await apiClient.listAvailableAssessments(selectedCourseId);
     setAvailable(res?.data?.assessments ?? []);
-    setExtraTime(res?.data?.extra_time_percent ?? 0);
+    setExtraTime(res?.data?.extra_time_minutes ?? 0);
     setLoading(false);
   }, [selectedCourseId]);
 
@@ -278,7 +278,7 @@ function StartScreen({
       </dl>
       {extraTime > 0 && exam.time_limit_minutes && (
         <p className="rounded-lg bg-blue-50 p-3 text-blue-900 dark:bg-cyan-300/10 dark:text-cyan-100">
-          Your extra-time arrangement ({extraTime}%) is included: {exam.time_limit_minutes} minutes becomes{' '}
+          Your extra-time arrangement (+{extraTime} min) is included: {exam.time_limit_minutes} minutes becomes{' '}
           {formatMinutes(exam.your_time_minutes ?? 0)}.
         </p>
       )}
@@ -420,23 +420,27 @@ function ExamSitting({
     onSubmitted(paper.assessment.title);
   }, [answers, onSubmitted, paper.assessment, questions, recordTime, saveKey]);
 
+  // Clock skew against the server, measured ONCE when the paper arrives. Taking
+  // it inside the countdown effect re-measured it every time `submit` changed
+  // (i.e. on every answer), against the same old server_now — which pushed the
+  // countdown back to near the full time on each new question.
+  const warned = useRef({ five: false, one: false });
+  const [skew] = useState(() => new Date(paper.server_now).getTime() - Date.now());
+
   // Countdown against the server's clock.
   useEffect(() => {
     if (!paper.deadline) return;
-    const skew = new Date(paper.server_now).getTime() - Date.now();
     const deadline = new Date(paper.deadline).getTime();
-    let warned5 = false;
-    let warned1 = false;
     const tick = () => {
       const left = deadline - (Date.now() + skew);
       setRemaining(left);
-      if (!warned5 && left <= 5 * 60_000 && left > 60_000) {
-        warned5 = true;
+      if (!warned.current.five && left <= 5 * 60_000 && left > 60_000) {
+        warned.current.five = true;
         setAnnounce('Five minutes remaining.');
         toast('5 minutes left', { icon: '⏳' });
       }
-      if (!warned1 && left <= 60_000 && left > 0) {
-        warned1 = true;
+      if (!warned.current.one && left <= 60_000 && left > 0) {
+        warned.current.one = true;
         setAnnounce('One minute remaining.');
         toast('1 minute left', { icon: '⏳' });
       }
@@ -445,7 +449,7 @@ function ExamSitting({
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [paper.deadline, paper.server_now, submit]);
+  }, [paper.deadline, skew, submit]);
 
   const go = (next: number) => {
     recordTime();

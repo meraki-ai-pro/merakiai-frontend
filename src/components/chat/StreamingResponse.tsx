@@ -39,6 +39,10 @@ export function StreamingResponse() {
   const sources = useChatStore((s) => s.streamingSources);
   const openSourceDrawer = useChatStore((s) => s.openSourceDrawer);
   const courseId = useActiveCourseId();
+  // A Learn turn in video format: the student sees the video, not the text it
+  // is made from (that stays behind "Show transcript" on the finished answer).
+  // isGeneratingVideo is only ever set while such a turn's video is pending.
+  const videoOnly = useChatStore((s) => s.isGeneratingVideo);
 
   const openSources = useCallback(
     (citation?: number) => openSourceDrawer(sources, citation),
@@ -46,7 +50,8 @@ export function StreamingResponse() {
   );
 
   const shown = useSmoothText(streamingContent, true);
-  const caughtUp = shown.length >= streamingContent.length;
+  // Nothing is revealed in a video turn, so there is nothing to wait for.
+  const caughtUp = videoOnly || shown.length >= streamingContent.length;
 
   useEffect(() => {
     if (pendingFinals.length > 0 && caughtUp) commitPendingFinals();
@@ -65,7 +70,11 @@ export function StreamingResponse() {
       <div className="flex min-w-0 max-w-2xl flex-1 flex-col gap-2">
         <AssistantProgress steps={streamingSteps} isStreaming />
 
-        {shown && (
+        {videoOnly ? (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/80 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-cyan-300/[0.18] dark:bg-cyan-300/[0.06] dark:text-slate-300">
+            Preparing your video…
+          </div>
+        ) : shown && (
           // A board answer builds itself slide by slide as the text arrives;
           // anything else stays a chat bubble.
           hasBoard(shown) ? (
@@ -78,7 +87,7 @@ export function StreamingResponse() {
           )
         )}
 
-        {sources.length > 0 && shown && (
+        {sources.length > 0 && shown && !videoOnly && (
           <SourcesBar sources={sources} content={shown} />
         )}
       </div>
