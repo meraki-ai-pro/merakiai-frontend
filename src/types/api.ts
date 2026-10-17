@@ -45,13 +45,6 @@ export interface SignupRequest {
   captcha_token?: string;
 }
 
-// ─── RAG/Chat (Learn mode) ────────────────────────────────────────────────────
-export interface RagTurnRequest {
-  session_id: string;
-  mode: 'learn';
-  message: string;
-}
-
 export interface RagTurnResponse {
   mode: 'learn';
   response: string;
@@ -60,10 +53,6 @@ export interface RagTurnResponse {
   subtitles_url?: string | null;
   audio_url?: string | null;
   did_payload?: unknown;
-}
-
-export interface VoiceTurnResponse extends RagTurnResponse {
-  transcript: string;
 }
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
@@ -133,12 +122,6 @@ export interface VideoToggleRequest {
 export interface VideoToggleResponse {
   session_id: string;
   prefers_video: boolean;
-}
-
-export interface EndSessionResponse {
-  session_id: string;
-  status: 'ended';
-  ended_at: string;
 }
 
 export interface DeleteSessionResponse {
@@ -241,19 +224,6 @@ export interface FeedbackResponse {
 //
 // NOTE: The backend uses 'application' for what the UI labels "Assessment".
 //       All API types use 'application'; the UI layer translates for display.
-
-export interface ModeSessionStartRequest {
-  session_id: string;
-  // 'application' = what UI calls "Assessment"
-  mode: 'application' | 'review';
-  session_type: string;
-  difficulty?: 'Basic' | 'Intermediate' | 'Advanced';
-  total_items?: number | null;
-}
-
-export interface ModeSessionTurnRequest {
-  message: string;
-}
 
 // Delivery block returned by backend for video/audio
 export interface DeliveryBlock {
@@ -426,10 +396,7 @@ export interface WsModeSessionStartPush {
   session_type: string;
   difficulty: string;
   prompt: string;
-  response_format: 'text' | 'video';
-  video_url?: string | null;
-  audio_url?: string | null;
-  subtitles_url?: string | null;
+  response_format: 'text';
 }
 
 export interface WsModeSessionEvaluationPush {
@@ -439,9 +406,6 @@ export interface WsModeSessionEvaluationPush {
   next_prompt: string;
   next_difficulty?: string;
   response_format: 'text';
-  // application mode can include delivery blocks for video
-  delivery?: DeliveryBlock;
-  next_delivery?: DeliveryBlock;
 }
 
 export interface WsModeSessionCompletedPush {
@@ -451,7 +415,6 @@ export interface WsModeSessionCompletedPush {
   key_learning_points?: string[];
   summary?: string;
   response_format: 'text';
-  key_delivery?: DeliveryBlock;
 }
 
 export type WsIncoming =
@@ -488,7 +451,3 @@ export interface ApiReviewEvaluation {
   unsupported_claims?: string[];
   correct_answer?: string;
 }
-
-// Kept for backward compat with chat.ts PracticeEvaluation references
-export type ModeSessionTurnResponse = never; // No longer used — results arrive via WebSocket
-export type ModeSessionStartResponse = WsProcessingAck; // start returns ack; prompt arrives via WS

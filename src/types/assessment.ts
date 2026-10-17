@@ -160,11 +160,3 @@ export interface Accommodation {
   email: string | null;
   extra_time_percent: number;
 }
-
-export interface MasteryTopic {
-  topic: string;
-  attempts?: number;
-  correct?: number;
-  mastery?: number;
-  [key: string]: unknown;
-}

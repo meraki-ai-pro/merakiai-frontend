@@ -743,10 +743,6 @@ class ApiClient {
     return this.request<TaskStatusResponse>(`/api/backend${API_ENDPOINTS.RAG_STATUS(taskId)}`);
   }
 
-  getModeSessionTaskStatus(taskId: string) {
-    return this.request<TaskStatusResponse>(`/api/backend${API_ENDPOINTS.MODE_SESSIONS_STATUS(taskId)}`);
-  }
-
   // ─── Voice (REST, result arrives via WebSocket) ───────────────────────────
 
   async transcribeVoice(audioBlob: Blob) {

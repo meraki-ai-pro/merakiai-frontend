@@ -142,12 +142,7 @@ function unwrapTaskResult(status: TaskStatusResponse): Record<string, unknown> |
 function getDeliveryFromRecord(record: Record<string, unknown> | null): DeliveryBlock | null {
   if (!record) return null;
 
-  const nested =
-    asRecord(record.delivery) ??
-    asRecord(record.key_delivery) ??
-    asRecord(record.next_delivery);
-
-  const source = nested ?? record;
+  const source = asRecord(record.delivery) ?? record;
   const responseFormat = source.response_format;
   const videoUrl =
     source.video_url ??
@@ -196,13 +191,11 @@ export function useChat() {
     clearMessages,
     setIsLoadingMessage,
     setIsGeneratingVideo,
-    setVideoResponse,
     setError,
     setIsCreatingSession,
     setActiveModeSession,
     setIsStartingModeSession,
     setIsSwitchingMode,
-    updateActiveModeSession,
     updateSession,
   } = store;
 
@@ -224,15 +217,14 @@ export function useChat() {
   // switching away and back does not re-request it.
   const hydratedSessionsRef = useRef<Set<string>>(new Set());
 
-  const hasActivePollingTask = useCallback((kind: "learn" | "mode") => {
-    for (const key of pollingTasksRef.current) {
-      if (key.startsWith(`${kind}:`)) return true;
-    }
-    return false;
-  }, []);
+  // Only Learn turns can carry video; mode sessions (Review and the guided
+  // scenario) are always text, so only Learn tasks are ever polled.
+  const hasActivePollingTask = useCallback(
+    () => pollingTasksRef.current.size > 0,
+    [],
+  );
 
-  const shouldPreferVideo = useCallback((sessionId: string, mode: TutorMode) => {
-    if (mode === "review") return false;
+  const shouldPreferVideo = useCallback((sessionId: string) => {
     const session = useChatStore
       .getState()
       .sessions.find((item) => item.id === sessionId);
@@ -277,14 +269,11 @@ export function useChat() {
     [],
   );
 
-  const clearPendingVideoMessages = useCallback((kind: "learn" | "mode") => {
+  const clearPendingVideoMessages = useCallback(() => {
     const state = useChatStore.getState();
     state.setMessages(
       state.messages.map((message) =>
-        message.pendingVideo &&
-        (kind === "learn"
-          ? message.mode === "learn"
-          : message.mode === "application")
+        message.pendingVideo && message.mode === "learn"
           ? { ...message, pendingVideo: false }
           : message,
       ),
@@ -292,106 +281,24 @@ export function useChat() {
   }, []);
 
   const applyTaskResult = useCallback(
-    async (kind: "learn" | "mode", result: Record<string, unknown>) => {
-      if (kind === "learn") {
-        const delivery = getDeliveryFromRecord(result);
-        if (!delivery?.video_url) return;
-        const response = result.response;
-        await applyVideoDeliveryToMessage(
-          (message) =>
-            message.role === "assistant" &&
-            message.mode === "learn" &&
-            (typeof response !== "string" || message.content === response),
-          delivery,
-        );
-        return;
-      }
-
-      const prompt = result.prompt;
-      const nextPrompt = result.next_prompt;
-      const summary = result.summary;
-      const evaluation = asRecord(result.evaluation);
-      const feedback = evaluation?.feedback;
-      const promptDelivery = getDeliveryFromRecord(result);
-      const evaluationDelivery = getDeliveryFromRecord(asRecord(result.delivery));
-      const nextDelivery = getDeliveryFromRecord(asRecord(result.next_delivery));
-      const keyDelivery = getDeliveryFromRecord(asRecord(result.key_delivery));
-
-      if (typeof prompt === "string" && promptDelivery?.video_url) {
-        await applyVideoDeliveryToMessage(
-          (message) =>
-            message.role === "assistant" &&
-            message.mode === "application" &&
-            message.messageType === "prompt" &&
-            message.content === prompt,
-          promptDelivery,
-        );
-      }
-
-      if (typeof feedback === "string" && evaluationDelivery?.video_url) {
-        await applyVideoDeliveryToMessage(
-          (message) =>
-            message.role === "assistant" &&
-            message.mode === "application" &&
-            message.messageType === "evaluation" &&
-            message.content === feedback,
-          evaluationDelivery,
-        );
-      }
-
-      if (typeof nextPrompt === "string" && nextDelivery?.video_url) {
-        await applyVideoDeliveryToMessage(
-          (message) =>
-            message.role === "assistant" &&
-            message.mode === "application" &&
-            message.messageType === "prompt" &&
-            message.content === nextPrompt,
-          nextDelivery,
-        );
-      }
-
-      if (typeof summary === "string" && keyDelivery?.video_url) {
-        await applyVideoDeliveryToMessage(
-          (message) =>
-            message.role === "assistant" &&
-            message.mode === "application" &&
-            message.messageType === "completed" &&
-            message.content === summary,
-          keyDelivery,
-        );
-      }
-
-      if (
-        !promptDelivery?.video_url &&
-        !evaluationDelivery?.video_url &&
-        !nextDelivery?.video_url &&
-        !keyDelivery?.video_url
-      ) return;
-
-      await applyVideoDeliveryToMessage((message) => {
-        if (message.role !== "assistant") return false;
-        if (message.mode !== "application") return false;
-        if (typeof prompt === "string") {
-          return message.messageType === "prompt" && message.content === prompt;
-        }
-        if (typeof nextPrompt === "string") {
-          return message.messageType === "prompt" && message.content === nextPrompt;
-        }
-        if (typeof feedback === "string") {
-          return message.messageType === "evaluation" && message.content === feedback;
-        }
-        if (typeof summary === "string") {
-          return message.messageType === "completed" && message.content === summary;
-        }
-        return message.responseFormat !== "video";
-      }, promptDelivery ?? evaluationDelivery ?? nextDelivery ?? keyDelivery);
+    async (result: Record<string, unknown>) => {
+      const delivery = getDeliveryFromRecord(result);
+      if (!delivery?.video_url) return;
+      const response = result.response;
+      await applyVideoDeliveryToMessage(
+        (message) =>
+          message.role === "assistant" &&
+          message.mode === "learn" &&
+          (typeof response !== "string" || message.content === response),
+        delivery,
+      );
     },
     [applyVideoDeliveryToMessage],
   );
 
   const pollTaskStatus = useCallback(
-    async (kind: "learn" | "mode", taskId: string) => {
-      const key = `${kind}:${taskId}`;
+    async (taskId: string) => {
+      const key = taskId;
       if (pollingTasksRef.current.has(key)) return;
       pollingTasksRef.current.add(key);
       useChatStore.getState().setIsGeneratingVideo(true);
@@ -401,20 +308,17 @@ export function useChat() {
         const startedAt = Date.now();
         while (Date.now() - startedAt < 90_000) {
           await new Promise((resolve) => setTimeout(resolve, 2000));
-          const res =
-            kind === "learn"
-              ? await apiClient.getRagTaskStatus(taskId)
-              : await apiClient.getModeSessionTaskStatus(taskId);
+          const res = await apiClient.getRagTaskStatus(taskId);
 
           if (!res.success || !res.data) continue;
 
-          debugBackend(`${kind}:status:${taskId}`, res.data);
+          debugBackend(`learn:status:${taskId}`, res.data);
 
           const status = String(res.data.status ?? "").toLowerCase();
           const result = unwrapTaskResult(res.data);
           if (result) {
             const before = useChatStore.getState().messages;
-            await applyTaskResult(kind, result);
+            await applyTaskResult(result);
             appliedVideo =
               appliedVideo ||
               useChatStore.getState().messages.some((message, index) => {
@@ -432,7 +336,7 @@ export function useChat() {
             break;
           }
         }
-        if (!appliedVideo) clearPendingVideoMessages(kind);
+        if (!appliedVideo) clearPendingVideoMessages();
       } finally {
         pollingTasksRef.current.delete(key);
         useChatStore.getState().setIsGeneratingVideo(false);
@@ -537,19 +441,13 @@ export function useChat() {
         // `activeModeSession` — multiple WS messages can be processed in the
         // same tick, before a re-render refreshes the closure.
         const freshActive = useChatStore.getState().activeModeSession;
-        const kind = m.mode_session_id || freshActive ? "mode" : "learn";
         const sid = useChatStore.getState().currentSessionId;
-        // Text-first: only poll for async video delivery when this turn
-        // actually prefers video (review is always text-only). Text turns —
-        // Learn or mode-session — are delivered entirely over the stream, so
-        // polling /status would just spin for 90s and wrongly flip the
-        // "generating video" indicator on.
-        const modeForVideoCheck =
-          freshActive?.mode ?? (m.mode_session_id ? "application" : "learn");
-        const wantsVideo = sid
-          ? shouldPreferVideo(sid, modeForVideoCheck)
-          : false;
-        if (wantsVideo) void pollTaskStatus(kind, m.task_id);
+        // Text-first: only poll for async video delivery on a Learn turn that
+        // prefers video. Mode sessions are always text and arrive entirely over
+        // the stream, so polling /status would just spin for 90s and wrongly
+        // flip the "generating video" indicator on.
+        const isLearnTurn = !m.mode_session_id && !freshActive;
+        if (isLearnTurn && sid && shouldPreferVideo(sid)) void pollTaskStatus(m.task_id);
       }
       return;
     }
@@ -641,8 +539,8 @@ export function useChat() {
     const pendingVideo =
       response_format !== "video" &&
       !isRealtimeAvatar &&
-      shouldPreferVideo(sid, "learn") &&
-      hasActivePollingTask("learn");
+      shouldPreferVideo(sid) &&
+      hasActivePollingTask();
 
     const finalMessage = {
       id: newId(),
@@ -703,8 +601,8 @@ export function useChat() {
       msg;
     const pendingVideo =
       response_format !== "video" &&
-      shouldPreferVideo(sid, "learn") &&
-      hasActivePollingTask("learn");
+      shouldPreferVideo(sid) &&
+      hasActivePollingTask();
     useChatStore.getState().addMessage({
       id: newId(),
       sessionId: sid,
@@ -738,20 +636,14 @@ export function useChat() {
     useChatStore.getState().setIsGeneratingVideo(pendingVideo);
   }
 
-  async function handleModeSessionStartPush(msg: WsModeSessionStartPush) {
+  function handleModeSessionStartPush(msg: WsModeSessionStartPush) {
     const { currentSessionId: sid, activeModeSession: active } =
       useChatStore.getState();
     if (!sid) return;
 
-    const { prompt, response_format, video_url, audio_url, subtitles_url } =
-      msg;
+    const { prompt } = msg;
     const totalSteps =
       active?.totalSteps ?? (msg.mode === "application" ? 3 : 10);
-    const pendingVideo =
-      msg.mode === "application" &&
-      response_format !== "video" &&
-      shouldPreferVideo(sid, msg.mode) &&
-      hasActivePollingTask("mode");
     const progressSteps = takeProgressSteps();
 
     const finalMessage: Message = {
@@ -759,10 +651,7 @@ export function useChat() {
       sessionId: sid,
       role: "assistant",
       content: prompt,
-      responseFormat: response_format,
-      videoUrl: video_url ?? null,
-      audioUrl: audio_url ?? null,
-      pendingVideo,
+      responseFormat: "text",
       mode: msg.mode,
       messageType: "prompt",
       step: 1,
@@ -771,26 +660,12 @@ export function useChat() {
       timestamp: new Date(),
     };
 
-    if (response_format === "video" && video_url) {
-      useChatStore.getState().addMessage(finalMessage);
-      const { subtitles, duration } = await fetchSubtitles(subtitles_url);
-      useChatStore
-        .getState()
-        .setVideoResponse({
-          videoUrl: video_url,
-          audioUrl: audio_url ?? undefined,
-          subtitles,
-          duration,
-        });
-      useChatStore.getState().clearStreamingResponse();
-    } else {
-      // Text prompt: the typewriter chunks already streamed this exact text
-      // into the buffer, so just hand it to the smoother as the reveal target
-      // and hold the message until the reveal catches up (pop-free swap).
-      useChatStore.getState().setStreamingTarget(prompt);
-      useChatStore.getState().setPendingFinals([finalMessage]);
-      if (!pendingVideo) useChatStore.getState().setVideoResponse(null);
-    }
+    // Mode sessions are text-only: the typewriter chunks already streamed this
+    // exact text into the buffer, so hand it to the smoother as the reveal
+    // target and hold the message until the reveal catches up (pop-free swap).
+    useChatStore.getState().setStreamingTarget(prompt);
+    useChatStore.getState().setPendingFinals([finalMessage]);
+    useChatStore.getState().setVideoResponse(null);
 
     pendingModeStartRef.current = null;
     useChatStore.getState().setIsStartingModeSession(false);
@@ -799,11 +674,10 @@ export function useChat() {
   // Assessment turn. A turn produces one message (evaluation) or two (evaluation
   // + next question, or evaluation + completion summary). Each was already
   // typed out live via mode_text_chunk before this terminal push arrived, so
-  // any text (non-video) part is deferred into pendingFinals — reusing the
-  // same streamed buffer as the reveal target — and committed once the smooth
-  // reveal catches up, exactly like Learn's response_complete. Video parts
-  // (rare — opt-in) have no text to catch up on, so they commit immediately.
-  async function handleApplicationTurnPush(
+  // every part is deferred into pendingFinals — reusing the same streamed
+  // buffer as the reveal target — and committed once the smooth reveal catches
+  // up, exactly like Learn's response_complete. Mode sessions are text-only.
+  function handleApplicationTurnPush(
     msg: WsModeSessionEvaluationPush | WsModeSessionCompletedPush,
   ) {
     const { currentSessionId: sid, activeModeSession: active } =
@@ -812,11 +686,6 @@ export function useChat() {
 
     const { evaluation, type } = msg;
     const evalForMsg = evaluation as unknown as PracticeEvaluation;
-    const delivery = (msg as WsModeSessionEvaluationPush).delivery;
-    const pendingEvaluationVideo =
-      !delivery?.video_url &&
-      shouldPreferVideo(sid, "application") &&
-      hasActivePollingTask("mode");
 
     const stepScore = Math.round((evalForMsg.score ?? 0) * 100);
     const updatedScores = [...(active.scores ?? []), stepScore];
@@ -828,10 +697,7 @@ export function useChat() {
       sessionId: sid,
       role: "assistant",
       content: evalForMsg.feedback,
-      responseFormat: delivery?.response_format ?? "text",
-      videoUrl: delivery?.video_url ?? null,
-      audioUrl: delivery?.audio_url ?? null,
-      pendingVideo: pendingEvaluationVideo,
+      responseFormat: "text",
       mode: "application",
       messageType: "evaluation",
       evaluation: evalForMsg,
@@ -841,25 +707,9 @@ export function useChat() {
       timestamp: new Date(),
     };
 
-    const deferred: Message[] = [];
-    const streamParts: string[] = [];
-
-    if (delivery?.response_format === "video" && delivery.video_url) {
-      useChatStore.getState().addMessage(evalMessage);
-      const { subtitles, duration } = await fetchSubtitles(
-        delivery.subtitles_url,
-      );
-      useChatStore.getState().setVideoResponse({
-        videoUrl: delivery.video_url,
-        audioUrl: delivery.audio_url ?? undefined,
-        subtitles,
-        duration,
-      });
-    } else {
-      deferred.push(evalMessage);
-      streamParts.push(evalForMsg.feedback);
-      if (!pendingEvaluationVideo) useChatStore.getState().setVideoResponse(null);
-    }
+    const deferred: Message[] = [evalMessage];
+    const streamParts: string[] = [evalForMsg.feedback];
+    useChatStore.getState().setVideoResponse(null);
 
     if (type === "completed") {
       const completedData = msg as WsModeSessionCompletedPush;
@@ -893,20 +743,13 @@ export function useChat() {
       const summaryText =
         completedData.summary ??
         "Great work! You have completed this assessment scenario.";
-      const keyDelivery = completedData.key_delivery;
 
       const completedMessage: Message = {
         id: newId(),
         sessionId: sid,
         role: "assistant",
         content: summaryText,
-        responseFormat: keyDelivery?.response_format ?? "text",
-        videoUrl: keyDelivery?.video_url ?? null,
-        audioUrl: keyDelivery?.audio_url ?? null,
-        pendingVideo:
-          !keyDelivery?.video_url &&
-          shouldPreferVideo(sid, "application") &&
-          hasActivePollingTask("mode"),
+        responseFormat: "text",
         mode: "application",
         messageType: "completed",
         keyLearningPoints: completedData.key_learning_points ?? [],
@@ -917,30 +760,12 @@ export function useChat() {
         timestamp: new Date(),
       };
 
-      if (keyDelivery?.response_format === "video" && keyDelivery.video_url) {
-        useChatStore.getState().addMessage(completedMessage);
-        const { subtitles, duration } = await fetchSubtitles(
-          keyDelivery.subtitles_url,
-        );
-        useChatStore.getState().setVideoResponse({
-          videoUrl: keyDelivery.video_url,
-          audioUrl: keyDelivery.audio_url ?? undefined,
-          subtitles,
-          duration,
-        });
-      } else {
-        deferred.push(completedMessage);
-        streamParts.push(summaryText);
-      }
+      deferred.push(completedMessage);
+      streamParts.push(summaryText);
     } else {
       const evalPush = msg as WsModeSessionEvaluationPush;
       if (evalPush.next_prompt) {
         const nextStep = active.currentStep + 1;
-        const nextDelivery = evalPush.next_delivery;
-        const pendingNextVideo =
-          !nextDelivery?.video_url &&
-          shouldPreferVideo(sid, "application") &&
-          hasActivePollingTask("mode");
         useChatStore
           .getState()
           .updateActiveModeSession({ currentStep: nextStep });
@@ -950,10 +775,7 @@ export function useChat() {
           sessionId: sid,
           role: "assistant",
           content: evalPush.next_prompt,
-          responseFormat: nextDelivery?.response_format ?? "text",
-          videoUrl: nextDelivery?.video_url ?? null,
-          audioUrl: nextDelivery?.audio_url ?? null,
-          pendingVideo: pendingNextVideo,
+          responseFormat: "text",
           mode: "application",
           messageType: "prompt",
           step: nextStep,
@@ -961,36 +783,15 @@ export function useChat() {
           timestamp: new Date(),
         };
 
-        if (
-          nextDelivery?.response_format === "video" &&
-          nextDelivery.video_url
-        ) {
-          useChatStore.getState().addMessage(nextMessage);
-          const { subtitles, duration } = await fetchSubtitles(
-            nextDelivery.subtitles_url,
-          );
-          useChatStore.getState().setVideoResponse({
-            videoUrl: nextDelivery.video_url,
-            audioUrl: nextDelivery.audio_url ?? undefined,
-            subtitles,
-            duration,
-          });
-        } else {
-          deferred.push(nextMessage);
-          streamParts.push(evalPush.next_prompt);
-        }
+        deferred.push(nextMessage);
+        streamParts.push(evalPush.next_prompt);
       }
     }
 
-    if (deferred.length > 0) {
-      useChatStore.getState().setStreamingTarget(streamParts.join(" "));
-      useChatStore.getState().setPendingFinals(deferred);
-    } else {
-      useChatStore.getState().clearStreamingResponse();
-    }
-
+    useChatStore.getState().setStreamingTarget(streamParts.join(" "));
+    useChatStore.getState().setPendingFinals(deferred);
     useChatStore.getState().setIsLoadingMessage(false);
-    useChatStore.getState().setIsGeneratingVideo(hasActivePollingTask("mode"));
+    useChatStore.getState().setIsGeneratingVideo(false);
   }
 
   // Review turn — always text-only (no video path), so every part of the

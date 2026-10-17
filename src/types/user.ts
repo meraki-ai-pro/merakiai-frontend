@@ -29,9 +29,3 @@ export interface UserPreferences {
   autoPlayVideo: boolean;
   prefersVideo: boolean;
 }
-
-export interface AuthSession {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt?: number;
-}

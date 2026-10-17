@@ -79,8 +79,6 @@ export const API_ENDPOINTS = {
   FEEDBACK_SESSION_SURVEY: '/feedback/session-survey',
   FEEDBACK_USER: '/feedback/user-feedback',
 
-  // Mode Sessions voice turns (text turns go via WebSocket)
-  MODE_SESSIONS_STATUS: (taskId: string) => `/mode-sessions/status/${taskId}`,
 } as const;
 
 // ─── Roles ───────────────────────────────────────────────────────────────────
