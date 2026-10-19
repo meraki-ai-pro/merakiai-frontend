@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Turnstile, TURNSTILE_SITE_KEY } from './Turnstile';
+import { Turnstile, TURNSTILE_SITE_KEY, type TurnstileHandle } from './Turnstile';
 
 export function LoginForm() {
   const router = useRouter();
@@ -25,6 +25,8 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [captcha, setCaptcha] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
+  const turnstileRef = useRef<TurnstileHandle>(null);
+  const submittingRef = useRef(false);
 
   // ── MFA step-up ──────────────────────────────────────────────────────────
   const [mfaStep, setMfaStep] = useState(false);
@@ -60,19 +62,31 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    if (!email.trim() || !password.trim() || submittingRef.current) return;
 
+    const liveCaptcha = TURNSTILE_SITE_KEY
+      ? turnstileRef.current?.getToken() ?? null
+      : undefined;
+    if (TURNSTILE_SITE_KEY && !liveCaptcha) {
+      setError('The security check expired. Please complete it again.');
+      turnstileRef.current?.reset();
+      return;
+    }
+
+    submittingRef.current = true;
     setIsLoading(true);
     setError(null);
 
     // Step 1 — authenticate against the backend
-    const res = await apiClient.login(email.trim(), password, captcha ?? undefined);
+    const res = await apiClient.login(email.trim(), password, liveCaptcha ?? undefined);
 
     if (!res.success || !res.data) {
       setError(res.error?.message ?? 'Login failed. Please check your credentials.');
       setIsLoading(false);
+      submittingRef.current = false;
       // Captcha tokens are single-use; the next attempt needs a fresh one.
-      setCaptchaReset((n) => n + 1);
+      if (turnstileRef.current) turnstileRef.current.reset();
+      else setCaptchaReset((n) => n + 1);
       return;
     }
 
@@ -91,11 +105,16 @@ export function LoginForm() {
       setMfaCode('');
       setMfaError(null);
       setIsLoading(false);
+      submittingRef.current = false;
       return;
     }
 
     // Step 3 — no MFA required: finish login.
-    await finishLogin(forcePasswordChange);
+    try {
+      await finishLogin(forcePasswordChange);
+    } finally {
+      submittingRef.current = false;
+    }
   };
 
   const handleMfaSubmit = async (e: React.FormEvent) => {
@@ -232,7 +251,7 @@ export function LoginForm() {
         </div>
       </div>
 
-      <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
+      <Turnstile ref={turnstileRef} onToken={setCaptcha} resetKey={captchaReset} />
 
       <Button
         type="submit"

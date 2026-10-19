@@ -58,6 +58,8 @@ export function InterventionStudio({
   const [draft, setDraft] = useState<{ title: string; questions: number; students: number } | null>(null);
   const [lesson, setLesson] = useState<{ text: string; sources: RetrievedSource[] } | null>(null);
   const [preview, setPreview] = useState(false);
+  // Students must finish what is sent before other study on the course.
+  const [required, setRequired] = useState(true);
 
   // A new focus is a new piece of work: reset everything.
   useEffect(() => {
@@ -70,7 +72,7 @@ export function InterventionStudio({
 
   if (!focus) return null;
 
-  const body = { topic: focus.topic, misconception: focus.misconception ?? null, student_ids: selected };
+  const body = { topic: focus.topic, misconception: focus.misconception ?? null, student_ids: selected, required };
   const whole = focus.students.length === 0;
   const audience = whole ? 'the whole class' : `${selected.length} student${selected.length === 1 ? '' : 's'}`;
   const noneSelected = !whole && selected.length === 0;
@@ -109,7 +111,7 @@ export function InterventionStudio({
     if (!window.confirm(`Send this lesson to ${audience}? Each gets it as a new tutor session.`)) return;
     const data = await run('send', () =>
       apiClient.sendMiniLesson(courseId, {
-        topic: focus.topic, lesson: lesson.text, student_ids: selected, sources: lesson.sources,
+        topic: focus.topic, lesson: lesson.text, student_ids: selected, sources: lesson.sources, required,
       })
     );
     if (data) {
@@ -162,6 +164,17 @@ export function InterventionStudio({
             </div>
           </fieldset>
         )}
+
+        <label className="flex items-start gap-2 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10">
+          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} className="mt-0.5" data-testid="intervention-required" />
+          <span>
+            <span className="font-medium text-slate-900 dark:text-white">Required before other study</span>
+            <span className="block text-xs text-slate-500">
+              Students see it under Activities. Until they finish it (answer the lesson, or submit the published
+              practice) their other sessions on this course stay closed.
+            </span>
+          </span>
+        </label>
 
         {/* Ask AI */}
         <section>

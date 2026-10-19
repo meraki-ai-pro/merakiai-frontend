@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, FlaskConical, Link2, Trash2, Upload } from 'lucide-react';
+import { Eye, EyeOff, FlaskConical, Link2, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { supabase } from '@/lib/supabase';
 import { DIFFICULTY_VALUES, MODE_LABELS, QUESTION_FORMATS } from '@/lib/constants';
@@ -58,7 +58,9 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
   const [difficulty, setDifficulty] = useState<DifficultyValue>('basic');
   const [formats, setFormats] = useState<QuestionFormat[]>([]);
   const [topic, setTopic] = useState('');
+  const [videoLink, setVideoLink] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const servesReview = modes.includes('review');
@@ -88,7 +90,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
 
   // Lecture videos skip the API: the browser uploads straight to storage with a
   // signed token (no 50 MB request cap), then the server transcribes them.
-  const addVideo = async (file: File | null, link?: string) => {
+  const addVideo = async (file: File | null, link?: string): Promise<boolean> => {
     setUploading(true);
     const res = await apiClient.addVideo(courseId, {
       ...(file ? { filename: file.name } : { link }),
@@ -98,7 +100,8 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
     });
     if (!res.success || !res.data) {
       setUploading(false);
-      return void toast.error(res.error?.message ?? 'Could not add the video');
+      toast.error(res.error?.message ?? 'Could not add the video');
+      return false;
     }
     if (file && res.data.bucket && res.data.path && res.data.token) {
       const put = await supabase.storage
@@ -110,20 +113,34 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
         await apiClient.deleteKnowledge(courseId, res.data.document_id);
         setUploading(false);
         void load();
-        return void toast.error(put.error?.message ?? done?.error?.message ?? 'Video upload failed');
+        toast.error(put.error?.message ?? done?.error?.message ?? 'Video upload failed');
+        return false;
       }
     }
     setUploading(false);
     toast.success('Video added as a draft — it is being transcribed; publish it when ready');
     void load();
+    return true;
   };
 
-  const addVideoLink = () => {
+  const addVideoLink = async () => {
     if (modes.length === 0) return void toast.error('Choose at least one mode this video should serve');
-    const link = window.prompt('Link to the lecture video (YouTube or a direct video link)')?.trim();
+    const link = videoLink.trim();
     if (!link) return;
     if (!/^https:\/\//.test(link)) return void toast.error('The link must start with https://');
-    void addVideo(null, link);
+    if (await addVideo(null, link)) setVideoLink('');
+  };
+
+  const retryVideo = async (file: KnowledgeFile) => {
+    setRetryingId(file.id);
+    const res = await apiClient.retryVideoIngestion(courseId, file.id);
+    setRetryingId(null);
+    if (!res.success) {
+      toast.error(res.error?.message ?? 'Could not retry video processing');
+      return;
+    }
+    toast.success('Video processing restarted');
+    void load();
   };
 
   const upload = async (file: File) => {
@@ -337,15 +354,34 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
         >
           <Upload className="h-4 w-4" /> {uploading ? 'Uploading… (videos can take a few minutes)' : 'Choose file'}
         </button>
-        <button
-          type="button"
-          onClick={addVideoLink}
-          disabled={uploading}
-          data-testid="add-video-link"
-          className="mt-2 flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
-        >
-          <Link2 className="h-4 w-4" /> Add a video link
-        </button>
+        <div className="mt-3 flex max-w-2xl flex-col gap-2 sm:flex-row">
+          <label className="sr-only" htmlFor="lecture-video-link">YouTube or direct video URL</label>
+          <input
+            id="lecture-video-link"
+            type="url"
+            inputMode="url"
+            value={videoLink}
+            onChange={(event) => setVideoLink(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                void addVideoLink();
+              }
+            }}
+            placeholder="https://youtube.com/watch?v=…"
+            disabled={uploading}
+            className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
+          />
+          <button
+            type="button"
+            onClick={() => void addVideoLink()}
+            disabled={uploading || !videoLink.trim()}
+            data-testid="add-video-link"
+            className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/10"
+          >
+            <Link2 className="h-4 w-4" /> Add video URL
+          </button>
+        </div>
       </section>
 
       <TestQueryPanel courseId={courseId} />
@@ -400,6 +436,19 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
                 </div>
 
                 <div className="flex flex-shrink-0 items-center gap-1">
+                  {(f.media_url || VIDEO_EXT.test(f.source_filename)) &&
+                    (f.status === 'failed' || f.status === 'processing') && (
+                      <button
+                        type="button"
+                        onClick={() => void retryVideo(f)}
+                        disabled={retryingId === f.id}
+                        className="rounded-lg p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40 dark:hover:bg-cyan-300/10 dark:hover:text-cyan-200"
+                        title="Retry video transcription"
+                        aria-label={`Retry processing ${f.title}`}
+                      >
+                        <RefreshCw className={`h-4 w-4 ${retryingId === f.id ? 'animate-spin' : ''}`} />
+                      </button>
+                    )}
                   <button
                     type="button"
                     onClick={() => void togglePublish(f)}

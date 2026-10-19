@@ -116,6 +116,8 @@ export interface KnowledgeFile {
   total_chunks?: number;
   version?: string;
   storage_path?: string | null;
+  /** Hosted lecture URL; present only for linked videos. */
+  media_url?: string | null;
   created_at?: string;
 }
 
@@ -376,6 +378,8 @@ export interface InterventionBody {
   topic: string;
   misconception?: string | null;
   student_ids: string[];
+  /** Must be finished before other study on the course. */
+  required?: boolean;
 }
 
 export interface InterventionOption {

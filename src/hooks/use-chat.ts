@@ -1,5 +1,6 @@
 "use client";
 
+import { useActivityStore } from '@/store/activityStore';
 import { useCallback, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useChatStore, newId } from "@/store/chatStore";
@@ -343,6 +344,10 @@ export function useChat() {
       }
       if (t === "response_complete") {
         void handleResponseComplete(msg as WsResponseComplete);
+        // Replying to an assigned lesson finishes it: lift the lock now rather
+        // than on the sidebar's next poll.
+        const activity = useActivityStore.getState();
+        if (activity.locked) void activity.refresh(useCourseStore.getState().selectedCourseId);
         return;
       }
       if (t === "session_title") {

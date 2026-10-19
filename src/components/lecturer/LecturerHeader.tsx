@@ -6,6 +6,7 @@ import { ArrowLeftRight, BookOpen, Mic, UserRound } from 'lucide-react';
 import { MerakiLogo } from '@/components/common/MerakiLogo';
 import { FeedbackButton } from '@/components/feedback/FeedbackDialog';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { WorkspaceLogoutButton } from '@/components/common/WorkspaceLogoutButton';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -73,6 +74,7 @@ export function LecturerHeader() {
           >
             <ArrowLeftRight className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Student view</span>
           </Link>
+          <WorkspaceLogoutButton />
         </div>
       </div>
     </header>

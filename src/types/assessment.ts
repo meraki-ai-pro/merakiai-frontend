@@ -137,6 +137,8 @@ export interface ExamResults {
     score: number;
     percent: number;
     pending_review: number;
+    /** Integrity events during the sitting, by kind (e.g. { left_window: 2 }). */
+    integrity?: Partial<Record<'left_window' | 'exited_fullscreen' | 'paste' | 'copy', number>>;
   }[];
 }
 

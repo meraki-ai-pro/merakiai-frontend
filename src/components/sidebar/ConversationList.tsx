@@ -1,5 +1,6 @@
 'use client';
 
+import { openWhileLocked, useActivityStore } from '@/store/activityStore';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useChatStore, newId } from '@/store/chatStore';
 import { Trash2, Pencil, Check, X, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2, MoreVertical, Pin, PinOff, Archive } from 'lucide-react';
@@ -87,6 +88,13 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   };
 
   const handleSelect = async (id: string) => {
+    // The server refuses (423) while a required activity waits; explain it here
+    // instead of opening a session that cannot load.
+    const { locked, activities } = useActivityStore.getState();
+    if (locked && !openWhileLocked(activities).has(id)) {
+      toast('Finish the activity your lecturer assigned first.', { icon: '🔒' });
+      return router.push('/dashboard/activities');
+    }
     router.push('/dashboard');
     if (id === currentSessionId) return;
     setCurrentSession(id);

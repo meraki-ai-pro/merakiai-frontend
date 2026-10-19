@@ -156,7 +156,7 @@ export function AIResponse({ message }: AIResponseProps) {
 
         ) : hasBoard(message.content) ? (
           // ── Lesson board (maths explanations) ───────────────────────────
-          <BoardStage content={message.content} courseId={courseId} />
+          <BoardStage content={message.content} courseId={courseId} sources={sources} />
 
         ) : (
           // ── Standard learn-mode text response ───────────────────────────

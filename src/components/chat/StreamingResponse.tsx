@@ -78,7 +78,7 @@ export function StreamingResponse() {
           // A board answer builds itself slide by slide as the text arrives;
           // anything else stays a chat bubble.
           hasBoard(shown) ? (
-            <BoardStage content={shown} isStreaming courseId={courseId} />
+            <BoardStage content={shown} isStreaming courseId={courseId} sources={sources} />
           ) : (
             <div className="rounded-2xl border border-white/70 bg-white/[0.88] px-4 py-3 shadow-sm shadow-blue-950/5 backdrop-blur dark:border-white/10 dark:bg-white/[0.06]">
               <AnswerWithVideos content={shown} courseId={courseId} />

@@ -20,7 +20,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
-  AlertTriangle, Check, ClipboardList, Clock, FileUp, GraduationCap, Loader2, Plus, Send,
+  AlertTriangle, Check, ClipboardList, Clock, FileUp, GraduationCap, Loader2, Pencil, Plus, Send,
   Trash2, Unlock, Users,
 } from 'lucide-react';
 import { apiClient } from '@/services/api';
@@ -363,6 +363,8 @@ function DraftEditor({ examId, onChanged }: { examId: string; onChanged: () => v
 
 function QuestionList({ examId, editable, refreshKey, onChanged }: { examId: string; editable: boolean; refreshKey: number; onChanged: () => void }) {
   const [questions, setQuestions] = useState<LecturerQuestion[] | null>(null);
+  const [editing, setEditing] = useState<{ id: string; draft: QuestionCreate } | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     void apiClient.listAssessmentQuestions(examId).then((res) => setQuestions(res?.data?.questions ?? []));
@@ -373,6 +375,32 @@ function QuestionList({ examId, editable, refreshKey, onChanged }: { examId: str
     const res = await apiClient.deleteAssessmentQuestion(examId, q.id);
     if (!res.success) return void toast.error(res.error?.message ?? 'Could not delete');
     setQuestions((prev) => prev?.filter((x) => x.id !== q.id) ?? null);
+    onChanged();
+  };
+
+  const startEdit = (q: LecturerQuestion) =>
+    setEditing({
+      id: q.id,
+      draft: {
+        question_type: q.question_type ?? 'mcq', prompt: q.prompt, options: [...q.options],
+        correct_answer: q.correct_answer, points: Number(q.points), topic: q.topic ?? null,
+      },
+    });
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    if (!isComplete(editing.draft)) {
+      toast.error('Write the question and its answer (for multiple choice: at least two options, one marked correct).');
+      return;
+    }
+    setSaving(true);
+    const res = await apiClient.updateAssessmentQuestion(examId, editing.id, {
+      ...editing.draft, options: editing.draft.options.map((o) => o.trim()).filter(Boolean),
+    });
+    setSaving(false);
+    if (!res.success) return void toast.error(res.error?.message ?? 'Could not save the question');
+    toast.success('Question saved');
+    setEditing(null);
     onChanged();
   };
 
@@ -390,6 +418,17 @@ function QuestionList({ examId, editable, refreshKey, onChanged }: { examId: str
         <ol className="space-y-2">
           {questions.map((q, i) => (
             <li key={q.id} className="rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10">
+              {editing?.id === q.id ? (
+                <div className="space-y-2" data-testid="question-editor">
+                  <QuestionFields value={editing.draft} onChange={(draft) => setEditing({ id: q.id, draft })} name={`edit-${q.id}`} />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => void saveEdit()} disabled={saving} className={primary}>
+                      {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save question
+                    </button>
+                    <button type="button" onClick={() => setEditing(null)} className={quiet}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-slate-500">
@@ -413,11 +452,17 @@ function QuestionList({ examId, editable, refreshKey, onChanged }: { examId: str
                   )}
                 </div>
                 {editable && (
-                  <button type="button" onClick={() => void remove(q)} aria-label={`Delete question ${i + 1}`} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex flex-shrink-0 gap-1">
+                    <button type="button" onClick={() => startEdit(q)} aria-label={`Edit question ${i + 1}`} className="rounded p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-cyan-300/10">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button type="button" onClick={() => void remove(q)} aria-label={`Delete question ${i + 1}`} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 )}
               </div>
+              )}
             </li>
           ))}
         </ol>
@@ -669,7 +714,7 @@ function MarkingPanel({ exam, onReleased }: { exam: Assessment; onReleased: () =
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-slate-500">
-                <th className="py-1">Student</th><th>Score</th><th>%</th><th>Status</th>
+                <th className="py-1">Student</th><th>Score</th><th>%</th><th>Status</th><th title="Recorded during the sitting. Not penalised automatically — a notification can trip these innocently.">Integrity</th>
               </tr>
             </thead>
             <tbody>
@@ -679,6 +724,7 @@ function MarkingPanel({ exam, onReleased }: { exam: Assessment; onReleased: () =
                   <td>{s.score} / {results.total_points}</td>
                   <td>{s.percent}%</td>
                   <td className="text-xs">{s.pending_review ? `${s.pending_review} to mark` : 'Marked'}</td>
+                  <td className="text-xs">{integrityText(s.integrity)}</td>
                 </tr>
               ))}
             </tbody>
@@ -772,4 +818,19 @@ function AccommodationsPanel({ courseId }: { courseId: string }) {
       )}
     </section>
   );
+}
+
+const INTEGRITY_LABELS = {
+  left_window: 'left the exam',
+  exited_fullscreen: 'left full screen',
+  paste: 'tried to paste',
+  copy: 'tried to copy',
+} as const;
+
+/** "left the exam ×3, tried to paste ×1" — or a quiet dash when nothing happened. */
+function integrityText(counts?: Partial<Record<keyof typeof INTEGRITY_LABELS, number>>) {
+  const parts = (Object.keys(INTEGRITY_LABELS) as (keyof typeof INTEGRITY_LABELS)[])
+    .filter((k) => counts?.[k])
+    .map((k) => `${INTEGRITY_LABELS[k]} ×${counts![k]}`);
+  return parts.length ? <span className="text-amber-700 dark:text-amber-300">{parts.join(', ')}</span> : <span className="text-slate-400">—</span>;
 }

@@ -19,6 +19,8 @@
  * is offset by server_now so a wrong laptop clock cannot shorten a paper.
  */
 
+import { useUserStore } from '@/store/userStore';
+import { useActivityStore } from '@/store/activityStore';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
@@ -166,7 +168,10 @@ export function AssessmentRunner() {
         onSubmitted={(title) => {
           setPaper(null);
           setSubmitted(title);
+          if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
           void load();
+          // A submitted practice paper may have been the required activity.
+          void useActivityStore.getState().refresh(selectedCourseId);
         }}
         onLeave={() => setPaper(null)}
       />
@@ -200,7 +205,10 @@ export function AssessmentRunner() {
   if (intro) {
     return shell(
       intro.title,
-      <StartScreen exam={intro} extraTime={extraTime} prefs={prefs} onPrefs={updatePrefs} onStart={() => void begin(intro)} onBack={() => setIntro(null)} />,
+      <StartScreen exam={intro} extraTime={extraTime} prefs={prefs} onPrefs={updatePrefs} onStart={() => {
+        void document.documentElement.requestFullscreen?.().catch(() => {});
+        void begin(intro);
+      }} onBack={() => setIntro(null)} />,
       EXAM_KIND_LABELS[intro.kind],
     );
   }
@@ -294,6 +302,10 @@ function StartScreen({
         {exam.your_time_minutes ? (
           <li>The clock starts when you press Start and keeps running if you leave. At zero your answers are submitted.</li>
         ) : null}
+        <li>
+          The paper opens in full screen. Leaving the exam window, leaving full screen, copying or pasting is
+          recorded and shown to your lecturer with your marks.
+        </li>
       </ul>
 
       <AccessibilityControls prefs={prefs} onPrefs={onPrefs} />
@@ -378,6 +390,9 @@ function ExamSitting({
   const submittedRef = useRef(false);
 
   useEffect(() => writeStore(saveKey, { answers, flags }), [saveKey, answers, flags]);
+
+  const integrity = useExamIntegrity(paper.assessment.id, submittedRef);
+  const watermark = useUserStore((s) => s.user?.email ?? '');
 
   // Warn before closing the tab mid-paper.
   useEffect(() => {
@@ -486,6 +501,30 @@ function ExamSitting({
   return (
     <ExamShell title={paper.assessment.title} prefs={prefs} wide>
       <p className="sr-only" aria-live="assertive">{announce}</p>
+
+      {/* Who is sitting: printed faintly across the paper, so a screenshot or
+          photo of it shared with someone else names its source. */}
+      {watermark && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 flex flex-wrap content-start gap-x-24 gap-y-20 overflow-hidden p-10 opacity-[0.06] select-none">
+          {Array.from({ length: 40 }, (_, i) => (
+            <span key={i} className="-rotate-[24deg] whitespace-nowrap text-lg font-semibold text-slate-900 dark:text-white">{watermark}</span>
+          ))}
+        </div>
+      )}
+
+      {integrity.leaves > 0 && (
+        <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
+          <span>
+            You left the exam {integrity.leaves} time{integrity.leaves === 1 ? '' : 's'}. This is recorded and your
+            lecturer will see it with your marks.
+          </span>
+          {!integrity.fullscreen && integrity.canFullscreen && (
+            <button type="button" onClick={() => void document.documentElement.requestFullscreen().catch(() => {})} className="font-medium underline">
+              Return to full screen
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Status bar */}
       <div className="sticky top-0 z-10 -mx-2 mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 backdrop-blur dark:border-white/10 dark:bg-slate-950/95">
@@ -750,4 +789,72 @@ function ExamShell({
       </div>
     </div>
   );
+}
+
+/**
+ * Malpractice deterrence during a sitting. A browser cannot stop a determined
+ * student (a second device is out of reach), so the aim is to make the easy
+ * routes visible: leaving the window, leaving full screen, copying a question
+ * out or pasting an answer in. Each is sent to the server and shown to the
+ * lecturer beside the marks; nothing is penalised automatically, because a
+ * notification or a flaky screen can trip any of them innocently.
+ *
+ * Copy and paste are also blocked, not just recorded: there is no honest
+ * reason to paste into an exam answer, and the block costs nothing.
+ */
+function useExamIntegrity(assessmentId: string, submittedRef: React.MutableRefObject<boolean>) {
+  const [leaves, setLeaves] = useState(0);
+  const [fullscreen, setFullscreen] = useState(() => typeof document !== 'undefined' && !!document.fullscreenElement);
+  const canFullscreen = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
+  const lastLeave = useRef(0);
+
+  useEffect(() => {
+    const record = (kind: 'left_window' | 'exited_fullscreen' | 'paste' | 'copy') => {
+      if (!submittedRef.current) void apiClient.recordExamIntegrity(assessmentId, kind);
+    };
+    // Switching tabs fires both blur and visibilitychange: count it once.
+    const left = () => {
+      if (submittedRef.current || Date.now() - lastLeave.current < 2000) return;
+      lastLeave.current = Date.now();
+      setLeaves((n) => n + 1);
+      record('left_window');
+    };
+    const onVisibility = () => document.visibilityState === 'hidden' && left();
+    const onFullscreen = () => {
+      const on = !!document.fullscreenElement;
+      setFullscreen(on);
+      if (!on && !submittedRef.current) {
+        setLeaves((n) => n + 1);
+        record('exited_fullscreen');
+      }
+    };
+    const block = (kind: 'paste' | 'copy') => (e: ClipboardEvent) => {
+      if (submittedRef.current) return;
+      e.preventDefault();
+      toast.error(kind === 'paste' ? 'Pasting is not allowed in an exam.' : 'Copying is not allowed in an exam.');
+      record(kind);
+    };
+    const onPaste = block('paste');
+    const onCopy = block('copy');
+    const noMenu = (e: MouseEvent) => e.preventDefault();
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', left);
+    document.addEventListener('fullscreenchange', onFullscreen);
+    document.addEventListener('paste', onPaste);
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('cut', onCopy);
+    document.addEventListener('contextmenu', noMenu);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', left);
+      document.removeEventListener('fullscreenchange', onFullscreen);
+      document.removeEventListener('paste', onPaste);
+      document.removeEventListener('copy', onCopy);
+      document.removeEventListener('cut', onCopy);
+      document.removeEventListener('contextmenu', noMenu);
+    };
+  }, [assessmentId, submittedRef]);
+
+  return { leaves, fullscreen, canFullscreen };
 }

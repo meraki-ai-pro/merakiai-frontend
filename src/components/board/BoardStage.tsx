@@ -7,6 +7,9 @@ import { PlotFigure } from './PlotFigure';
 import { ConceptVideo } from './ConceptVideo';
 import { parseBoard, type Slide } from '@/lib/board';
 import { NarrationControls } from './NarrationControls';
+import { citationsUsed } from '@/lib/citations';
+import { isVideoSource, SourceVideoPlayer } from '@/components/sources/SourceVideoPlayer';
+import type { RetrievedSource } from '@/types/api';
 
 interface BoardStageProps {
   /** The tutor's answer, board syntax included. Safe to pass mid-stream. */
@@ -15,6 +18,8 @@ interface BoardStageProps {
   isStreaming?: boolean;
   /** Needed to resolve `::: video` slides; omit and they render nothing. */
   courseId?: string;
+  /** Retrieved passages, used to place cited lecture videos on their slide. */
+  sources?: RetrievedSource[];
 }
 
 /**
@@ -29,7 +34,7 @@ interface BoardStageProps {
  * watches the explanation being built. As soon as they navigate by hand, that
  * follow stops and the deck stays where they put it.
  */
-export function BoardStage({ content, isStreaming = false, courseId }: BoardStageProps) {
+export function BoardStage({ content, isStreaming = false, courseId, sources = [] }: BoardStageProps) {
   const slides = useMemo(() => parseBoard(content), [content]);
   const [index, setIndex] = useState(0);
   const [pinned, setPinned] = useState(false);
@@ -95,7 +100,7 @@ export function BoardStage({ content, isStreaming = false, courseId }: BoardStag
         />
       </header>
 
-      <SlideBody slide={slide} courseId={courseId} />
+      <SlideBody slide={slide} courseId={courseId} sources={sources} />
 
       <footer className="flex items-center justify-between gap-3 border-t border-slate-200/70 px-4 py-2 dark:border-white/10">
         <button
@@ -140,7 +145,21 @@ export function BoardStage({ content, isStreaming = false, courseId }: BoardStag
   );
 }
 
-function SlideBody({ slide, courseId }: { slide: Slide; courseId?: string }) {
+function SlideBody({
+  slide,
+  courseId,
+  sources,
+}: {
+  slide: Slide;
+  courseId?: string;
+  sources: RetrievedSource[];
+}) {
+  const citedVideos = courseId
+    ? citationsUsed(slide.body, sources.length)
+        .map((citation) => sources.find((source) => source.citation === citation))
+        .filter((source): source is RetrievedSource => Boolean(source && isVideoSource(source)))
+    : [];
+
   return (
     <div className="min-h-[13rem] px-5 py-4" key={slide.id}>
       {slide.title && (
@@ -151,6 +170,13 @@ function SlideBody({ slide, courseId }: { slide: Slide; courseId?: string }) {
       {slide.videoConcept && courseId && (
         <ConceptVideo courseId={courseId} concept={slide.videoConcept} />
       )}
+      {courseId && citedVideos.map((source) => (
+        <SourceVideoPlayer
+          key={`${source.document_id}-${source.citation}`}
+          source={source}
+          courseId={courseId}
+        />
+      ))}
       {!slide.complete && (
         <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-blue-500/70 dark:bg-cyan-300/70" />
       )}

@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { SquarePen } from 'lucide-react';
 import { useChat } from '@/hooks/use-chat';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { useActivityStore } from '@/store/activityStore';
 
 interface NewChatProps {
   iconOnly?: boolean;
@@ -13,7 +15,13 @@ export function NewChat({ iconOnly = false }: NewChatProps) {
   const router = useRouter();
   const { startNewSession, currentSessionId, messages } = useChat();
 
+  const locked = useActivityStore((s) => s.locked);
+
   const handleNewChat = () => {
+    if (locked) {
+      toast('Finish the activity your lecturer assigned first.', { icon: '🔒' });
+      return router.push('/dashboard/activities');
+    }
     router.push('/dashboard');
     if (currentSessionId && messages.length === 0) return;
     startNewSession();

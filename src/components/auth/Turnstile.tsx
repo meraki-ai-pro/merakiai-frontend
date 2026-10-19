@@ -15,7 +15,7 @@
  * the user gets a fresh token instead of a reused, rejected one.
  */
 
-import { useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
 export const TURNSTILE_SITE_KEY = process.env.NEXT_TURNSTILE_SITE_KEY ?? '';
 
@@ -23,7 +23,16 @@ type TurnstileApi = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
   reset: (id?: string) => void;
   remove: (id?: string) => void;
+  getResponse: (id?: string) => string | undefined;
+  isExpired: (id?: string) => boolean;
 };
+
+export interface TurnstileHandle {
+  /** Read the live widget token, not a stale React-state copy. */
+  getToken: () => string | null;
+  /** Consume the current attempt and display a fresh challenge. */
+  reset: () => void;
+}
 
 declare global {
   interface Window {
@@ -51,19 +60,35 @@ function loadTurnstile(): Promise<TurnstileApi> {
   return scriptPromise;
 }
 
-export function Turnstile({
-  onToken,
-  resetKey = 0,
-}: {
+export const Turnstile = forwardRef<TurnstileHandle, {
   /** The verified token, or null when it expires, errors or is reset. */
   onToken: (token: string | null) => void;
   /** Change this number to clear the widget for a new attempt. */
   resetKey?: number;
-}) {
+}>(function Turnstile({
+  onToken,
+  resetKey = 0,
+}, ref) {
   const box = useRef<HTMLDivElement>(null);
   const widget = useRef<string | null>(null);
+  const tokenIssuedAt = useRef(0);
   const tokenCb = useRef(onToken);
   tokenCb.current = onToken;
+
+  const resetWidget = () => {
+    if (widget.current && window.turnstile) window.turnstile.reset(widget.current);
+    tokenIssuedAt.current = 0;
+    tokenCb.current(null);
+  };
+
+  useImperativeHandle(ref, () => ({
+    getToken: () => {
+      if (!widget.current || !window.turnstile) return null;
+      if (window.turnstile.isExpired(widget.current)) return null;
+      return window.turnstile.getResponse(widget.current) || null;
+    },
+    reset: resetWidget,
+  }));
 
   useEffect(() => {
     if (!TURNSTILE_SITE_KEY || !box.current) return;
@@ -74,9 +99,26 @@ export function Turnstile({
         widget.current = api.render(box.current, {
           sitekey: TURNSTILE_SITE_KEY,
           theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
-          callback: (t: string) => tokenCb.current(t),
-          'expired-callback': () => tokenCb.current(null),
-          'error-callback': () => tokenCb.current(null),
+          size: 'flexible',
+          retry: 'auto',
+          'refresh-expired': 'auto',
+          'refresh-timeout': 'auto',
+          callback: (t: string) => {
+            tokenIssuedAt.current = Date.now();
+            tokenCb.current(t);
+          },
+          'expired-callback': () => {
+            tokenIssuedAt.current = 0;
+            tokenCb.current(null);
+          },
+          'timeout-callback': () => {
+            tokenIssuedAt.current = 0;
+            tokenCb.current(null);
+          },
+          'error-callback': () => {
+            tokenIssuedAt.current = 0;
+            tokenCb.current(null);
+          },
         });
       })
       .catch(() => tokenCb.current(null));
@@ -88,12 +130,27 @@ export function Turnstile({
   }, []);
 
   useEffect(() => {
-    if (resetKey && widget.current && window.turnstile) {
-      window.turnstile.reset(widget.current);
-      tokenCb.current(null);
-    }
+    if (resetKey) resetWidget();
   }, [resetKey]);
+
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    const refreshIfStale = (force = false) => {
+      const age = tokenIssuedAt.current ? Date.now() - tokenIssuedAt.current : 0;
+      if (force || age > 4 * 60 * 1000) resetWidget();
+    };
+    const onPageShow = (event: PageTransitionEvent) => refreshIfStale(event.persisted);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshIfStale();
+    };
+    window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
 
   if (!TURNSTILE_SITE_KEY) return null;
   return <div ref={box} className="flex min-h-[65px] justify-center" data-testid="turnstile" />;
-}
+});

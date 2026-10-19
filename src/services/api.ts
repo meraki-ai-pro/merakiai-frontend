@@ -475,6 +475,13 @@ class ApiClient {
     );
   }
 
+  retryVideoIngestion(courseId: string, documentId: string) {
+    return this.request<{ document_id: string; status: string }>(
+      `/lecturer/courses/${courseId}/knowledge/${documentId}/retry-video`,
+      { method: 'POST' }
+    );
+  }
+
   /** A lecture video cited as a source, opened at `seconds`. */
   watchVideoSource(courseId: string, documentId: string, seconds: number) {
     return this.request<{ url: string }>(
@@ -688,7 +695,7 @@ class ApiClient {
 
   sendMiniLesson(
     courseId: string,
-    body: { topic: string; lesson: string; student_ids: string[]; sources?: RetrievedSource[] }
+    body: { topic: string; lesson: string; student_ids: string[]; sources?: RetrievedSource[]; required?: boolean }
   ) {
     return this.request<{ sent: number; skipped: number }>(
       `/lecturer/courses/${courseId}/interventions/mini-lesson/send`,
@@ -889,6 +896,21 @@ class ApiClient {
     );
   }
 
+  /** Replace a question on a draft paper (409 once published). */
+  updateAssessmentQuestion(assessmentId: string, questionId: string, payload: QuestionCreate) {
+    return this.request<{ status: string; question: AssessmentQuestion }>(
+      `/assessments/${assessmentId}/questions/${questionId}`,
+      { method: 'PUT', body: JSON.stringify(payload) }
+    );
+  }
+
+  /** Note an exam-integrity event (left the window, left full screen, paste, copy) for the lecturer. */
+  recordExamIntegrity(assessmentId: string, kind: 'left_window' | 'exited_fullscreen' | 'paste' | 'copy') {
+    return this.request<{ status: string }>(`/assessments/${assessmentId}/integrity`, {
+      method: 'POST', body: JSON.stringify({ kind }),
+    });
+  }
+
   deleteAssessmentQuestion(assessmentId: string, questionId: string) {
     return this.request<{ status: string }>(
       `/assessments/${assessmentId}/questions/${questionId}`,
@@ -970,6 +992,21 @@ class ApiClient {
       `/assessments/course/${courseId}/accommodations/${studentId}`,
       { method: 'PUT', body: JSON.stringify({ extra_time_minutes: extraTimeMinutes }) }
     );
+  }
+
+  /** Intervention Studio activities assigned to this student, and whether one locks other study. */
+  listActivities(courseId: string) {
+    return this.request<{ activities: import('@/store/activityStore').Activity[]; locked: boolean }>(
+      `/sessions/activities/${courseId}`
+    );
+  }
+
+  /** Approved concept videos (Manim/Remotion) and published lecture videos on the course. */
+  getVideoLibrary(courseId: string) {
+    return this.request<{
+      videos: { id: string; concept_key: string; topic: string | null; duration_seconds: number | null; url: string }[];
+      lectures: { document_id: string; title: string }[];
+    }>(`/render/library/${courseId}`);
   }
 
   /** GET /assessments/available/{course} — the exams this student may sit. */
