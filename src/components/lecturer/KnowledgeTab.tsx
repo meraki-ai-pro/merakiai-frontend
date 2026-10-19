@@ -58,6 +58,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
   const [difficulty, setDifficulty] = useState<DifficultyValue>('basic');
   const [formats, setFormats] = useState<QuestionFormat[]>([]);
   const [topic, setTopic] = useState('');
+  const [videoTitle, setVideoTitle] = useState('');
   const [videoLink, setVideoLink] = useState('');
   const [uploading, setUploading] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
@@ -94,6 +95,7 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
     setUploading(true);
     const res = await apiClient.addVideo(courseId, {
       ...(file ? { filename: file.name } : { link }),
+      ...(videoTitle.trim() ? { title: videoTitle.trim() } : {}),
       target_modes: modes,
       ...(showsDifficulty ? { difficulty } : {}),
       ...(topic.trim() ? { topic: topic.trim() } : {}),
@@ -128,7 +130,10 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
     const link = videoLink.trim();
     if (!link) return;
     if (!/^https:\/\//.test(link)) return void toast.error('The link must start with https://');
-    if (await addVideo(null, link)) setVideoLink('');
+    if (await addVideo(null, link)) {
+      setVideoLink('');
+      setVideoTitle('');
+    }
   };
 
   const retryVideo = async (file: KnowledgeFile) => {
@@ -354,7 +359,17 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
         >
           <Upload className="h-4 w-4" /> {uploading ? 'Uploading… (videos can take a few minutes)' : 'Choose file'}
         </button>
-        <div className="mt-3 flex max-w-2xl flex-col gap-2 sm:flex-row">
+        <div className="mt-3 grid max-w-2xl gap-2 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto]">
+          <label className="sr-only" htmlFor="lecture-video-title">Video title</label>
+          <input
+            id="lecture-video-title"
+            value={videoTitle}
+            onChange={(event) => setVideoTitle(event.target.value)}
+            placeholder="Video title (optional)"
+            maxLength={300}
+            disabled={uploading}
+            className="min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
+          />
           <label className="sr-only" htmlFor="lecture-video-link">YouTube or direct video URL</label>
           <input
             id="lecture-video-link"

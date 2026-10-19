@@ -457,6 +457,7 @@ class ApiClient {
     body: {
       filename?: string;
       link?: string;
+      title?: string;
       target_modes: string[];
       difficulty?: string;
       topic?: string;
