@@ -25,7 +25,6 @@ import type {
 import type {
   ConversationRow,
   DeliveryBlock,
-  TaskStatusResponse,
   WsIncoming,
   WsLearnResponse,
   WsStatusPush,
@@ -115,28 +114,10 @@ async function fetchSubtitles(subtitlesUrl?: string | null) {
   }
 }
 
-const COMPLETE_TASK_STATUSES = new Set([
-  "completed",
-  "complete",
-  "done",
-  "success",
-  "succeeded",
-  "finished",
-]);
-const FAILED_TASK_STATUSES = new Set(["failed", "error"]);
-
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object"
     ? (value as Record<string, unknown>)
     : null;
-}
-
-function unwrapTaskResult(status: TaskStatusResponse): Record<string, unknown> | null {
-  return (
-    asRecord(status.result) ??
-    asRecord(status.data) ??
-    asRecord(status)
-  );
 }
 
 function getDeliveryFromRecord(record: Record<string, unknown> | null): DeliveryBlock | null {
@@ -144,12 +125,7 @@ function getDeliveryFromRecord(record: Record<string, unknown> | null): Delivery
 
   const source = asRecord(record.delivery) ?? record;
   const responseFormat = source.response_format;
-  const videoUrl =
-    source.video_url ??
-    source.result_url ??
-    source.download_url ??
-    source.hosted_url ??
-    source.stream_url;
+  const videoUrl = source.video_url;
   const audioUrl = source.audio_url;
   const subtitlesUrl = source.subtitles_url;
 
@@ -283,9 +259,9 @@ export function useChat() {
   const applyTaskResult = useCallback(
     async (result: Record<string, unknown>) => {
       const delivery = getDeliveryFromRecord(result);
-      if (!delivery?.video_url) return;
+      if (!delivery?.video_url) return false;
       const response = result.response;
-      await applyVideoDeliveryToMessage(
+      return applyVideoDeliveryToMessage(
         (message) =>
           message.role === "assistant" &&
           message.mode === "learn" &&
@@ -309,32 +285,19 @@ export function useChat() {
         while (Date.now() - startedAt < 90_000) {
           await new Promise((resolve) => setTimeout(resolve, 2000));
           const res = await apiClient.getRagTaskStatus(taskId);
-
           if (!res.success || !res.data) continue;
 
           debugBackend(`learn:status:${taskId}`, res.data);
 
-          const status = String(res.data.status ?? "").toLowerCase();
-          const result = unwrapTaskResult(res.data);
-          if (result) {
-            const before = useChatStore.getState().messages;
-            await applyTaskResult(result);
-            appliedVideo =
-              appliedVideo ||
-              useChatStore.getState().messages.some((message, index) => {
-                const previous = before[index];
-                return (
-                  message.videoUrl &&
-                  message.responseFormat === "video" &&
-                  previous?.videoUrl !== message.videoUrl
-                );
-              });
+          // /rag/status answers {status: "processing"} until the task ends, then
+          // either {status: "failed"} or the finished turn itself (no status).
+          // Either way the turn is over, so stop polling.
+          const status = res.data.status;
+          if (status === "processing") continue;
+          if (status !== "failed") {
+            appliedVideo = await applyTaskResult(res.data as unknown as Record<string, unknown>);
           }
-
-          if (COMPLETE_TASK_STATUSES.has(status)) break;
-          if (FAILED_TASK_STATUSES.has(status)) {
-            break;
-          }
+          break;
         }
         if (!appliedVideo) clearPendingVideoMessages();
       } finally {

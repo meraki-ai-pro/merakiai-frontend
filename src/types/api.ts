@@ -45,16 +45,6 @@ export interface SignupRequest {
   captcha_token?: string;
 }
 
-export interface RagTurnResponse {
-  mode: 'learn';
-  response: string;
-  response_format: 'text' | 'video';
-  video_url?: string | null;
-  subtitles_url?: string | null;
-  audio_url?: string | null;
-  did_payload?: unknown;
-}
-
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 
 /** POST /sessions/ — now requires course_id */
