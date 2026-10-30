@@ -257,8 +257,13 @@ export const useChatStore = create<ChatState>()(
 
       setStreamingSources: (sources) => set({ streamingSources: sources }),
 
-      openSourceDrawer: (sources, citation) =>
-        set({ sourceDrawer: { sources, activeCitation: citation ?? null } }),
+      openSourceDrawer: (sources, citation) => {
+        set({ sourceDrawer: { sources, activeCitation: citation ?? null } });
+        // Imported lazily: lib/track reads this store, so a static import would be circular.
+        void import('@/lib/track').then(({ track }) =>
+          track(citation != null ? 'citation.clicked' : 'source.drawer_opened', citation != null ? { citation } : {}),
+        );
+      },
 
       closeSourceDrawer: () => set({ sourceDrawer: null }),
 

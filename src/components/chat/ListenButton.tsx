@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2, Square, Volume2 } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { pickVoice, speechAvailable, toSpokenText } from '@/lib/speech';
+import { track } from '@/lib/track';
 
 // The narration endpoint's MAX_TEXT_CHARS is 1200; stay under it.
 const CHUNK_CHARS = 1150;
@@ -96,6 +97,7 @@ export function ListenButton({ content, courseId }: { content: string; courseId?
     stopCurrent = stop;
     cancelled.current = false;
 
+    track('board.narration_played', { source: 'listen' });
     const chunks = chunkForSpeech(spokenAnswer(content));
     let hosted = !!courseId;
     setState('loading');

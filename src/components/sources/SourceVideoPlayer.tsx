@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { apiClient } from '@/services/api';
 import { youtubeEmbedUrl } from '@/lib/video';
 import type { RetrievedSource } from '@/types/api';
+import { track } from '@/lib/track';
 
 const VIDEO_TIME_RE = /^Video ((?:\d+:)?\d+:\d{2})/;
 
@@ -72,7 +73,7 @@ export function SourceVideoPlayer({
             allowFullScreen
           />
         ) : (
-          <video src={url} controls playsInline preload="metadata" className="h-full w-full" />
+          <video src={url} controls playsInline preload="metadata" className="h-full w-full" onEnded={() => track('video.completed', { kind: 'lecture' })} />
         )}
       </div>
       <a

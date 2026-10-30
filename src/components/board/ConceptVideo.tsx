@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/services/api';
+import { track } from '@/lib/track';
 
 /**
  * Plays a lecturer-approved concept animation on a board slide.
@@ -67,6 +68,7 @@ export function ConceptVideo({
       controls
       playsInline
       preload="metadata"
+      onEnded={() => track('video.completed', { kind: 'concept', concept })}
     />
   );
 }

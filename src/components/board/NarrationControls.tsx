@@ -5,6 +5,7 @@ import { Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { pickVoice, speechAvailable, toSpokenText } from '@/lib/speech';
 import type { Slide } from '@/lib/board';
+import { track } from '@/lib/track';
 
 interface NarrationControlsProps {
   slides: Slide[];
@@ -159,6 +160,7 @@ export function NarrationControls({
     }
     const slide = slides[activeIndex];
     if (!slide) return;
+    track('board.narration_played', { slide: activeIndex });
     void speak([slide.title, toSpokenText(slide.body)].filter(Boolean).join('. '));
   };
 

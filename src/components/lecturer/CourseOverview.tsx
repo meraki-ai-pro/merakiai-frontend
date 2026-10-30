@@ -268,6 +268,7 @@ function EngagementPanel({ data }: { data: CourseAnalytics }) {
             <Stat label="Sources opened" value={e.sources_opened ?? 0} />
             <Stat label="Citations clicked" value={e.citations_clicked ?? 0} />
             <Stat label="Videos watched through" value={e.videos_completed ?? 0} />
+            <Stat label="Narration played" value={e.narration_played ?? 0} />
           </div>
           {/* Given its own callout rather than a fifth tile: it is the only
               number here that names an action for the lecturer. */}

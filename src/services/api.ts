@@ -995,6 +995,11 @@ class ApiClient {
     );
   }
 
+  /** POST /events — an engagement event only the browser can see (see lib/track.ts). */
+  trackEvent(body: { event_type: string; course_id: string; session_id: string | null; payload: Record<string, unknown> }) {
+    return this.request<{ status: string }>('/events', { method: 'POST', body: JSON.stringify(body) });
+  }
+
   /** Intervention Studio activities assigned to this student, and whether one locks other study. */
   listActivities(courseId: string) {
     return this.request<{ activities: import('@/store/activityStore').Activity[]; locked: boolean }>(

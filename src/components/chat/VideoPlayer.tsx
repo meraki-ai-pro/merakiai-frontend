@@ -6,6 +6,7 @@ import { Subtitle } from '@/types';
 import { SubtitleDisplay } from './SubtitleDisplay';
 import { Play, Pause, Volume2, VolumeX, Maximize, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { track } from '@/lib/track';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -177,6 +178,7 @@ export function VideoPlayer({ videoUrl, subtitles, duration }: VideoPlayerProps)
         className="w-full aspect-video"
         preload="metadata"
         onClick={handlePlayPause}
+        onEnded={() => track('video.completed', { kind: 'answer' })}
       />
 
       {/* Signed URL expiry / network error overlay */}

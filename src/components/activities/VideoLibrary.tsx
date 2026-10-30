@@ -12,6 +12,7 @@ import { Film, Loader2, PauseCircle, PlayCircle } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { lectureHeading, youtubeEmbedUrl } from '@/lib/video';
 import { useCourseStore } from '@/store/courseStore';
+import { track } from '@/lib/track';
 
 type Library = NonNullable<Awaited<ReturnType<typeof apiClient.getVideoLibrary>>['data']>;
 
@@ -67,7 +68,7 @@ export function VideoLibrary() {
               <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {library.videos.map((v) => (
                   <li key={v.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5">
-                    <video src={v.url} controls preload="metadata" className="aspect-video w-full bg-black" />
+                    <video src={v.url} controls preload="metadata" className="aspect-video w-full bg-black" onEnded={() => track('video.completed', { kind: 'concept', concept: v.concept_key })} />
                     <p className="px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-100">{v.topic || v.concept_key.replace(/-/g, ' ')}</p>
                   </li>
                 ))}
@@ -122,7 +123,7 @@ function LectureCard({
               allowFullScreen
             />
           ) : (
-            <video src={activeUrl} controls playsInline preload="metadata" className="h-full w-full" />
+            <video src={activeUrl} controls playsInline preload="metadata" className="h-full w-full" onEnded={() => track('video.completed', { kind: 'lecture' })} />
           )}
         </div>
       )}
