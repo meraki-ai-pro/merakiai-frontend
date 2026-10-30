@@ -150,6 +150,9 @@ export default function Home() {
             </button>
 
             <div className="hidden items-center gap-6 rounded-full border border-blue-200/80 bg-white/70 px-5 py-2 text-sm font-medium text-slate-700 shadow-sm shadow-blue-950/[0.06] backdrop-blur dark:border-white/[0.15] dark:bg-white/[0.1] dark:text-white/90 md:flex">
+              <button onClick={() => document.getElementById('tour')?.scrollIntoView({ behavior: 'smooth' })}>
+                Tour
+              </button>
               <button onClick={() => document.getElementById('modes')?.scrollIntoView({ behavior: 'smooth' })}>
                 Modes
               </button>
@@ -213,6 +216,31 @@ export default function Home() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* A 30-second tour: modes, formats, instructor analytics. Rendered with
+          Remotion (Backend - V1/remotion/src/Intro.tsx). Not autoplayed, so it
+          costs nothing until someone presses play. */}
+      <section id="tour" className="bg-white px-4 pb-4 pt-16 dark:bg-slate-950 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl text-center">
+          <h2 className="text-balance text-3xl font-semibold leading-tight text-slate-950 dark:text-white">
+            See Meraki in 30 seconds
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-slate-600 dark:text-slate-300">
+            The two study modes, the formats a lesson comes in, and what instructors can see.
+          </p>
+          <div className="mt-8 overflow-hidden rounded-3xl border border-blue-200/70 shadow-2xl shadow-blue-950/[0.12] dark:border-white/10">
+            <video
+              src="/media/meraki-intro.mp4"
+              poster="/media/meraki-intro-poster.jpg"
+              controls
+              playsInline
+              preload="none"
+              className="aspect-video w-full bg-slate-950"
+              aria-label="A 30-second tour of Meraki"
+            />
           </div>
         </div>
       </section>
