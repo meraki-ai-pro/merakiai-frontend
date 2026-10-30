@@ -149,7 +149,21 @@ export function CourseOverview({ courseId, onOpenExams }: { courseId: string; on
           <span>
             {data.students.enrolled_but_never_started} enrolled student
             {data.students.enrolled_but_never_started === 1 ? ' has' : 's have'} never opened a
-            session.
+            session
+            {data.students.never_started?.length ? ': ' : '.'}
+            {data.students.never_started?.map((s, i) => (
+              <span key={s.student_id}>
+                {i > 0 && ', '}
+                <button
+                  type="button"
+                  onClick={() => setTimelineFor(s)}
+                  data-testid="never-started-student"
+                  className="font-medium underline decoration-dotted underline-offset-2 hover:text-amber-950 dark:hover:text-amber-100"
+                >
+                  {s.name ?? s.email ?? 'Unnamed student'}
+                </button>
+              </span>
+            ))}
           </span>
         </p>
       )}
@@ -184,17 +198,34 @@ export function CourseOverview({ courseId, onOpenExams }: { courseId: string; on
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel icon={BarChart3} title="Sessions by mode">
-          <CategoryBars
-            ariaLabel="Sessions by mode"
-            valueLabel="Sessions"
-            data={[
-              { name: MODE_LABELS.learn, value: data.sessions.by_mode.learn },
-              { name: MODE_LABELS.review, value: data.sessions.by_mode.review },
-              { name: MODE_LABELS.application, value: data.sessions.by_mode.application },
-            ]}
-          />
-        </Panel>
+        <div className="space-y-6">
+          <Panel icon={BarChart3} title="Sessions by mode">
+            <CategoryBars
+              ariaLabel="Sessions by mode"
+              valueLabel="Sessions"
+              data={[
+                { name: MODE_LABELS.learn, value: data.sessions.by_mode.learn },
+                { name: MODE_LABELS.review, value: data.sessions.by_mode.review },
+                { name: MODE_LABELS.application, value: data.sessions.by_mode.application },
+              ]}
+            />
+          </Panel>
+          {/* Per answer, not per session: a Learn session can switch between
+              text and video at any turn. */}
+          <Panel icon={BarChart3} title="Sessions by format">
+            <CategoryBars
+              ariaLabel="Tutor answers by format"
+              valueLabel="Answers"
+              data={[
+                { name: 'Text', value: data.sessions.by_format?.text ?? 0 },
+                { name: 'Video', value: data.sessions.by_format?.video ?? 0 },
+              ]}
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              Each tutor answer counted by how it was delivered. Video is available in Learn only.
+            </p>
+          </Panel>
+        </div>
         <TimeOnTaskPanel data={data} />
       </div>
       <EngagementPanel data={data} />

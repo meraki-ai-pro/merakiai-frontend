@@ -284,11 +284,15 @@ export interface CourseAnalytics {
     withdrawn: number;
     ever_opened_a_session: number;
     enrolled_but_never_started: number;
+    /** The same students, named. */
+    never_started?: StudentRef[];
     non_student_session_users?: number;
   };
   sessions: {
     total: number;
     by_mode: Record<TutorModeName, number>;
+    /** Tutor answers delivered as text vs video (enrolled students). */
+    by_format?: { text: number; video: number };
   };
   knowledge: { total: number; published: number; draft: number; failed: number };
   videos: { total: number; awaiting_review: number; approved: number; failed: number };
@@ -360,6 +364,17 @@ export type TimelineKind =
 /** GET /analytics/students/{id}/timeline */
 export interface StudentTimeline {
   student: StudentRef;
+  /** Who they are and how far they have got — the useful part for a student with no timeline yet. */
+  profile?: {
+    email: string | null;
+    university: string | null;
+    location: string | null;
+    joined_meraki: string | null;
+    enrolment_status: string | null;
+    enrolled_at: string | null;
+    sessions: number;
+    last_session_at: string | null;
+  };
   mastery: { topic: string; mastery_score: number; attempts_count: number; band: MasteryBand }[];
   timeline: { at: string; kind: TimelineKind; text: string; topic?: string | null }[];
 }

@@ -266,6 +266,7 @@ export function StudentTimelineDialog({
           <p className="text-sm text-slate-500">The timeline is unavailable right now.</p>
         ) : (
           <>
+            {data.profile && <StudentProfile profile={data.profile} />}
             {data.mastery.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {data.mastery.map((m) => (
@@ -300,5 +301,29 @@ export function StudentTimelineDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+const when = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
+function StudentProfile({ profile: p }: { profile: NonNullable<StudentTimeline['profile']> }) {
+  const facts: [string, string][] = [
+    ['Email', p.email ?? '—'],
+    ['University', p.university ?? '—'],
+    ['Location', p.location ?? '—'],
+    ['Enrolled', `${when(p.enrolled_at)}${p.enrolment_status && p.enrolment_status !== 'active' ? ` (${p.enrolment_status})` : ''}`],
+    ['Sessions on this course', String(p.sessions)],
+    ['Last session', p.sessions ? when(p.last_session_at) : 'Never opened one'],
+  ];
+  return (
+    <dl className="grid gap-x-6 gap-y-2 rounded-lg border border-slate-200 p-3 text-sm sm:grid-cols-2 dark:border-white/10" data-testid="student-profile">
+      {facts.map(([label, value]) => (
+        <div key={label} className="min-w-0">
+          <dt className="text-xs text-slate-500">{label}</dt>
+          <dd className="truncate text-slate-800 dark:text-slate-100">{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
