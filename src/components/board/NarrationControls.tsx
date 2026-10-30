@@ -167,7 +167,7 @@ export function NarrationControls({
     : speaking
     ? 'Pause narration'
     : needsGesture
-      ? 'Play narration in your lecturer’s voice'
+      ? 'Play narration in your instructor’s voice'
       : 'Read this slide aloud';
 
   // Hidden only when there is no way to speak at all. A browser without speech

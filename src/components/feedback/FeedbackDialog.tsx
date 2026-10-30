@@ -170,7 +170,7 @@ export function FeedbackDialog({
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {showSessionSurvey
-                ? 'Your answers go to your lecturer and the research team. They are not shown to other students.'
+                ? 'Your answers go to your instructor and the research team. They are not shown to other students.'
                 : 'Your feedback goes to the Meraki team.'}
             </p>
             {/* Shown, not hidden. People are more careful about what they write

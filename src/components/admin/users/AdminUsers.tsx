@@ -325,7 +325,7 @@ export function AdminUsers() {
 
       {me && !isSuperAdmin && (
         <p className="border-t border-slate-200/70 px-6 py-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
-          You can move people between Student and Lecturer. Granting or revoking Admin is
+          You can move people between Student and Instructor. Granting or revoking Admin is
           restricted to super admins — in both directions, so that removing someone&rsquo;s admin
           rights cannot be used as a way around it.
         </p>

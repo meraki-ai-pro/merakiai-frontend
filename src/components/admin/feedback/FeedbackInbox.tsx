@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils';
 const ROLE_FILTERS = [
   { value: '', label: 'Everyone' },
   { value: 'student', label: 'Students' },
-  { value: 'lecturer', label: 'Lecturers' },
+  { value: 'lecturer', label: 'Instructors' },
   { value: 'admin', label: 'Admins' },
 ] as const;
 

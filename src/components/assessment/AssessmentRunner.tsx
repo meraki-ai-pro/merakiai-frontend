@@ -153,7 +153,7 @@ export function AssessmentRunner() {
       'Exams',
       <p className="text-slate-500 dark:text-slate-400">
         Choose a course first — use the course picker at the top of the screen, or enter the invite
-        code your lecturer gave you.
+        code your instructor gave you.
       </p>,
     );
   }
@@ -185,7 +185,7 @@ export function AssessmentRunner() {
         <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" aria-hidden />
         <p className="mt-3 text-xl font-semibold text-slate-900 dark:text-white">Your answers have been submitted</p>
         <p className="mx-auto mt-2 max-w-md text-slate-600 dark:text-slate-300">
-          Your lecturer checks the marking before releasing results. They will appear here, with
+          Your instructor checks the marking before releasing results. They will appear here, with
           feedback on every question.
         </p>
         <button type="button" onClick={() => setSubmitted(null)} className="mt-5 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700">
@@ -304,7 +304,7 @@ function StartScreen({
         ) : null}
         <li>
           The paper opens in full screen. Leaving the exam window, leaving full screen, copying or pasting is
-          recorded and shown to your lecturer with your marks.
+          recorded and shown to your instructor with your marks.
         </li>
       </ul>
 
@@ -516,7 +516,7 @@ function ExamSitting({
         <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
           <span>
             You left the exam {integrity.leaves} time{integrity.leaves === 1 ? '' : 's'}. This is recorded and your
-            lecturer will see it with your marks.
+            instructor will see it with your marks.
           </span>
           {!integrity.fullscreen && integrity.canFullscreen && (
             <button type="button" onClick={() => void document.documentElement.requestFullscreen().catch(() => {})} className="font-medium underline">

@@ -47,7 +47,7 @@ export default function LecturerAccountPage() {
             <p className="text-sm font-semibold">Password change required</p>
             <p className="mt-1 text-xs">
               This account was issued with a temporary password. Change it below before using
-              the lecturer workspace. You will sign in again with the new password.
+              the instructor workspace. You will sign in again with the new password.
             </p>
           </div>
         </div>

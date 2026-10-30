@@ -55,7 +55,7 @@ export type AdminRole = 'user' | 'lecturer' | 'admin' | 'super_admin';
 
 export const ROLE_LABELS: Record<AdminRole, string> = {
   user: 'Student',
-  lecturer: 'Lecturer',
+  lecturer: 'Instructor',
   admin: 'Admin',
   super_admin: 'Super admin',
 };

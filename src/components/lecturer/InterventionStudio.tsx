@@ -278,7 +278,7 @@ export function InterventionStudio({
                 />
               )}
               <p className="text-xs text-slate-400">
-                Each student gets this as a new Learn session titled “From your lecturer: {focus.topic}”, and
+                Each student gets this as a new Learn session titled “From your instructor: {focus.topic}”, and
                 the tutor carries on from it when they reply.
               </p>
               <div className="flex gap-2">

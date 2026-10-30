@@ -19,7 +19,7 @@ export function NewChat({ iconOnly = false }: NewChatProps) {
 
   const handleNewChat = () => {
     if (locked) {
-      toast('Finish the activity your lecturer assigned first.', { icon: '🔒' });
+      toast('Finish the activity your instructor assigned first.', { icon: '🔒' });
       return router.push('/dashboard/activities');
     }
     router.push('/dashboard');

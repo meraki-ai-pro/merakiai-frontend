@@ -31,7 +31,7 @@ import type { UpdateProfileRequest, UserProfileResponse } from '@/types';
 const ROLE_LABELS: Record<string, string> = {
   user: 'Student',
   student: 'Student',
-  lecturer: 'Lecturer',
+  lecturer: 'Instructor',
   admin: 'Administrator',
   super_admin: 'Super administrator',
 };

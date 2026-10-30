@@ -49,7 +49,7 @@ export function VideoLibrary() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Videos</h1>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Animations and lecture videos from your lecturer.</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Animations and lecture videos from your instructor.</p>
 
       {!courseId ? (
         <p className="mt-8 text-slate-500">Choose a course first, using the course picker at the top.</p>

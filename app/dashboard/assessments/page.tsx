@@ -2,7 +2,7 @@ import { AssessmentRunner } from '@/components/assessment/AssessmentRunner';
 
 export const metadata = {
   title: 'Exams | Meraki',
-  description: 'Tests and exams set by your lecturer.',
+  description: 'Tests and exams set by your instructor.',
 };
 
 /**

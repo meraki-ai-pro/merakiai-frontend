@@ -92,7 +92,7 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
     // instead of opening a session that cannot load.
     const { locked, activities } = useActivityStore.getState();
     if (locked && !openWhileLocked(activities).has(id)) {
-      toast('Finish the activity your lecturer assigned first.', { icon: '🔒' });
+      toast('Finish the activity your instructor assigned first.', { icon: '🔒' });
       return router.push('/dashboard/activities');
     }
     router.push('/dashboard');
