@@ -137,6 +137,10 @@ export async function expireSession(): Promise<void> {
 }
 
 // ─── API Client ───────────────────────────────────────────────────────────────
+export type DataCenterDataset =
+  | 'students' | 'sessions' | 'conversations' | 'exam_results'
+  | 'mastery' | 'activities' | 'engagement' | 'feedback';
+
 class ApiClient {
   private baseUrl: string;
 
@@ -961,6 +965,16 @@ class ApiClient {
   /** Cohort results for every exam on the course (analytics overview). */
   getExamsSummary(courseId: string) {
     return this.request<{ exams: ExamSummary[] }>(`/assessments/course/${courseId}/summary`);
+  }
+
+  /** Data Center: one course dataset as CSV text, for a whole-day UTC date range. */
+  downloadCourseData(courseId: string, dataset: DataCenterDataset, start?: string, end?: string) {
+    const qs = new URLSearchParams();
+    if (start) qs.set('start', start);
+    if (end) qs.set('end', end);
+    return this.request<{ filename: string; rows: number; csv: string }>(
+      `/lecturer/courses/${courseId}/data/${dataset}${qs.toString() ? `?${qs}` : ''}`
+    );
   }
 
   /** Every exam's marks as an .xlsx workbook. Saves it via a temporary link. */

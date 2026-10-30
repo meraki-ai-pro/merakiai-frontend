@@ -3,7 +3,7 @@
 /**
  * Course workspace — Lecturer doc §7.
  *
- * Tabs are Overview | Knowledge | Students | Concept Animations | Exams | Settings.
+ * Tabs are Overview | Knowledge | Students | Concept Animations | Exams | Data Center | Settings.
  * Topics is deliberately absent: there is no topics table yet, and documents
  * carry a free-text topic field which is enough for the pilot.
  *
@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
-  ArrowLeft, BookOpenText, ClipboardCheck, Clapperboard, LayoutDashboard, Settings, Users,
+  ArrowLeft, BookOpenText, ClipboardCheck, Clapperboard, Database, LayoutDashboard, Settings, Users,
 } from 'lucide-react';
 import { apiClient } from '@/services/api';
 import { KnowledgeTab } from '@/components/lecturer/KnowledgeTab';
@@ -25,6 +25,7 @@ import { StudentsTab } from '@/components/lecturer/StudentsTab';
 import { VideosTab } from '@/components/lecturer/VideosTab';
 import { AssessmentsTab } from '@/components/lecturer/AssessmentsTab';
 import { CourseOverview } from '@/components/lecturer/CourseOverview';
+import { DataCenterTab } from '@/components/lecturer/DataCenterTab';
 import type { LecturerCourse, LecturerVoice } from '@/types/lecturer';
 
 const TABS = [
@@ -33,6 +34,7 @@ const TABS = [
   'Students',
   'Concept Animations',
   'Exams',
+  'Data Center',
   'Settings',
 ] as const;
 type Tab = (typeof TABS)[number];
@@ -43,6 +45,7 @@ const TAB_ICONS: Record<Tab, React.ElementType> = {
   Students: Users,
   'Concept Animations': Clapperboard,
   Exams: ClipboardCheck,
+  'Data Center': Database,
   Settings,
 };
 
@@ -122,6 +125,7 @@ export default function CourseWorkspace() {
       {tab === 'Students' && <StudentsTab courseId={courseId} />}
       {tab === 'Concept Animations' && <VideosTab courseId={courseId} />}
       {tab === 'Exams' && <AssessmentsTab courseId={courseId} />}
+      {tab === 'Data Center' && <DataCenterTab courseId={courseId} />}
       {tab === 'Settings' && course && (
         <SettingsTab course={course} onSaved={setCourse} />
       )}
