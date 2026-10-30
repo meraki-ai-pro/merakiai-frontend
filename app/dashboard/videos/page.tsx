@@ -1,7 +1,7 @@
 import { VideoLibrary } from '@/components/activities/VideoLibrary';
 
 export const metadata = {
-  title: 'Videos | Meraki',
+  title: 'YouTube Videos/Animations | Meraki',
   description: 'Animations and lecture videos from your instructor.',
 };
 

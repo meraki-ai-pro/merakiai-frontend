@@ -319,26 +319,39 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
         {/* Topic — the name mastery is tracked under. Review questions drawn
             from this file are marked against it, so one name per topic matters
             more than a precise one: the list offers the names already in use. */}
-        <label className="mt-5 block text-sm text-slate-600 dark:text-slate-300">
+        {/* The topic and the file it labels sit on one row: pick the topic, then
+            the file, without hunting for the button. */}
+        <label htmlFor="knowledge-topic" className="mt-5 block text-sm text-slate-600 dark:text-slate-300">
           Topic
+        </label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
+            id="knowledge-topic"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             list="knowledge-topics"
             placeholder="e.g. Limits"
             data-testid="knowledge-topic"
-            className="mt-2 block w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
+            className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15 dark:bg-slate-900"
           />
           <datalist id="knowledge-topics">
             {[...new Set(files.map((f) => f.topic).filter((t): t is string => !!t))].map((t) => (
               <option key={t} value={t} />
             ))}
           </datalist>
-          <span className="mt-1 block text-xs text-slate-400">
-            Optional, but students&rsquo; Review answers only count towards topic mastery when
-            the course has topics to count them under.
-          </span>
-        </label>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="flex flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+          >
+            <Upload className="h-4 w-4" /> {uploading ? 'Uploading… (videos can take a few minutes)' : 'Choose file'}
+          </button>
+        </div>
+        <span className="mt-1 block text-xs text-slate-400">
+          Optional, but students&rsquo; Review answers only count towards topic mastery when
+          the course has topics to count them under.
+        </span>
 
         <input
           ref={inputRef}
@@ -351,14 +364,6 @@ export function KnowledgeTab({ courseId }: { courseId: string }) {
             e.target.value = '';
           }}
         />
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="mt-4 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
-        >
-          <Upload className="h-4 w-4" /> {uploading ? 'Uploading… (videos can take a few minutes)' : 'Choose file'}
-        </button>
         <div className="mt-3 grid max-w-2xl gap-2 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto]">
           <label className="sr-only" htmlFor="lecture-video-title">Video title</label>
           <input

@@ -135,7 +135,7 @@ export function CourseOverview({ courseId, onOpenExams }: { courseId: string; on
         <Kpi icon={FileText} label="Published files" value={data.knowledge.published} />
         <Kpi
           icon={Video}
-          label="Videos awaiting review"
+          label="Animations awaiting review"
           value={data.videos.awaiting_review}
           highlight={data.videos.awaiting_review > 0}
         />

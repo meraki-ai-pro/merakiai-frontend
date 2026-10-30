@@ -185,8 +185,8 @@ test('lecturer: onboarding, course, materials, videos, assessments, students', a
   await caption(page, 'A student with an account can also be enrolled by email.');
 
   // ── 9. Concept video ──────────────────────────────────────────────────────
-  await page.getByRole('tab', { name: 'Videos' }).click();
-  await caption(page, 'Videos tab: generate an animated explanation of a concept.');
+  await page.getByRole('tab', { name: 'Concept Animations' }).click();
+  await caption(page, 'Concept Animations tab: generate an animated explanation of a concept.');
   await page.getByRole('button', { name: /new video/i }).click();
 
   await page.getByTestId('render-concept-key').fill('chain-rule');

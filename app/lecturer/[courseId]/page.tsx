@@ -3,7 +3,7 @@
 /**
  * Course workspace — Lecturer doc §7.
  *
- * Tabs are Overview | Knowledge | Students | Videos | Exams | Settings.
+ * Tabs are Overview | Knowledge | Students | Concept Animations | Exams | Settings.
  * Topics is deliberately absent: there is no topics table yet, and documents
  * carry a free-text topic field which is enough for the pilot.
  *
@@ -31,7 +31,7 @@ const TABS = [
   'Overview',
   'Knowledge',
   'Students',
-  'Videos',
+  'Concept Animations',
   'Exams',
   'Settings',
 ] as const;
@@ -41,7 +41,7 @@ const TAB_ICONS: Record<Tab, React.ElementType> = {
   Overview: LayoutDashboard,
   Knowledge: BookOpenText,
   Students: Users,
-  Videos: Clapperboard,
+  'Concept Animations': Clapperboard,
   Exams: ClipboardCheck,
   Settings,
 };
@@ -120,7 +120,7 @@ export default function CourseWorkspace() {
       )}
       {tab === 'Knowledge' && <KnowledgeTab courseId={courseId} />}
       {tab === 'Students' && <StudentsTab courseId={courseId} />}
-      {tab === 'Videos' && <VideosTab courseId={courseId} />}
+      {tab === 'Concept Animations' && <VideosTab courseId={courseId} />}
       {tab === 'Exams' && <AssessmentsTab courseId={courseId} />}
       {tab === 'Settings' && course && (
         <SettingsTab course={course} onSaved={setCourse} />

@@ -93,7 +93,7 @@ export function Sidebar() {
             student view at the client's request. */}
         <NavLink href="/dashboard/assessments" testId="nav-assessments" icon={GraduationCap} label="Exams" collapsed={collapsed}
           badge={examsDue} badgeTitle="Exams you can sit now" />
-        <NavLink href="/dashboard/videos" testId="nav-videos" icon={Film} label="Videos" collapsed={collapsed} />
+        <NavLink href="/dashboard/videos" testId="nav-videos" icon={Film} label="YouTube Videos/Animations" collapsed={collapsed} />
         <NavLink href="/dashboard/archived" testId="nav-archived" icon={Archive} label="Archived" title="Archived sessions" collapsed={collapsed} />
       </div>
 

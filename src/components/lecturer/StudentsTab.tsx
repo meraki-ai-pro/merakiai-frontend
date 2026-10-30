@@ -122,8 +122,7 @@ export function StudentsTab({ courseId }: { courseId: string }) {
           </button>
         </div>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Read one out in class. Students enter it when they sign up and land straight on this
-          course.
+          Students enter it when they sign up and land straight on this course.
         </p>
 
         {codes.length > 0 && (
