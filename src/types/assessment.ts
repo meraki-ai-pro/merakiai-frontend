@@ -34,6 +34,8 @@ export interface Assessment {
   is_published?: boolean;
   created_at?: string;
   time_limit_minutes?: number | null;
+  /** Percentage needed to pass; null = 50%. */
+  pass_mark?: number | null;
   opens_at?: string | null;
   closes_at?: string | null;
   results_released?: boolean;

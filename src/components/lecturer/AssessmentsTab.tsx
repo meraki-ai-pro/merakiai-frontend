@@ -128,6 +128,7 @@ function CreateExamForm({ courseId, onCreated }: { courseId: string; onCreated: 
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
   const [minutes, setMinutes] = useState('');
+  const [passMark, setPassMark] = useState('');
   const [opensAt, setOpensAt] = useState('');
   const [closesAt, setClosesAt] = useState('');
   const [targets, setTargets] = useState<string[]>([]);
@@ -142,6 +143,7 @@ function CreateExamForm({ courseId, onCreated }: { courseId: string; onCreated: 
       title: title.trim(),
       instructions: instructions.trim() || null,
       time_limit_minutes: minutes ? Number(minutes) : null,
+      ...(passMark ? { pass_mark: Number(passMark) } : {}),
       target_student_ids: targets,
       opens_at: fromLocalInput(opensAt),
       closes_at: fromLocalInput(closesAt),
@@ -169,10 +171,14 @@ function CreateExamForm({ courseId, onCreated }: { courseId: string; onCreated: 
           </select>
         </label>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <label className="text-sm">
           <span className="text-slate-600 dark:text-slate-300">Time limit (minutes)</span>
           <input type="number" min={1} max={600} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="Untimed" className={input} />
+        </label>
+        <label className="text-sm">
+          <span className="text-slate-600 dark:text-slate-300">Pass mark (%)</span>
+          <input type="number" min={1} max={100} value={passMark} onChange={(e) => setPassMark(e.target.value)} placeholder="50" data-testid="exam-pass-mark" className={input} />
         </label>
         <label className="text-sm">
           <span className="text-slate-600 dark:text-slate-300">Opens (optional)</span>
@@ -258,6 +264,7 @@ function ExamRow({ courseId, exam, expanded, onToggle, onChanged }: { courseId: 
 function SettingsPanel({ courseId, exam, onSaved }: { courseId: string; exam: Assessment; onSaved: () => void }) {
   const [targets, setTargets] = useState<string[]>(exam.target_student_ids ?? []);
   const [minutes, setMinutes] = useState(exam.time_limit_minutes ? String(exam.time_limit_minutes) : '');
+  const [passMark, setPassMark] = useState(exam.pass_mark ? String(exam.pass_mark) : '');
   const [opensAt, setOpensAt] = useState(toLocalInput(exam.opens_at));
   const [closesAt, setClosesAt] = useState(toLocalInput(exam.closes_at));
   const [busy, setBusy] = useState(false);
@@ -266,6 +273,7 @@ function SettingsPanel({ courseId, exam, onSaved }: { courseId: string; exam: As
     setBusy(true);
     const res = await apiClient.updateAssessment(exam.id, {
       ...(minutes ? { time_limit_minutes: Number(minutes) } : { untimed: true }),
+      ...(passMark ? { pass_mark: Number(passMark) } : {}),
       ...(opensAt || closesAt
         ? { opens_at: fromLocalInput(opensAt), closes_at: fromLocalInput(closesAt) }
         : { clear_window: true }),
@@ -284,6 +292,10 @@ function SettingsPanel({ courseId, exam, onSaved }: { courseId: string; exam: As
         <label className="text-sm">
           <span className="text-slate-600 dark:text-slate-300">Minutes</span>
           <input type="number" min={1} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="Untimed" className={cn(input, 'w-28')} />
+        </label>
+        <label className="text-sm">
+          <span className="text-slate-600 dark:text-slate-300">Pass mark (%)</span>
+          <input type="number" min={1} max={100} value={passMark} onChange={(e) => setPassMark(e.target.value)} placeholder="50" className={cn(input, 'w-24')} />
         </label>
         <label className="text-sm">
           <span className="text-slate-600 dark:text-slate-300">Opens</span>

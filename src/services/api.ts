@@ -850,6 +850,7 @@ class ApiClient {
     title: string;
     instructions?: string | null;
     time_limit_minutes?: number | null;
+    pass_mark?: number | null;
     target_student_ids?: string[];
     opens_at?: string | null;
     closes_at?: string | null;
@@ -862,7 +863,7 @@ class ApiClient {
 
   updateAssessment(
     assessmentId: string,
-    payload: Partial<Pick<Assessment, 'title' | 'instructions' | 'time_limit_minutes' | 'opens_at' | 'closes_at'>> & {
+    payload: Partial<Pick<Assessment, 'title' | 'instructions' | 'time_limit_minutes' | 'pass_mark' | 'opens_at' | 'closes_at'>> & {
       untimed?: boolean;
       clear_window?: boolean;
       /** [] = the whole course again. */

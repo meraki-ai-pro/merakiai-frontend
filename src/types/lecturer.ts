@@ -496,6 +496,8 @@ export interface ExamSummary {
   highest_percent?: number;
   lowest_percent?: number;
   pass_rate?: number;
+  /** The paper's pass mark (%), 50 unless the instructor set one. */
+  pass_mark?: number;
   pending_review: number;
   distribution: { band: string; students: number }[];
 }

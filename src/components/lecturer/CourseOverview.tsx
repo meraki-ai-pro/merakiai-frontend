@@ -738,7 +738,10 @@ function ExamsPanel({
                     <td className="py-2 pr-4 tabular-nums text-slate-600 dark:text-slate-300">
                       {e.responses ? `${pct(e.highest_percent)} / ${pct(e.lowest_percent)}` : '—'}
                     </td>
-                    <td className="py-2 pr-4 tabular-nums text-slate-600 dark:text-slate-300">{pct(e.pass_rate)}</td>
+                    <td className="py-2 pr-4 tabular-nums text-slate-600 dark:text-slate-300">
+                      {pct(e.pass_rate)}
+                      <span className="ml-1 text-xs text-slate-400" title="Pass mark">≥{e.pass_mark ?? 50}%</span>
+                    </td>
                     <td className="py-2 text-xs">
                       {e.pending_review > 0 ? (
                         <span className="text-amber-700 dark:text-amber-300">{e.pending_review} to mark</span>
