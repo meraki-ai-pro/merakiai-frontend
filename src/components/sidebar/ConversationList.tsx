@@ -2,12 +2,11 @@
 
 import { openWhileLocked, useActivityStore } from '@/store/activityStore';
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { useChatStore, newId } from '@/store/chatStore';
+import { useChatStore } from '@/store/chatStore';
 import { Trash2, Pencil, Check, X, MessageSquare, BookOpen, FlaskConical, ClipboardCheck, Loader2, MoreVertical, Pin, PinOff, Archive } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/api';
-import type { ConversationRow } from '@/types/api';
 import { useRouter } from 'next/navigation';
 
 const modeIcon = {
@@ -44,8 +43,6 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
   const setCurrentSession = useChatStore((s) => s.setCurrentSession);
   const deleteSession     = useChatStore((s) => s.deleteSession);
   const updateSession     = useChatStore((s) => s.updateSession);
-  const setMessages       = useChatStore((s) => s.setMessages);
-  const loadedSessionsRef = useRef<Set<string>>(new Set());
   const [deletingSessionIds, setDeletingSessionIds] = useState<Set<string>>(new Set());
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -98,38 +95,6 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
     router.push('/dashboard');
     if (id === currentSessionId) return;
     setCurrentSession(id);
-
-    if (loadedSessionsRef.current.has(id)) return;
-    loadedSessionsRef.current.add(id);
-
-    const response = await apiClient.getConversations(id, 200);
-    if (!response.success || !response.data) {
-      loadedSessionsRef.current.delete(id);
-      return;
-    }
-
-    const messages = response.data.conversations.flatMap((conversation: ConversationRow) => {
-      const mode = conversation.mode || 'learn';
-      const timestamp = new Date(conversation.created_at);
-      const userContent = conversation.user_input || '';
-      const tutorContent = conversation.tutor_response || '';
-
-      return [
-        {
-          id: newId(), sessionId: id, role: 'user' as const, content: userContent,
-          responseFormat: 'text' as const, mode, timestamp,
-          attachments: conversation.attachments ?? undefined,
-        },
-        {
-          id: newId(), sessionId: id, role: 'assistant' as const, content: tutorContent,
-          responseFormat: conversation.response_format || 'text', mode, timestamp,
-          videoUrl: conversation.video_url, audioUrl: conversation.audio_url,
-          sources: conversation.sources ?? undefined,
-        },
-      ].filter((message) => message.content && !message.content.startsWith('(system)'));
-    });
-
-    if (useChatStore.getState().currentSessionId === id) setMessages(messages);
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -149,7 +114,6 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
       return;
     }
 
-    loadedSessionsRef.current.delete(id);
     deleteSession(id);
     toast.success('Session deleted');
   };
@@ -172,7 +136,6 @@ export function ConversationList({ searchQuery = '' }: ConversationListProps) {
       toast.error(response.error?.message ?? 'Could not archive session');
       return;
     }
-    loadedSessionsRef.current.delete(id);
     deleteSession(id);
     toast.success('Session archived');
   };

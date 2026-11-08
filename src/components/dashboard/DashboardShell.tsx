@@ -10,6 +10,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { apiClient } from '@/services/api';
 import type { TutorMode } from '@/types';
+import type { UserSessionSummary } from '@/types/api';
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -18,6 +19,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
+  const examActive = useUIStore((s) => s.examActive);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -27,6 +29,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   // Check if user has avatar
   useEffect(() => {
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
     const checkAvatar = async () => {
       
       try {
@@ -48,17 +53,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const loadSessions = async () => {
+    const loadSessions = async (attempt = 0) => {
       const chatState = useChatStore.getState();
       if (chatState.sessionsLoadedFromBackend) return;
 
       try {
-        const response = await apiClient.listUserSessions(200);
-        if (!response.success || !response.data) return;
+        const pageSize = 200;
+        const allSessions: UserSessionSummary[] = [];
+        for (let offset = 0; ; offset += pageSize) {
+          const response = await apiClient.listUserSessions(pageSize, offset);
+          if (!response.success || !response.data) {
+            throw new Error(response.error?.message ?? 'Could not load sessions');
+          }
+          const page = response.data.sessions;
+          allSessions.push(...page);
+          if (page.length < pageSize) break;
+        }
+        if (cancelled) return;
 
         const currentSessions = useChatStore.getState().sessions;
         const currentById = new Map(currentSessions.map((session) => [session.id, session]));
-        const backendSessions = response.data.sessions.map((session) => ({
+        const backendSessions = allSessions.map((session) => ({
           id: session.id,
           title: session.title && session.title !== 'Session'
             ? session.title
@@ -76,19 +91,36 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         }));
 
         const backendIds = new Set(backendSessions.map((session) => session.id));
-        const localOnly = currentSessions.filter((session) => !backendIds.has(session.id));
+        // Keep only genuinely optimistic sessions created in this browser.
+        // Old persisted rows absent from the server are deleted/archived or
+        // belong to stale state and must not become unopenable ghost sessions.
+        const localOnly = currentSessions.filter(
+          (session) => !backendIds.has(session.id) && session.title === 'New session',
+        );
         useChatStore.getState().setConversations([...backendSessions, ...localOnly]);
-      } catch {
-        // Session history is non-critical; users can still start a new session.
-      } finally {
         useChatStore.getState().setSessionsLoadedFromBackend(true);
+      } catch {
+        // A transient auth/network race during dashboard startup should not
+        // permanently disable history for this browser session.
+        if (!cancelled && attempt < 2) {
+          retryTimer = setTimeout(() => void loadSessions(attempt + 1), 1000 * 2 ** attempt);
+        }
       }
     };
+
+    const retryWhenOnline = () => void loadSessions();
+    window.addEventListener('online', retryWhenOnline);
 
     if (mounted) {
       void checkAvatar();
       void loadSessions();
     }
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      window.removeEventListener('online', retryWhenOnline);
+    };
   }, [mounted]);
 
   if (!mounted || checkingAvatar) {
@@ -105,7 +137,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(237,232,176,0.28),transparent_25%),linear-gradient(135deg,rgba(255,255,255,0.68),rgba(126,200,227,0.1))] dark:bg-[radial-gradient(circle_at_18%_10%,rgba(56,189,248,0.16),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(245,197,163,0.12),transparent_25%)]" />
 
         {/* Mobile overlay */}
-        {isMobile && sidebarOpen && (
+        {!examActive && isMobile && sidebarOpen && (
           <div
             className="fixed inset-0 z-20 bg-black/50"
             onClick={() => setSidebarOpen(false)}
@@ -113,25 +145,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* SIDEBAR */}
-        <aside
-          style={{
-            width: isMobile ? 'min(288px, 85vw)' : sidebarOpen ? SIDEBAR_OPEN : 64,
-            transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
-          }}
-          className="
-            fixed top-0 left-0 h-dvh z-30
-            border-r border-white/60 bg-white/[0.78] shadow-2xl shadow-blue-950/10 backdrop-blur-xl
-            dark:border-white/10 dark:bg-slate-950/[0.82]
-            overflow-hidden
-            transition-all duration-300 ease-in-out
-          "
-        >
-          <Sidebar />
-        </aside>
+        {!examActive && (
+          <aside
+            style={{
+              width: isMobile ? 'min(288px, 85vw)' : sidebarOpen ? SIDEBAR_OPEN : 64,
+              transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
+            }}
+            className="
+              fixed top-0 left-0 h-dvh z-30
+              border-r border-white/60 bg-white/[0.78] shadow-2xl shadow-blue-950/10 backdrop-blur-xl
+              dark:border-white/10 dark:bg-slate-950/[0.82]
+              overflow-hidden
+              transition-all duration-300 ease-in-out
+            "
+          >
+            <Sidebar />
+          </aside>
+        )}
 
         {/* MAIN */}
         <main
-          style={{ marginLeft: sidebarWidth }}
+          style={{ marginLeft: examActive ? 0 : sidebarWidth }}
           className="
             relative z-10
             flex flex-1 flex-col h-dvh
@@ -139,7 +173,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             min-w-0
           "
         >
-          <Header />
+          {!examActive && <Header />}
 
           {/* Content area */}
           <div className="flex flex-1 flex-col min-h-0 overflow-hidden">

@@ -192,7 +192,11 @@ export function useChat() {
   const autoVideoEnabledRef = useRef<Set<string>>(new Set());
   // Sessions whose transcript has already been fetched this mount, so
   // switching away and back does not re-request it.
-  const hydratedSessionsRef = useRef<Set<string>>(new Set());
+  // Dedupe only requests that are currently in flight. A previous version
+  // remembered a session forever even though the store retained messages for
+  // only the currently-open session; returning to an earlier session then
+  // cleared the screen and skipped the fetch.
+  const hydratingSessionsRef = useRef<Set<string>>(new Set());
 
   // Only Learn turns can carry video; mode sessions (Review and the guided
   // scenario) are always text, so only Learn tasks are ever polled.
@@ -903,33 +907,54 @@ export function useChat() {
   // just its citations. Sources and attachments now come back with it.
   useEffect(() => {
     if (!currentSessionId || !isAuthenticated) return;
-    if (hydratedSessionsRef.current.has(currentSessionId)) return;
+    const initialStore = useChatStore.getState();
+    if (Object.prototype.hasOwnProperty.call(initialStore.messagesBySession, currentSessionId)) {
+      return;
+    }
+    if (hydratingSessionsRef.current.has(currentSessionId)) return;
 
     // Claim the id before awaiting so a fast re-render cannot double-fetch.
-    hydratedSessionsRef.current.add(currentSessionId);
+    hydratingSessionsRef.current.add(currentSessionId);
     let cancelled = false;
 
     (async () => {
       try {
-        const res = await apiClient.getConversations(currentSessionId);
-        const rows = res?.data?.conversations ?? [];
-        if (cancelled || !rows.length) return;
+        const pageSize = 200;
+        const rows: ConversationRow[] = [];
+        for (let offset = 0; ; offset += pageSize) {
+          const res = await apiClient.getConversations(currentSessionId, pageSize, offset);
+          if (!res.success || !res.data) {
+            throw new Error(res.error?.message ?? 'Could not load session history');
+          }
+          const page = res.data.conversations ?? [];
+          rows.push(...page);
+          if (page.length < pageSize) break;
+        }
+        if (cancelled) return;
+        // The API returns each page newest-first and reverses that page for
+        // display. Across multiple pages that produces new-page/old-page
+        // blocks, so establish one global chronology before rendering.
+        rows.sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        );
 
         // Never clobber a turn already on screen: the user may have sent a
         // message while this was in flight, and a mid-flight answer is not in
         // the database yet.
         const store = useChatStore.getState();
-        if (store.currentSessionId !== currentSessionId) return;
-        if (store.messages.length) return;
+        if (store.messagesBySession[currentSessionId]?.length) return;
 
         store.setMessages(
           rows.flatMap((row: ConversationRow) => toMessages(row, currentSessionId)),
+          currentSessionId,
         );
       } catch (err) {
-        // A missing transcript is a degraded view, not a broken session —
-        // the user can still ask their next question.
         debugBackend("conversation hydration failed", err);
-        hydratedSessionsRef.current.delete(currentSessionId);
+        if (!cancelled && useChatStore.getState().currentSessionId === currentSessionId) {
+          toast.error('Could not load this session. Select it again to retry.');
+        }
+      } finally {
+        hydratingSessionsRef.current.delete(currentSessionId);
       }
     })();
 

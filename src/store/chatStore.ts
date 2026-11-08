@@ -21,6 +21,7 @@ export interface ChatState {
   sessions: Session[];
   currentSessionId: string | null;
   messages: Message[];
+  messagesBySession: Record<string, Message[]>;
   isLoadingMessage: boolean;
   isGeneratingVideo: boolean;
   currentVideoResponse: VideoResponse | null;
@@ -54,7 +55,7 @@ export interface ChatState {
   updateSession: (id: string, updates: Partial<Session>) => void;
   deleteSession: (id: string) => void;
   addMessage: (message: Message) => void;
-  setMessages: (messages: Message[]) => void;
+  setMessages: (messages: Message[], sessionId?: string) => void;
   clearMessages: () => void;
   setIsLoadingMessage: (v: boolean) => void;
   setIsGeneratingVideo: (v: boolean) => void;
@@ -95,6 +96,7 @@ export const useChatStore = create<ChatState>()(
       sessions: [],
       currentSessionId: null,
       messages: [],
+      messagesBySession: {},
       isLoadingMessage: false,
       isGeneratingVideo: false,
       currentVideoResponse: null,
@@ -129,6 +131,7 @@ export const useChatStore = create<ChatState>()(
           sessions: [session, ...state.sessions],
           currentSessionId: session.id,
           messages: [],
+          messagesBySession: { ...state.messagesBySession, [session.id]: [] },
           currentVideoResponse: null,
           error: null,
           activeModeSession: null,
@@ -137,13 +140,13 @@ export const useChatStore = create<ChatState>()(
       },
 
       setCurrentSession: (id) =>
-        set({
+        set((state) => ({
           currentSessionId: id,
-          messages: [],
+          messages: id ? state.messagesBySession[id] ?? [] : [],
           currentVideoResponse: null,
           error: null,
           activeModeSession: null,
-        }),
+        })),
 
       updateSession: (id, updates) =>
         set((state) => ({
@@ -153,24 +156,36 @@ export const useChatStore = create<ChatState>()(
         })),
 
       deleteSession: (id) =>
-        set((state) => ({
-          sessions: state.sessions.filter((s) => s.id !== id),
-          ...(state.currentSessionId === id
-            ? {
-                currentSessionId: null,
-                messages: [],
-                currentVideoResponse: null,
-                activeModeSession: null,
-              }
-            : {}),
-        })),
+        set((state) => {
+          const messagesBySession = { ...state.messagesBySession };
+          delete messagesBySession[id];
+          return {
+            sessions: state.sessions.filter((s) => s.id !== id),
+            messagesBySession,
+            ...(state.currentSessionId === id
+              ? {
+                  currentSessionId: null,
+                  messages: [],
+                  currentVideoResponse: null,
+                  activeModeSession: null,
+                }
+              : {}),
+          };
+        }),
 
       addMessage: (message) =>
         set((state) => {
-          const newMessages = [...state.messages, message];
-          const sid = state.currentSessionId;
+          const sid = message.sessionId || state.currentSessionId;
+          if (!sid) return state;
+          const existing = state.messagesBySession[sid]
+            ?? (state.currentSessionId === sid ? state.messages : []);
+          const newMessages = [...existing, message];
           return {
-            messages: newMessages,
+            messages: state.currentSessionId === sid ? newMessages : state.messages,
+            messagesBySession: {
+              ...state.messagesBySession,
+              [sid]: newMessages,
+            },
             sessions: state.sessions.map((s) =>
               s.id === sid
                 ? {
@@ -187,8 +202,29 @@ export const useChatStore = create<ChatState>()(
           };
         }),
 
-      setMessages: (messages) => set({ messages }),
-      clearMessages: () => set({ messages: [], currentVideoResponse: null }),
+      setMessages: (messages, sessionId) =>
+        set((state) => {
+          const sid = sessionId ?? state.currentSessionId;
+          if (!sid) return { messages };
+          return {
+            messages: state.currentSessionId === sid ? messages : state.messages,
+            messagesBySession: { ...state.messagesBySession, [sid]: messages },
+          };
+        }),
+      clearMessages: () =>
+        set((state) => {
+          if (!state.currentSessionId) {
+            return { messages: [], currentVideoResponse: null };
+          }
+          return {
+            messages: [],
+            currentVideoResponse: null,
+            messagesBySession: {
+              ...state.messagesBySession,
+              [state.currentSessionId]: [],
+            },
+          };
+        }),
 
       setIsLoadingMessage: (v) => set({ isLoadingMessage: v }),
       setIsGeneratingVideo: (v) => set({ isGeneratingVideo: v }),

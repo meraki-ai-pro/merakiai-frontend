@@ -21,6 +21,7 @@
 
 import { useUserStore } from '@/store/userStore';
 import { useActivityStore } from '@/store/activityStore';
+import { useUIStore } from '@/store/uiStore';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
@@ -173,7 +174,6 @@ export function AssessmentRunner() {
           // A submitted practice paper may have been the required activity.
           void useActivityStore.getState().refresh(selectedCourseId);
         }}
-        onLeave={() => setPaper(null)}
       />
     );
   }
@@ -359,14 +359,13 @@ function AccessibilityControls({ prefs, onPrefs }: { prefs: Prefs; onPrefs: (p: 
 // ── Sitting the paper ───────────────────────────────────────────────────────
 
 function ExamSitting({
-  paper, courseId, prefs, onPrefs, onSubmitted, onLeave,
+  paper, courseId, prefs, onPrefs, onSubmitted,
 }: {
   paper: TakeAssessmentResponse;
   courseId: string;
   prefs: Prefs;
   onPrefs: (p: Partial<Prefs>) => void;
   onSubmitted: (title: string) => void;
-  onLeave: () => void;
 }) {
   const saveKey = `meraki-exam-answers-${paper.assessment.id}`;
   const questions = paper.questions;
@@ -388,6 +387,15 @@ function ExamSitting({
   const timeOnQuestion = useRef<Record<string, number>>({});
   const enteredAt = useRef(Date.now());
   const submittedRef = useRef(false);
+  const setExamActive = useUIStore((s) => s.setExamActive);
+
+  // Focus mode removes every in-app route out of the paper. Browser/OS-level
+  // lockdown is impossible for an ordinary website, so leaving the window is
+  // detected and reported separately by useExamIntegrity below.
+  useEffect(() => {
+    setExamActive(true);
+    return () => setExamActive(false);
+  }, [setExamActive]);
 
   useEffect(() => writeStore(saveKey, { answers, flags }), [saveKey, answers, flags]);
 
@@ -526,6 +534,20 @@ function ExamSitting({
         </div>
       )}
 
+      {integrity.canFullscreen && !integrity.fullscreen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/85 p-6 backdrop-blur-sm">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="exam-focus-title" className="w-full max-w-md rounded-2xl border border-amber-300/40 bg-white p-6 text-center shadow-2xl dark:bg-slate-900">
+            <h2 id="exam-focus-title" className="text-xl font-semibold text-slate-950 dark:text-white">Return to the exam</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Leaving full screen is recorded for your instructor. Return to full screen to continue the paper.
+            </p>
+            <button type="button" autoFocus onClick={() => void document.documentElement.requestFullscreen().catch(() => {})} className="mt-5 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700">
+              Return to full screen
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Status bar */}
       <div className="sticky top-0 z-10 -mx-2 mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 backdrop-blur dark:border-white/10 dark:bg-slate-950/95">
         <span className="text-sm font-medium">
@@ -657,9 +679,6 @@ function ExamSitting({
           </div>
           <button type="button" onClick={() => { recordTime(); setReviewing(true); }} className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium dark:border-white/20">
             Review &amp; submit
-          </button>
-          <button type="button" onClick={() => { if (window.confirm('Leave this paper? Your answers stay saved in this browser' + (paper.deadline ? ', but the clock keeps running.' : '.'))) onLeave(); }} className="mt-2 w-full rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10">
-            Leave for now
           </button>
         </nav>
       </div>
